@@ -5,21 +5,23 @@ import Dashboard from './pages/Dashboard';
 import Report from './pages/Report';
 import Certificates from './pages/Certificates';
 import Profile from './pages/Profile';
+import Auth from './pages/Auth';
 
 function App() {
-    return (
-        <Router>
-            <Navbar />
-            <div className="container">
-                <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/report" element={<Report />} />
-                    <Route path="/certificates" element={<Certificates />} />
-                    <Route path="/profile" element={<Profile />} />
-                </Routes>
-            </div>
-        </Router>
-    );
+  return (
+    <Router>
+      <Navbar />
+      <div className="container">
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/report" element={<Report />} />
+          <Route path="/certificates" element={<Certificates />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/auth" element={<Auth />} />
+        </Routes>
+      </div>
+    </Router>
+  );
 }
 
 export default App;

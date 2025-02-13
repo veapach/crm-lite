@@ -6,6 +6,7 @@ import (
 
 	"crm-backend/internal/certificates"
 	"crm-backend/internal/db"
+	"crm-backend/internal/users"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -18,7 +19,7 @@ func main() {
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
-		AllowHeaders:     []string{"Origin", "Content-Type"},
+		AllowHeaders:     []string{"Origin", "Authorization", "Content-Type"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 	}))
@@ -29,6 +30,10 @@ func main() {
 	r.PUT("/api/rename", certificates.RenameCertificateHandler)
 	r.DELETE("/api/delete/:filename", certificates.DeleteCertificateHandler)
 	r.GET("/api/search", certificates.SearchCertificatesHandler)
+
+	r.POST("/api/register", users.RegisterHandler)
+	r.POST("/api/login", users.LoginHandler)
+	r.GET("/api/check-auth", users.CheckAuthHandler)
 
 	fmt.Println("Сервер запущен на http://localhost:8080")
 	log.Fatal(r.Run(":8080"))
