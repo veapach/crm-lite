@@ -4,7 +4,7 @@ import axios from 'axios';
 function Certificates() {
   const [files, setFiles] = useState([]);
   const [certificates, setCertificates] = useState([]);
-  const [newName, setNewName] = useState('');
+  const [newNames, setNewNames] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
@@ -61,11 +61,12 @@ function Certificates() {
   };
 
   const handleRename = async (oldName) => {
-    if (!newName.trim()) return;
+    const newName = newNames[oldName];
+    if (!newName || !newName.trim()) return;
 
     try {
       await axios.put('http://localhost:8080/api/rename', { oldName, newName });
-      setNewName('');
+      setNewNames((prev) => ({ ...prev, [oldName]: '' }));
       fetchCertificates();
     } catch (error) {
       console.error('Ошибка при переименовании файла', error);
@@ -92,6 +93,11 @@ function Certificates() {
     }
   };
 
+  const handleResetSearch = async () => {
+    setSearchQuery('');
+    fetchCertificates();
+  };
+
   return (
     <div className="container mt-5">
       <h1>Хранилище сертификатов</h1>
@@ -116,8 +122,11 @@ function Certificates() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
-        <button className="btn btn-secondary mt-2" onClick={handleSearch}>
+        <button className="btn btn-primary mt-2" onClick={handleSearch}>
           Поиск
+        </button>
+        <button className="btn btn-secondary mt-2 ms-2" onClick={handleResetSearch}>
+          Сброс
         </button>
       </div>
 
@@ -142,8 +151,8 @@ function Certificates() {
                   <input
                     type="text"
                     placeholder="Новое имя"
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
+                    value={newNames[certificate] || ''}
+                    onChange={(e) => setNewNames((prev) => ({ ...prev, [certificate]: e.target.value }))}
                     className="form-control d-inline-block w-auto"
                   />
                   <button className="btn btn-warning btn-sm mx-2" onClick={() => handleRename(certificate)}>
