@@ -95,9 +95,7 @@ func CheckAuth(c *gin.Context) {
 	}
 
 	if strings.HasPrefix(tokenString, "Bearer") {
-		tokenString = strings.TrimPrefix(tokenString, "Bearer")
-	} else if strings.HasPrefix(tokenString, "Bearer ") {
-		tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+		tokenString = strings.TrimPrefix(strings.TrimPrefix(tokenString, "Bearer"), " ")
 	}
 	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -133,4 +131,66 @@ func CheckAuth(c *gin.Context) {
 			"phone":      user.Phone,
 		},
 	})
+}
+
+func UpdateProfile(c *gin.Context) {
+	tokenString := c.GetHeader("Authorization")
+	if tokenString == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "токен отсутствует"})
+		return
+	}
+
+	if strings.HasPrefix(tokenString, "Bearer") {
+		tokenString = strings.TrimPrefix(strings.TrimPrefix(tokenString, "Bearer"), " ")
+	}
+
+	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("неожиданный метод подписи: %v", t.Header["alg"])
+		}
+		return secretKey, nil
+	})
+
+	if err != nil || !token.Valid {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "недействительный токен"})
+		return
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "недействительные утверждения токена"})
+		return
+	}
+
+	userID := uint(claims["user_id"].(float64))
+
+	var input struct {
+		FirstName  string `json:"firstName"`
+		LastName   string `json:"lastName"`
+		Department string `json:"department"`
+		Password   string `json:"password,omitempty"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный формат данных"})
+		return
+	}
+
+	updates := map[string]interface{}{
+		"first_name": input.FirstName,
+		"last_name":  input.LastName,
+		"department": input.Department,
+	}
+
+	if input.Password != "" {
+		hashedPass, _ := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+		updates["password"] = string(hashedPass)
+	}
+
+	if err := db.DB.Model(&db.User{}).Where("id = ?", userID).Updates(updates).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка при обновлении профиля"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "профиль успешно обновлен"})
 }

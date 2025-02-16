@@ -35,6 +35,8 @@ func main() {
 	r.POST("/api/login", users.Login)
 	r.GET("/api/check-auth", users.CheckAuth)
 
+	r.PUT("/api/profile", users.UpdateProfile)
+
 	fmt.Println("Сервер запущен на http://localhost:8080")
 	log.Fatal(r.Run(":8080"))
 }
