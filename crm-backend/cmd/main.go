@@ -17,7 +17,7 @@ func main() {
 
 	r := gin.Default()
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:3001"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
 		AllowHeaders:     []string{"Origin", "Authorization", "Content-Type"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -31,9 +31,9 @@ func main() {
 	r.DELETE("/api/delete/:filename", certificates.DeleteCertificateHandler)
 	r.GET("/api/search", certificates.SearchCertificatesHandler)
 
-	r.POST("/api/register", users.RegisterHandler)
-	r.POST("/api/login", users.LoginHandler)
-	r.GET("/api/check-auth", users.CheckAuthHandler)
+	r.POST("/api/register", users.Register)
+	r.POST("/api/login", users.Login)
+	r.GET("/api/check-auth", users.CheckAuth)
 
 	fmt.Println("Сервер запущен на http://localhost:8080")
 	log.Fatal(r.Run(":8080"))

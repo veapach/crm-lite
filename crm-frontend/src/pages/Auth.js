@@ -1,54 +1,40 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-function Auth() {
-  const [formData, setFormData] = useState({
-    phone: '',
-    password: '',
-    firstName: '',
-    lastName: '',
-    department: '',
-  });
+export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [form, setForm] = useState({ phone: '', password: '', firstName: '', lastName: '', department: '' });
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
-    setErrorMessage('');
+    setForm({ ...form, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const url = isLogin ? 'http://localhost:8080/api/login' : 'http://localhost:8080/api/register';
+    setError('');
+
     try {
-      const response = await axios.post(url, formData);
+      const { data } = await axios.post(`http://localhost:8080/api/${isLogin ? 'login' : 'register'}`, form);
 
-      if (isLogin) {
-        // Сохраняем токен и данные пользователя
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-      }
+      localStorage.setItem('token', data.token);
+      // Добавляем событие storage для обновления navbar
+      window.dispatchEvent(new Event('storage'));
 
-      alert('Успешно');
-      setErrorMessage('');
-      window.location.reload(); // Обновляем страницу после успеха
-    } catch (error) {
-      if (error.response) {
-        setErrorMessage(error.response.data.error || 'Ошибка');
-      } else {
-        setErrorMessage('Ошибка сети');
-      }
+      navigate('/profile');
+    } catch (err) {
+      console.error('Ошибка:', err.response?.data || err.message);
+      setError(err.response?.data?.message || 'Произошла ошибка');
     }
   };
 
   return (
     <div className="container mt-5">
       <h1>{isLogin ? 'Вход' : 'Регистрация'}</h1>
-      <form onSubmit={handleSubmit}>
+
+      <form onSubmit={handleSubmit} className="mb-4">
         {!isLogin && (
           <>
             <div className="mb-3">
@@ -60,8 +46,9 @@ function Auth() {
                 className="form-control"
                 id="firstName"
                 name="firstName"
-                value={formData.firstName}
+                value={form.firstName}
                 onChange={handleChange}
+                required
               />
             </div>
             <div className="mb-3">
@@ -73,8 +60,9 @@ function Auth() {
                 className="form-control"
                 id="lastName"
                 name="lastName"
-                value={formData.lastName}
+                value={form.lastName}
                 onChange={handleChange}
+                required
               />
             </div>
             <div className="mb-3">
@@ -86,8 +74,9 @@ function Auth() {
                 className="form-control"
                 id="department"
                 name="department"
-                value={formData.department}
+                value={form.department}
                 onChange={handleChange}
+                required
               />
             </div>
           </>
@@ -98,13 +87,13 @@ function Auth() {
           </label>
           <input
             type="text"
-            className={`form-control ${errorMessage && 'is-invalid'}`}
+            className="form-control"
             id="phone"
             name="phone"
-            value={formData.phone}
+            value={form.phone}
             onChange={handleChange}
+            required
           />
-          {errorMessage && <div className="invalid-feedback">{errorMessage}</div>}
         </div>
         <div className="mb-3">
           <label htmlFor="password" className="form-label">
@@ -112,23 +101,23 @@ function Auth() {
           </label>
           <input
             type="password"
-            className={`form-control ${errorMessage && 'is-invalid'}`}
+            className="form-control"
             id="password"
             name="password"
-            value={formData.password}
+            value={form.password}
             onChange={handleChange}
+            required
           />
-          {errorMessage && <div className="invalid-feedback">{errorMessage}</div>}
         </div>
+        {error && <div className="alert alert-danger">{error}</div>}
         <button type="submit" className="btn btn-primary">
           {isLogin ? 'Войти' : 'Зарегистрироваться'}
         </button>
-        <button type="button" className="btn btn-link" onClick={() => setIsLogin(!isLogin)}>
-          {isLogin ? 'Нет аккаунта? Зарегистрируйтесь' : 'Уже есть аккаунт? Войдите'}
-        </button>
       </form>
+
+      <button onClick={() => setIsLogin(!isLogin)} className="btn btn-link">
+        {isLogin ? 'Нет аккаунта? Зарегистрируйтесь' : 'Уже есть аккаунт? Войти'}
+      </button>
     </div>
   );
 }
-
-export default Auth;

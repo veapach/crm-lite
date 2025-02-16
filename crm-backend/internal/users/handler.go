@@ -2,115 +2,135 @@ package users
 
 import (
 	"crm-backend/internal/db"
+	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v4"
+	_ "github.com/mattn/go-sqlite3"
+	"golang.org/x/crypto/bcrypt"
 )
 
-var jwtKey = []byte("testjwttoken")
+var secretKey = []byte("testjwtkey")
 
-var allowedPhones = map[string]bool{
-	"79197627770": true,
-	"+0987654321": true,
-}
-
-type Claims struct {
-	Phone string `json:"phone"`
-	jwt.StandardClaims
-}
-
-func RegisterHandler(c *gin.Context) {
-	var user db.User
-	if err := c.ShouldBindJSON(&user); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат запроса"})
+func Register(c *gin.Context) {
+	var input db.User
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}
 
-	if !allowedPhones[user.Phone] {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Телефон не разрешен для регистрации"})
+	var existing db.User
+	if err := db.DB.Where("phone = ?", input.Phone).First(&existing).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "User already exists"})
 		return
 	}
 
-	db.DB.Create(&user)
-	c.JSON(http.StatusOK, gin.H{"message": "Пользователь зарегистрирован"})
-}
+	hashedPass, _ := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+	input.Password = string(hashedPass)
 
-func LoginHandler(c *gin.Context) {
-	var user db.User
-	if err := c.ShouldBindJSON(&user); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат запроса"})
+	if err := db.DB.Create(&input).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error while registrating"})
 		return
 	}
 
-	var dbUser db.User
-	if err := db.DB.Where("phone = ? AND password = ?", user.Phone, user.Password).First(&dbUser).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверный телефон или пароль"})
-		return
-	}
-
-	// Генерируем JWT токен
-	expirationTime := time.Now().Add(24 * time.Hour)
-	claims := &Claims{
-		Phone: dbUser.Phone,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expirationTime.Unix(),
-		},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString(jwtKey)
+	token, err := generateToken(input.ID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка генерации токена"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error generating token"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"token":   tokenString,
-		"expires": expirationTime,
-		"user":    dbUser,
+		"message": "Registration completed",
+		"token":   token,
 	})
 }
 
-func AuthMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		tokenString := c.GetHeader("Authorization")
-		if tokenString == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Токен отсутствует"})
-			return
-		}
-
-		claims := &Claims{}
-		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-			return jwtKey, nil
-		})
-
-		if err != nil || !token.Valid {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Неверный токен"})
-			return
-		}
-
-		var user db.User
-		if err := db.DB.Where("phone = ?", claims.Phone).First(&user).Error; err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Пользователь не найден"})
-			return
-		}
-
-		c.Set("user", user)
-		c.Next()
-	}
+func generateToken(userID uint) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": userID,
+		"exp":     time.Now().Add(time.Hour * 24).Unix(),
+	})
+	return token.SignedString(secretKey)
 }
 
-func CheckAuthHandler(c *gin.Context) {
-	user, exists := c.Get("user")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"isAuthenticated": false})
+func Login(c *gin.Context) {
+	var input struct {
+		Phone    string `json:"phone"`
+		Password string `json:"password"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid format"})
+		return
+	}
+
+	var user db.User
+	if err := db.DB.Where("phone = ?", input.Phone).First(&user).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+		return
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Incorrect password"})
+		return
+	}
+
+	token, err := generateToken(user.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error while generating token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"token": token})
+
+}
+
+func CheckAuth(c *gin.Context) {
+	tokenString := c.GetHeader("Authorization")
+	if tokenString == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "токен отсутствует"})
+		return
+	}
+
+	if strings.HasPrefix(tokenString, "Bearer") {
+		tokenString = strings.TrimPrefix(tokenString, "Bearer")
+	} else if strings.HasPrefix(tokenString, "Bearer ") {
+		tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+	}
+	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("неожиданный метод подписи: %v", t.Header["alg"])
+		}
+		return secretKey, nil
+	})
+
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "недействительный токен: " + err.Error()})
+		return
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok || !token.Valid {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "недействительные утверждения токена"})
+		return
+	}
+
+	userID := uint(claims["user_id"].(float64))
+	var user db.User
+	if err := db.DB.First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не найден"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"isAuthenticated": true,
-		"user":            user,
+		"user": gin.H{
+			"id":         user.ID,
+			"firstName":  user.FirstName,
+			"lastName":   user.LastName,
+			"department": user.Department,
+			"phone":      user.Phone,
+		},
 	})
 }

@@ -18,6 +18,7 @@ function App() {
           <Route path="/certificates" element={<Certificates />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="*" element={<h2>404 Not Found</h2>} />
         </Routes>
       </div>
     </Router>
