@@ -35,8 +35,8 @@ func main() {
 
 	r := gin.Default()
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:3001"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Authorization", "Content-Type"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
@@ -56,6 +56,9 @@ func main() {
 	r.PUT("/api/profile", users.AuthMiddleware(), users.UpdateProfile)
 
 	r.POST("/api/report", users.AuthMiddleware(), report.CreateReport)
+	r.GET("/api/reports", users.AuthMiddleware(), report.GetReportsHandler)
+
+	r.Static("/uploads/reports", "./uploads/reports")
 
 	fmt.Println("Сервер запущен на http://localhost:8080")
 	log.Fatal(r.Run(":8080"))

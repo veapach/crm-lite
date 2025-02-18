@@ -102,13 +102,16 @@ func CreateReport(c *gin.Context) {
 	}
 	filePath, displayName := parts[0], parts[1]
 
+	fileName := filepath.Base(filePath)
+	relativeFilePath := filepath.Join("uploads", "reports", fileName)
+
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Сгенерированный файл не найден: %v", err)})
 		return
 	}
 
 	report := db.Report{
-		Filename: strings.TrimSpace(filePath),
+		Filename: strings.TrimSpace(relativeFilePath),
 		Date:     reportData.Date,
 		Address:  reportData.Address,
 	}
@@ -123,4 +126,14 @@ func CreateReport(c *gin.Context) {
 		"report":      report,
 		"displayName": displayName,
 	})
+}
+
+func GetReportsHandler(c *gin.Context) {
+	var reports []db.Report
+	if err := db.DB.Find(&reports).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении отчетов"})
+		return
+	}
+
+	c.JSON(http.StatusOK, reports)
 }
