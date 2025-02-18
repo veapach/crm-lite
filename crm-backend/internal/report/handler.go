@@ -114,6 +114,7 @@ func CreateReport(c *gin.Context) {
 		Filename: strings.TrimSpace(relativeFilePath),
 		Date:     reportData.Date,
 		Address:  reportData.Address,
+		UserID:   userID.(uint),
 	}
 
 	if result := db.DB.Create(&report); result.Error != nil {
@@ -129,8 +130,21 @@ func CreateReport(c *gin.Context) {
 }
 
 func GetReportsHandler(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
+		return
+	}
+
+	showOnlyMine := c.DefaultQuery("onlyMine", "true")
 	var reports []db.Report
-	if err := db.DB.Find(&reports).Error; err != nil {
+	query := db.DB
+
+	if showOnlyMine == "true" {
+		query = query.Where("user_id = ?", userID)
+	}
+
+	if err := query.Find(&reports).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении отчетов"})
 		return
 	}

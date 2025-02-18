@@ -28,6 +28,7 @@ type Report struct {
 	Filename string `gorm:"not null" json:"filename"`
 	Date     string `gorm:"not null" json:"date"`
 	Address  string `gorm:"not null" json:"address"`
+	UserID   uint   `gorm:"not null" json:"userId"`
 }
 
 func InitDB() {

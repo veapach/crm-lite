@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { renderAsync } from 'docx-preview';
 import { Modal } from 'react-bootstrap';
@@ -10,16 +10,17 @@ function Reports() {
   const [selectedReport, setSelectedReport] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState('desc');
+  const [showOnlyMine, setShowOnlyMine] = useState(true);
   const viewerRef = useRef(null);
 
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async () => {
     try {
-      const response = await axios.get('http://localhost:8080/api/reports');
+      const response = await axios.get(`http://localhost:8080/api/reports?onlyMine=${showOnlyMine}`);
       setReports(response.data);
     } catch (error) {
       console.error('Ошибка при загрузке отчетов', error);
     }
-  };
+  }, [showOnlyMine]);
 
   const handlePreviewClick = async (report) => {
     setSelectedReport(report);
@@ -72,29 +73,41 @@ function Reports() {
 
   useEffect(() => {
     fetchReports();
-  }, []);
+  }, [fetchReports]);
 
   return (
     <div className="container mt-5">
       <h1>Отчеты</h1>
       {error && <p className="text-danger">{error}</p>}
 
-      <div className="mb-4">
-        <div className="row">
-          <div className="col-md-8">
+      <div className="row">
+        <div className="col-md-6">
+          <input
+            type="text"
+            className="form-control"
+            placeholder="Поиск по адресу или дате..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="col-md-3">
+          <select className="form-select" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
+            <option value="desc">Сначала новые</option>
+            <option value="asc">Сначала старые</option>
+          </select>
+        </div>
+        <div className="col-md-3">
+          <div className="form-check mt-2">
             <input
-              type="text"
-              className="form-control"
-              placeholder="Поиск по адресу или дате..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              type="checkbox"
+              className="form-check-input me-2"
+              id="showOnlyMine"
+              checked={showOnlyMine}
+              onChange={(e) => setShowOnlyMine(e.target.checked)}
             />
-          </div>
-          <div className="col-md-4">
-            <select className="form-select" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
-              <option value="desc">Сначала новые</option>
-              <option value="asc">Сначала старые</option>
-            </select>
+            <label className="form-check-label" htmlFor="showOnlyMine">
+              Созданные вами отчеты
+            </label>
           </div>
         </div>
       </div>
