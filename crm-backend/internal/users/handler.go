@@ -194,3 +194,42 @@ func UpdateProfile(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "профиль успешно обновлен"})
 }
+
+func AuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		tokenString := c.GetHeader("Authorization")
+		if tokenString == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "токен отсутствует"})
+			c.Abort()
+			return
+		}
+
+		if strings.HasPrefix(tokenString, "Bearer") {
+			tokenString = strings.TrimPrefix(strings.TrimPrefix(tokenString, "Bearer"), " ")
+		}
+
+		token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
+			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("неожиданный метод подписи: %v", t.Header["alg"])
+			}
+			return secretKey, nil
+		})
+
+		if err != nil || !token.Valid {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "недействительный токен"})
+			c.Abort()
+			return
+		}
+
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "недействительные утверждения токена"})
+			c.Abort()
+			return
+		}
+
+		userID := uint(claims["user_id"].(float64))
+		c.Set("userID", userID)
+		c.Next()
+	}
+}

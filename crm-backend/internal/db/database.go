@@ -15,12 +15,19 @@ type Certificate struct {
 }
 
 type User struct {
-	ID         uint   `json:"id"`
-	FirstName  string `json:"firstName"`
-	LastName   string `json:"lastName"`
-	Department string `json:"department"`
-	Phone      string `json:"phone"`
-	Password   string `json:"password"`
+	ID         uint   `gorm:"primaryKey" json:"id"`
+	FirstName  string `gorm:"not null" json:"firstName"`
+	LastName   string `gorm:"not null" json:"lastName"`
+	Department string `gorm:"not null" json:"department"`
+	Phone      string `gorm:"uniqueIndex;not null" json:"phone"`
+	Password   string `gorm:"not null" json:"password"`
+}
+
+type Report struct {
+	ID       uint   `gorm:"primaryKey" json:"id"`
+	Filename string `gorm:"not null" json:"filename"`
+	Date     string `gorm:"not null" json:"date"`
+	Address  string `gorm:"not null" json:"address"`
 }
 
 func InitDB() {
@@ -30,6 +37,5 @@ func InitDB() {
 		log.Fatal("Ошибка при подключении к БД:", err)
 	}
 
-	DB.AutoMigrate(&Certificate{})
-	DB.AutoMigrate(&User{})
+	DB.AutoMigrate(&Certificate{}, &User{}, &Report{})
 }

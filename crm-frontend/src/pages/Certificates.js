@@ -45,7 +45,7 @@ function Certificates() {
 
   const handleDownload = (filename) => {
     axios({
-      url: `http://localhost:8080/api/download/${filename}`,
+      url: `http://localhost:8080/api/certificates/download/${filename}`,
       method: 'GET',
       responseType: 'blob',
     })
@@ -65,7 +65,7 @@ function Certificates() {
     if (!newName || !newName.trim()) return;
 
     try {
-      await axios.put('http://localhost:8080/api/rename', { oldName, newName });
+      await axios.put('http://localhost:8080/api/certificates/rename', { oldName, newName });
       setNewNames((prev) => ({ ...prev, [oldName]: '' }));
       fetchCertificates();
     } catch (error) {
@@ -75,7 +75,7 @@ function Certificates() {
 
   const handleDelete = async (filename) => {
     try {
-      await axios.delete(`http://localhost:8080/api/delete/${filename}`);
+      await axios.delete(`http://localhost:8080/api/certificates/delete/${filename}`);
       fetchCertificates();
     } catch (error) {
       console.error('Ошибка при удалении файла', error);
@@ -85,7 +85,7 @@ function Certificates() {
   const handleSearch = async () => {
     if (searchQuery.trim()) {
       try {
-        const response = await axios.get(`http://localhost:8080/api/search?query=${searchQuery}`);
+        const response = await axios.get(`http://localhost:8080/api/certificates/search?query=${searchQuery}`);
         setCertificates(response.data || []);
       } catch (error) {
         console.error('Ошибка при поиске сертификатов', error);
@@ -144,7 +144,12 @@ function Certificates() {
             certificates.map((certificate, index) => (
               <tr key={index}>
                 <td>
-                  <img src={`http://localhost:8080/api/download/${certificate}`} alt="Preview" width="50" height="50" />
+                  <img
+                    src={`http://localhost:8080/api/certificates/download/${certificate}`}
+                    alt="Preview"
+                    width="50"
+                    height="50"
+                  />
                 </td>
                 <td>{certificate}</td>
                 <td>

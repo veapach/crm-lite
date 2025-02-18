@@ -1,145 +1,260 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 function Report() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     date: '',
     address: '',
-    classification: '',
-    works: '',
-    materials: '',
-    additionalWorks: '',
+    classification: 'ТО',
+    customClass: '',
+    material: '',
     recommendations: '',
     defects: '',
-    fullName: '',
+    additionalWorks: '',
+    comments: '',
+    photos: [],
+    checklistItems: [
+      { task: 'Ежемесячный технический осмотр оборудования на предмет его работоспособности', done: false },
+      { task: 'Технический осмотр оборудования на предмет его работоспособности', done: false },
+      { task: 'Диагностика неисправного оборудования на предмет проведения его ремонта', done: false },
+      { task: 'Диагностика оборудования', done: false },
+      { task: 'Проверка крепления термостатов, сигнальной арматуры, дверей и облицовки', done: false },
+      { task: 'Проверка надежности крепления заземления и отсутствия механических повреждений проводов', done: false },
+      { task: 'Проверка работы программных устройств', done: false },
+      { task: 'Проверка нагревательных элементов', done: false },
+      { task: 'Проверка соленоидных клапанов', done: false },
+      {
+        task: 'Проверка состояния электроаппаратуры, при необходимости затяжка электроконтактных соединений, замена сгоревших плавких вставок',
+        done: false,
+      },
+      { task: 'Контроль силы тока в каждой из фаз и межфазных напряжений', done: false },
+      { task: 'Проверка настройки микропроцессоров', done: false },
+      { task: 'Контрольная проверка агрегата в рабочем режиме', done: false },
+    ],
   });
-  const [photos, setPhotos] = useState([]);
-  const [message, setMessage] = useState('');
+
+  const [previewImages, setPreviewImages] = useState([]);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prevData) => ({
-      ...prevData,
+    setFormData((prev) => ({
+      ...prev,
       [name]: value,
     }));
   };
 
-  const handleFileChange = (e) => {
-    setPhotos(e.target.files);
+  const handlePhotoChange = (e) => {
+    const files = Array.from(e.target.files);
+
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewImages((prev) => [...prev, reader.result]);
+        setFormData((prev) => ({
+          ...prev,
+          photos: [...prev.photos, reader.result], // Сохраняем base64 строку
+        }));
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleChecklistChange = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      checklistItems: prev.checklistItems.map((item, i) => (i === index ? { ...item, done: !item.done } : item)),
+    }));
+  };
+
+  const handleRemovePhoto = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      photos: prev.photos.filter((_, i) => i !== index),
+    }));
+    setPreviewImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const data = new FormData();
-    Object.keys(formData).forEach((key) => {
-      data.append(key, formData[key]);
-    });
-    Array.from(photos).forEach((photo) => {
-      data.append('photos', photo);
-    });
+    setError('');
+    setSuccess('');
+
+    if (!formData.date || !formData.address) {
+      setError('Пожалуйста, заполните обязательные поля (дата и адрес)');
+      return;
+    }
 
     try {
-      const response = await axios.post('http://localhost:8080/api/generateReport', data);
-      setMessage('Ваш отчет готов, нажмите чтобы скачать');
-    } catch (error) {
-      console.error('Ошибка при создании отчета', error);
+      // Создаем объект для отправки
+      const reportData = {
+        ...formData,
+        photos: formData.photos || [], // Убедимся, что photos всегда будет массивом
+      };
+
+      await axios.post('http://localhost:8080/api/report', reportData, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      setSuccess('Отчет успешно создан');
+      setTimeout(() => navigate('/reports'), 2000);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Ошибка при создании отчета');
     }
   };
 
   return (
-    <div className="container mt-5">
+    <div className="container mt-5 mb-5">
       <h1>Создание отчета</h1>
-      <form onSubmit={handleSubmit}>
+
+      {error && <div className="alert alert-danger">{error}</div>}
+      {success && <div className="alert alert-success">{success}</div>}
+
+      <form onSubmit={handleSubmit} className="needs-validation">
         <div className="mb-3">
-          <label htmlFor="date" className="form-label">
-            Дата
-          </label>
-          <input type="date" className="form-control" id="date" name="date" required onChange={handleChange} />
-        </div>
-        <div className="mb-3">
-          <label htmlFor="address" className="form-label">
-            Адрес
-          </label>
-          <input type="text" className="form-control" id="address" name="address" required onChange={handleChange} />
-        </div>
-        <div className="mb-3">
-          <label htmlFor="classification" className="form-label">
-            Классификация
-          </label>
+          <label className="form-label">Дата *</label>
           <input
-            type="text"
+            type="date"
             className="form-control"
-            id="classification"
-            name="classification"
+            name="date"
+            value={formData.date}
             onChange={handleChange}
+            required
           />
         </div>
+
         <div className="mb-3">
-          <label htmlFor="works" className="form-label">
-            Работы
-          </label>
-          <input type="text" className="form-control" id="works" name="works" onChange={handleChange} />
-        </div>
-        <div className="mb-3">
-          <label htmlFor="materials" className="form-label">
-            Материалы
-          </label>
-          <input type="text" className="form-control" id="materials" name="materials" onChange={handleChange} />
-        </div>
-        <div className="mb-3">
-          <label htmlFor="additionalWorks" className="form-label">
-            Дополнительные работы
-          </label>
+          <label className="form-label">Адрес *</label>
           <input
             type="text"
             className="form-control"
-            id="additionalWorks"
-            name="additionalWorks"
+            name="address"
+            value={formData.address}
             onChange={handleChange}
+            required
           />
         </div>
+
         <div className="mb-3">
-          <label htmlFor="recommendations" className="form-label">
-            Рекомендации
-          </label>
-          <input
-            type="text"
+          <label className="form-label">Классификация</label>
+          <select className="form-select" name="classification" value={formData.classification} onChange={handleChange}>
+            <option value="ТО">ТО</option>
+            <option value="ПНР">ПНР</option>
+            <option value="Аварийный вызов">Аварийный вызов</option>
+            <option value="Другое">Другое</option>
+          </select>
+
+          {formData.classification === 'Другое' && (
+            <input
+              type="text"
+              className="form-control mt-2"
+              name="customClass"
+              value={formData.customClass}
+              onChange={handleChange}
+              placeholder="Укажите свой вариант"
+            />
+          )}
+        </div>
+
+        <div className="mb-3">
+          <label className="form-label">Фотографии</label>
+          <input type="file" className="form-control" multiple accept="image/*" onChange={handlePhotoChange} />
+          <div className="mt-2 d-flex flex-wrap gap-2">
+            {previewImages.map((preview, index) => (
+              <div key={index} className="position-relative">
+                <img
+                  src={preview}
+                  alt={`Preview ${index + 1}`}
+                  style={{ width: '100px', height: '100px', objectFit: 'cover' }}
+                />
+                <button
+                  type="button"
+                  className="btn btn-danger btn-sm position-absolute top-0 end-0"
+                  onClick={() => handleRemovePhoto(index)}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mb-3">
+          <label className="form-label">Материалы</label>
+          <textarea
             className="form-control"
-            id="recommendations"
+            name="material"
+            value={formData.material}
+            onChange={handleChange}
+            rows="3"
+          />
+        </div>
+
+        <div className="mb-3">
+          <label className="form-label">Рекомендации</label>
+          <textarea
+            className="form-control"
             name="recommendations"
+            value={formData.recommendations}
             onChange={handleChange}
+            rows="3"
           />
         </div>
+
         <div className="mb-3">
-          <label htmlFor="defects" className="form-label">
-            Дефекты
-          </label>
-          <input type="text" className="form-control" id="defects" name="defects" onChange={handleChange} />
+          <label className="form-label">Дефекты</label>
+          <textarea className="form-control" name="defects" value={formData.defects} onChange={handleChange} rows="3" />
         </div>
+
         <div className="mb-3">
-          <label htmlFor="fullName" className="form-label">
-            ФИО
-          </label>
-          <input type="text" className="form-control" id="fullName" name="fullName" onChange={handleChange} />
+          <label className="form-label">Чек-лист работ</label>
+          {formData.checklistItems.map((item, index) => (
+            <div key={index} className="form-check">
+              <input
+                type="checkbox"
+                className="form-check-input"
+                checked={item.done}
+                onChange={() => handleChecklistChange(index)}
+                id={`checklist-${index}`}
+              />
+              <label className="form-check-label" htmlFor={`checklist-${index}`}>
+                {item.task}
+              </label>
+            </div>
+          ))}
         </div>
+
         <div className="mb-3">
-          <label htmlFor="photos" className="form-label">
-            Фотографии
-          </label>
-          <input type="file" className="form-control" id="photos" multiple onChange={handleFileChange} />
+          <label className="form-label">Дополнительные работы</label>
+          <textarea
+            className="form-control"
+            name="additionalWorks"
+            value={formData.additionalWorks}
+            onChange={handleChange}
+            rows="3"
+          />
         </div>
+
+        <div className="mb-3">
+          <label className="form-label">Комментарии</label>
+          <textarea
+            className="form-control"
+            name="comments"
+            value={formData.comments}
+            onChange={handleChange}
+            rows="3"
+          />
+        </div>
+
         <button type="submit" className="btn btn-primary">
           Создать отчет
         </button>
       </form>
-      {message && (
-        <div className="mt-3">
-          <p>{message}</p>
-          <a href="http://localhost:8080/api/downloadReport" className="btn btn-success">
-            Скачать
-          </a>
-        </div>
-      )}
     </div>
   );
 }

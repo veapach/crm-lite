@@ -3,16 +3,34 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"crm-backend/internal/certificates"
 	"crm-backend/internal/db"
+	"crm-backend/internal/report"
 	"crm-backend/internal/users"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
+func createRequiredDirectories() {
+	dirs := []string{
+		"uploads/certificates",
+		"uploads/reports",
+	}
+
+	for _, dir := range dirs {
+		err := os.MkdirAll(dir, 0755)
+		if err != nil {
+			log.Fatalf("Ошибка при создании директории %s: %v", dir, err)
+		}
+	}
+}
+
 func main() {
+	createRequiredDirectories()
+
 	db.InitDB()
 
 	r := gin.Default()
@@ -26,16 +44,18 @@ func main() {
 
 	r.GET("/api/certificates", certificates.GetCertificatesHandler)
 	r.POST("/api/certificates", certificates.UploadCertificateHandler)
-	r.GET("/api/download/:filename", certificates.DownloadCertificateHandler)
-	r.PUT("/api/rename", certificates.RenameCertificateHandler)
-	r.DELETE("/api/delete/:filename", certificates.DeleteCertificateHandler)
-	r.GET("/api/search", certificates.SearchCertificatesHandler)
+	r.GET("/api/certificates/download/:filename", certificates.DownloadCertificateHandler)
+	r.PUT("/api/certificates/rename", certificates.RenameCertificateHandler)
+	r.DELETE("/api/certificates/delete/:filename", certificates.DeleteCertificateHandler)
+	r.GET("/api/certificates/search", certificates.SearchCertificatesHandler)
 
 	r.POST("/api/register", users.Register)
 	r.POST("/api/login", users.Login)
 	r.GET("/api/check-auth", users.CheckAuth)
 
-	r.PUT("/api/profile", users.UpdateProfile)
+	r.PUT("/api/profile", users.AuthMiddleware(), users.UpdateProfile)
+
+	r.POST("/api/report", users.AuthMiddleware(), report.CreateReport)
 
 	fmt.Println("Сервер запущен на http://localhost:8080")
 	log.Fatal(r.Run(":8080"))

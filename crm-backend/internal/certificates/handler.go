@@ -1,6 +1,7 @@
 package certificates
 
 import (
+	"crm-backend/internal/db"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -9,8 +10,8 @@ import (
 )
 
 func GetCertificatesHandler(c *gin.Context) {
-	certificates, err := GetAllCertificates()
-	if err != nil {
+	var certificates []db.Certificate
+	if err := db.DB.Find(&certificates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении сертификатов"})
 		return
 	}
@@ -28,14 +29,15 @@ func UploadCertificateHandler(c *gin.Context) {
 	files := form.File["file"]
 
 	for _, file := range files {
-		filePath := filepath.Join("uploads", file.Filename)
+		filePath := filepath.Join("uploads", "certificates", file.Filename)
 
 		if err := c.SaveUploadedFile(file, filePath); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении файла"})
 			return
 		}
 
-		if err := CreateCertificate(file.Filename); err != nil {
+		certificate := db.Certificate{Filename: file.Filename}
+		if err := db.DB.Create(&certificate).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении данных в БД"})
 			return
 		}
@@ -46,7 +48,7 @@ func UploadCertificateHandler(c *gin.Context) {
 
 func DownloadCertificateHandler(c *gin.Context) {
 	filename := c.Param("filename")
-	filePath := filepath.Join("uploads", filename)
+	filePath := filepath.Join("uploads", "certificates", filename)
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден"})
@@ -66,10 +68,10 @@ func RenameCertificateHandler(c *gin.Context) {
 		return
 	}
 
-	oldPath := filepath.Join("uploads", request.OldName)
+	oldPath := filepath.Join("uploads", "certificates", request.OldName)
 	ext := filepath.Ext(request.OldName)
 	newNameWithExt := request.NewName + ext
-	newPath := filepath.Join("uploads", newNameWithExt)
+	newPath := filepath.Join("uploads", "certificates", newNameWithExt)
 
 	if _, err := os.Stat(oldPath); os.IsNotExist(err) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден"})
@@ -81,7 +83,7 @@ func RenameCertificateHandler(c *gin.Context) {
 		return
 	}
 
-	if err := RenameCertificateInDB(request.OldName, newNameWithExt); err != nil {
+	if err := db.DB.Model(&db.Certificate{}).Where("filename = ?", request.OldName).Update("filename", newNameWithExt).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при обновлении имени файла в БД"})
 		return
 	}
@@ -91,7 +93,7 @@ func RenameCertificateHandler(c *gin.Context) {
 
 func DeleteCertificateHandler(c *gin.Context) {
 	filename := c.Param("filename")
-	filePath := filepath.Join("uploads", filename)
+	filePath := filepath.Join("uploads", "certificates", filename)
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден"})
@@ -103,7 +105,7 @@ func DeleteCertificateHandler(c *gin.Context) {
 		return
 	}
 
-	if err := DeleteCertificateByName(filename); err != nil {
+	if err := db.DB.Where("filename = ?", filename).Delete(&db.Certificate{}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при удалении данных из БД"})
 		return
 	}
@@ -114,8 +116,8 @@ func DeleteCertificateHandler(c *gin.Context) {
 func SearchCertificatesHandler(c *gin.Context) {
 	query := c.DefaultQuery("query", "")
 
-	certificates, err := SearchCertificates(query)
-	if err != nil {
+	var certificates []db.Certificate
+	if err := db.DB.Where("filename LIKE ?", "%"+query+"%").Find(&certificates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при поиске сертификатов"})
 		return
 	}
