@@ -1,0 +1,14 @@
+
+@font-face {
+    font-family: 'Villula';
+    src: url('../public/assets/fonts/Villula-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+body {
+    overflow-x: hidden;
+    font-family: 'Villula', sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
+}

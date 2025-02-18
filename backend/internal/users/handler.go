@@ -1,7 +1,7 @@
 package users
 
 import (
-	"crm-backend/internal/db"
+	"backend/internal/db"
 	"fmt"
 	"net/http"
 	"strings"

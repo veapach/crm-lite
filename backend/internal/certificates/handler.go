@@ -1,7 +1,7 @@
 package certificates
 
 import (
-	"crm-backend/internal/db"
+	"backend/internal/db"
 	"net/http"
 	"os"
 	"path/filepath"

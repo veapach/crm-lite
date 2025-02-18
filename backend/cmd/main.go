@@ -5,10 +5,10 @@ import (
 	"log"
 	"os"
 
-	"crm-backend/internal/certificates"
-	"crm-backend/internal/db"
-	"crm-backend/internal/report"
-	"crm-backend/internal/users"
+	"backend/internal/certificates"
+	"backend/internal/db"
+	"backend/internal/report"
+	"backend/internal/users"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"

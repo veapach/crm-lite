@@ -1,7 +1,7 @@
 package report
 
 import (
-	"crm-backend/internal/db"
+	"backend/internal/db"
 	"encoding/json"
 	"fmt"
 	"net/http"
