@@ -6,9 +6,24 @@
     font-style: normal;
 }
 
+@font-face {
+    font-family: 'Play';
+    src: url('../public/assets/fonts/Play-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'OpenSans';
+    src: url('../public/assets/fonts/OpenSans.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
 body {
     overflow-x: hidden;
-    font-family: 'Villula', sans-serif;
-    background-color: #f8f9fa;
-    color: #333;
+    font-family: 'OpenSans', 'Play', sans-serif;
+    font-size: 20px;
+    background-color: #e8e8e8;
+    color: #333333;
 }

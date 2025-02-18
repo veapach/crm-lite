@@ -20,9 +20,9 @@ function Navbar() {
 
   return (
     <div>
-      <nav className="navbar navbar-expand-lg navbar-light bg-light">
+      <nav className="navbar navbar-expand-lg" style={{ backgroundColor: '#333333', color: '#e3e3e3' }}>
         <div className="container">
-          <Link className="navbar-brand" to="/">
+          <Link className="navbar-brand" style={{ fontFamily: 'Villula', color: '#e3e3e3' }} to="/">
             CRM
           </Link>
           <div className="collapse navbar-collapse" id="navbarNav">
@@ -30,22 +30,22 @@ function Navbar() {
               {isAuthenticated && (
                 <>
                   <li className="nav-item">
-                    <Link className="nav-link" to="/new-report">
+                    <Link className="nav-link" style={{ color: '#e3e3e3' }} to="/new-report">
                       Новый отчет
                     </Link>
                   </li>
                   <li className="nav-item">
-                    <Link className="nav-link" to="/reports">
+                    <Link className="nav-link" style={{ color: '#e3e3e3' }} to="/reports">
                       Отчеты
                     </Link>
                   </li>
                   <li className="nav-item">
-                    <Link className="nav-link" to="/certificates">
+                    <Link className="nav-link" style={{ color: '#e3e3e3' }} to="/certificates">
                       Сертификаты
                     </Link>
                   </li>
                   <li className="nav-item">
-                    <Link className="nav-link" to="/profile">
+                    <Link className="nav-link" style={{ color: '#e3e3e3' }} to="/profile">
                       Профиль
                     </Link>
                   </li>
@@ -53,7 +53,7 @@ function Navbar() {
               )}
               {!isAuthenticated && (
                 <li className="nav-item">
-                  <Link className="nav-link" to="/auth">
+                  <Link className="nav-link" style={{ color: '#e3e3e3' }} to="/auth">
                     Вход/Регистрация
                   </Link>
                 </li>
