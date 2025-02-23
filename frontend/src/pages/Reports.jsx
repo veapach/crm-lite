@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { renderAsync } from 'docx-preview';
 import { Modal } from 'react-bootstrap';
+import '../styles/Reports.css';
 
 function Reports() {
   const [reports, setReports] = useState([]);
@@ -12,6 +13,7 @@ function Reports() {
   const [sortOrder, setSortOrder] = useState('desc');
   const [showOnlyMine, setShowOnlyMine] = useState(true);
   const viewerRef = useRef(null);
+  const [highlightedReportId, setHighlightedReportId] = useState(null);
 
   const fetchReports = useCallback(async () => {
     try {
@@ -75,6 +77,20 @@ function Reports() {
     fetchReports();
   }, [fetchReports]);
 
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const highlightId = searchParams.get('highlight');
+    if (highlightId) {
+      setHighlightedReportId(Number(highlightId));
+      setTimeout(() => {
+        const element = document.getElementById(`report-${highlightId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    }
+  }, []);
+
   return (
     <div className="container mt-5">
       <h1>Отчеты</h1>
@@ -116,7 +132,11 @@ function Reports() {
 
       <div className="row">
         {filteredReports.map((report) => (
-          <div key={report.id} className="col-md-4 mb-4">
+          <div 
+            key={report.id} 
+            id={`report-${report.id}`}
+            className={`col-md-4 mb-4 ${report.id === highlightedReportId ? 'highlight-card' : ''}`}
+          >
             <div className="card shadow-sm">
               <div className="card-body">
                 <h5 className="card-title">Дата: {report.date}</h5>

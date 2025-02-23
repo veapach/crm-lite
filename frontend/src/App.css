@@ -27,3 +27,13 @@ body {
     background-color: #e8e8e8;
     color: #333333;
 }
+
+.custom-file-input-wrapper {
+    position: relative;
+    display: inline-block;
+}
+  
+.custom-file-input-wrapper .btn {
+    position: relative;
+    z-index: 1;
+}

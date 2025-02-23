@@ -126,6 +126,7 @@ func CreateReport(c *gin.Context) {
 		"message":     "Отчет успешно создан",
 		"report":      report,
 		"displayName": displayName,
+		"id":          report.ID,
 	})
 }
 
