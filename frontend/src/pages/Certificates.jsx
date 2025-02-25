@@ -6,10 +6,29 @@ function Certificates() {
   const [certificates, setCertificates] = useState([]);
   const [newNames, setNewNames] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
+  const [showOnlyMine, setShowOnlyMine] = useState(false);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     fetchCertificates();
+    fetchUserData();
   }, []);
+
+  const fetchUserData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const { data } = await axios.get('http://localhost:8080/api/check-auth', {
+        headers: {
+          Authorization: token,
+        },
+      });
+      setUser(data.user);
+    } catch (error) {
+      console.error('Ошибка при получении данных пользователя', error);
+    }
+  };
 
   const fetchCertificates = async () => {
     try {
@@ -36,8 +55,7 @@ function Certificates() {
       await axios.post('http://localhost:8080/api/certificates', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-
-      setTimeout(fetchCertificates, 500); // Небольшая задержка
+      fetchCertificates();
     } catch (error) {
       console.error('Ошибка при загрузке файлов', error);
     }
@@ -82,21 +100,15 @@ function Certificates() {
     }
   };
 
-  const handleSearch = async () => {
-    if (searchQuery.trim()) {
-      try {
-        const response = await axios.get(`http://localhost:8080/api/certificates/search?query=${searchQuery}`);
-        setCertificates(response.data || []);
-      } catch (error) {
-        console.error('Ошибка при поиске сертификатов', error);
-      }
-    }
-  };
-
-  const handleResetSearch = async () => {
-    setSearchQuery('');
-    fetchCertificates();
-  };
+  const filteredCertificates = certificates.filter((certificate) => {
+    const matchesSearch = certificate.toLowerCase().includes(searchQuery.toLowerCase());
+    if (!showOnlyMine) return matchesSearch;
+    
+    return matchesSearch && user && (
+      certificate.toLowerCase().includes(user.firstName.toLowerCase()) ||
+      certificate.toLowerCase().includes(user.lastName.toLowerCase())
+    );
+  });
 
   return (
     <div className="container mt-5">
@@ -114,20 +126,30 @@ function Certificates() {
         </button>
       </form>
 
-      <div className="mb-3">
-        <input
-          type="text"
-          className="form-control"
-          placeholder="Поиск по имени"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-        <button className="btn btn-primary mt-2" onClick={handleSearch}>
-          Поиск
-        </button>
-        <button className="btn btn-secondary mt-2 ms-2" onClick={handleResetSearch}>
-          Сброс
-        </button>
+      <div className="row mb-3">
+        <div className="col-md-8">
+          <input
+            type="text"
+            className="form-control"
+            placeholder="Поиск по имени"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <div className="col-md-4">
+          <div className="form-check mt-2">
+            <input
+              type="checkbox"
+              className="form-check-input"
+              id="showOnlyMine"
+              checked={showOnlyMine}
+              onChange={(e) => setShowOnlyMine(e.target.checked)}
+            />
+            <label className="form-check-label" htmlFor="showOnlyMine">
+              Мои сертификаты
+            </label>
+          </div>
+        </div>
       </div>
 
       <h3>Загруженные сертификаты</h3>
@@ -140,8 +162,8 @@ function Certificates() {
           </tr>
         </thead>
         <tbody>
-          {certificates.length > 0 ? (
-            certificates.map((certificate, index) => (
+          {filteredCertificates.length > 0 ? (
+            filteredCertificates.map((certificate, index) => (
               <tr key={index}>
                 <td>
                   <img

@@ -8,6 +8,7 @@ import (
 	"backend/internal/certificates"
 	"backend/internal/db"
 	"backend/internal/report"
+	"backend/internal/requests"
 	"backend/internal/users"
 
 	"github.com/gin-contrib/cors"
@@ -42,6 +43,7 @@ func main() {
 		AllowCredentials: true,
 	}))
 
+	// Сертификаты
 	r.GET("/api/certificates", certificates.GetCertificatesHandler)
 	r.POST("/api/certificates", certificates.UploadCertificateHandler)
 	r.GET("/api/certificates/download/:filename", certificates.DownloadCertificateHandler)
@@ -49,14 +51,20 @@ func main() {
 	r.DELETE("/api/certificates/delete/:filename", certificates.DeleteCertificateHandler)
 	r.GET("/api/certificates/search", certificates.SearchCertificatesHandler)
 
+	// Пользователь
 	r.POST("/api/register", users.Register)
 	r.POST("/api/login", users.Login)
 	r.GET("/api/check-auth", users.CheckAuth)
-
 	r.PUT("/api/profile", users.AuthMiddleware(), users.UpdateProfile)
 
+	// Отчеты
 	r.POST("/api/report", users.AuthMiddleware(), report.CreateReport)
 	r.GET("/api/reports", users.AuthMiddleware(), report.GetReportsHandler)
+
+	// Заявки
+	r.GET("/api/requests", users.AuthMiddleware(), requests.GetRequests)
+	r.GET("/api/requests/:id", users.AuthMiddleware(), requests.GetRequestById)
+	r.POST("/api/requests", users.AuthMiddleware(), requests.CreateRequest)
 
 	r.Static("/uploads/reports", "./uploads/reports")
 

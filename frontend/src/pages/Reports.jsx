@@ -15,6 +15,11 @@ function Reports() {
   const viewerRef = useRef(null);
   const [highlightedReportId, setHighlightedReportId] = useState(null);
 
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('ru-RU');
+  };
+  
+
   const fetchReports = useCallback(async () => {
     try {
       const response = await axios.get(`http://localhost:8080/api/reports?onlyMine=${showOnlyMine}`);
@@ -139,7 +144,7 @@ function Reports() {
           >
             <div className="card shadow-sm">
               <div className="card-body">
-                <h5 className="card-title">Дата: {report.date}</h5>
+                <h5 className="card-title">Дата: {formatDate(report.date)}</h5>
                 <p className="card-text">Объект: {report.address}</p>
                 <div className="d-flex justify-content-between">
                   <button className="btn btn-primary" onClick={() => handlePreviewClick(report)}>

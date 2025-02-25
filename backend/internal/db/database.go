@@ -31,6 +31,19 @@ type Report struct {
 	UserID   uint   `gorm:"not null" json:"userId"`
 }
 
+type Request struct {
+	ID          uint    `gorm:"primaryKey" json:"id"`
+	Date        string  `gorm:"not null" json:"date"`
+	Address     string  `gorm:"not null" json:"address"`
+	Status      string  `gorm:"not null;default:'В работе'" json:"status"`
+	EngineerID  uint    `gorm:"not null" json:"engineerId"`
+	Engineer    User    `gorm:"foreignKey:EngineerID;constraint:OnDelete:CASCADE" json:"-"`
+	Type        string  `gorm:"not null" json:"type"`
+	Description string  `gorm:"not null" json:"description"`
+	ReportID    *uint   `gorm:"default:null" json:"reportId"`
+	Report      *Report `gorm:"foreignKey:ReportID;constraint:OnDelete:SET NULL" json:"-"`
+}
+
 func InitDB() {
 	var err error
 	DB, err = gorm.Open(sqlite.Open("database.db"), &gorm.Config{})
@@ -38,5 +51,5 @@ func InitDB() {
 		log.Fatal("Ошибка при подключении к БД:", err)
 	}
 
-	DB.AutoMigrate(&Certificate{}, &User{}, &Report{})
+	DB.AutoMigrate(&Certificate{}, &User{}, &Report{}, &Request{})
 }
