@@ -65,6 +65,8 @@ func main() {
 	r.GET("/api/requests", users.AuthMiddleware(), requests.GetRequests)
 	r.GET("/api/requests/:id", users.AuthMiddleware(), requests.GetRequestById)
 	r.POST("/api/requests", users.AuthMiddleware(), requests.CreateRequest)
+	r.PUT("/api/requests/:id", users.AuthMiddleware(), requests.UpdateRequest)
+	r.DELETE("/api/requests/:id", users.AuthMiddleware(), requests.DeleteReport)
 
 	r.Static("/uploads/reports", "./uploads/reports")
 
