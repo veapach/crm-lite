@@ -7,6 +7,7 @@ import Reports from './pages/Reports';
 import Certificates from './pages/Certificates';
 import Profile from './pages/Profile';
 import Auth from './pages/Auth';
+import Requests from './pages/Requests';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
           <Route path="/certificates" element={<Certificates />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/requests" element={<Requests />} />
           <Route path="*" element={<h2>404 Not Found</h2>} />
         </Routes>
       </div>

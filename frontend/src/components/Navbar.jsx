@@ -34,6 +34,19 @@ function Navbar() {
                     <Link 
                       className="nav-link rounded-pill" 
                       style={{ 
+                        color: location.pathname === '/requests' ? '#2e2e2e' : '#e3e3e3',
+                        backgroundColor: location.pathname === '/requests' ? '#e4e7e5' : '#262626',
+                        padding: '8px 16px'
+                      }} 
+                      to="/requests"
+                    >
+                      Заявки
+                    </Link>
+                  </li>
+                  <li className="nav-item mx-1">
+                    <Link 
+                      className="nav-link rounded-pill" 
+                      style={{ 
                         color: location.pathname === '/new-report' ? '#2e2e2e' : '#e3e3e3',
                         backgroundColor: location.pathname === '/new-report' ? '#e4e7e5' : '#262626',
                         padding: '8px 16px'
