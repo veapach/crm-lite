@@ -79,9 +79,9 @@ function Navbar() {
             <ul className="navbar-nav ml-auto">
               {isAuthenticated ? (
                 <>
-                  <li className="nav-item mx-1">
+                  {/* <li className="nav-item mx-1">
                     <Link className={`nav-link rounded-pill ${location.pathname === '/requests' ? 'active' : ''}`} to="/requests">Заявки</Link>
-                  </li>
+                  </li> */}
                   <li className="nav-item mx-1">
                     <Link className={`nav-link rounded-pill ${location.pathname === '/new-report' ? 'active' : ''}`} to="/new-report">Новый отчет</Link>
                   </li>
@@ -114,7 +114,7 @@ function Navbar() {
           <ul className="navbar-nav">
             {isAuthenticated ? (
               <>
-                <li><Link to="/requests" onClick={closeMenu}>Заявки</Link></li>
+                {/* <li><Link to="/requests" onClick={closeMenu}>Заявки</Link></li> */}
                 <li><Link to="/new-report" onClick={closeMenu}>Новый отчет</Link></li>
                 <li><Link to="/reports" onClick={closeMenu}>Отчеты</Link></li>
                 <li><Link to="/certificates" onClick={closeMenu}>Сертификаты</Link></li>
