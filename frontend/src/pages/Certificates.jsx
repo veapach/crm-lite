@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import '../styles/Certificates.css'; // Подключаем CSS файл
 
 function Certificates() {
   const [files, setFiles] = useState([]);
@@ -111,7 +112,7 @@ function Certificates() {
   });
 
   return (
-    <div className="container mt-5">
+    <div className="container mt-3">
       <h1>Хранилище сертификатов</h1>
 
       <form onSubmit={handleUpload} className="mb-4">
@@ -153,54 +154,56 @@ function Certificates() {
       </div>
 
       <h3>Загруженные сертификаты</h3>
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Предпросмотр</th>
-            <th>Название</th>
-            <th>Действия</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredCertificates.length > 0 ? (
-            filteredCertificates.map((certificate, index) => (
-              <tr key={index}>
-                <td>
-                  <img
-                    src={`http://localhost:8080/api/certificates/download/${certificate}`}
-                    alt="Preview"
-                    width="50"
-                    height="50"
-                  />
-                </td>
-                <td>{certificate}</td>
-                <td>
-                  <input
-                    type="text"
-                    placeholder="Новое имя"
-                    value={newNames[certificate] || ''}
-                    onChange={(e) => setNewNames((prev) => ({ ...prev, [certificate]: e.target.value }))}
-                    className="form-control d-inline-block w-auto"
-                  />
-                  <button className="btn btn-warning btn-sm mx-2" onClick={() => handleRename(certificate)}>
-                    Переименовать
-                  </button>
-                  <button className="btn btn-success btn-sm" onClick={() => handleDownload(certificate)}>
-                    Скачать
-                  </button>
-                  <button className="btn btn-danger btn-sm ms-2" onClick={() => handleDelete(certificate)}>
-                    Удалить
-                  </button>
-                </td>
-              </tr>
-            ))
-          ) : (
+      <div className="table-responsive">
+        <table className="table">
+          <thead>
             <tr>
-              <td colSpan="3">Нет загруженных сертификатов</td>
+              <th>Предпросмотр</th>
+              <th>Название</th>
+              <th>Действия</th>
             </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {filteredCertificates.length > 0 ? (
+              filteredCertificates.map((certificate, index) => (
+                <tr key={index}>
+                  <td>
+                    <img
+                      src={`http://localhost:8080/api/certificates/download/${certificate}`}
+                      alt="Preview"
+                      width="50"
+                      height="50"
+                    />
+                  </td>
+                  <td>{certificate}</td>
+                  <td>
+                    <input
+                      type="text"
+                      placeholder="Новое имя"
+                      value={newNames[certificate] || ''}
+                      onChange={(e) => setNewNames((prev) => ({ ...prev, [certificate]: e.target.value }))}
+                      className="form-control d-inline-block w-auto"
+                    />
+                    <button className="btn btn-warning btn-sm mx-2" onClick={() => handleRename(certificate)}>
+                      Переименовать
+                    </button>
+                    <button className="btn btn-success btn-sm" onClick={() => handleDownload(certificate)}>
+                      Скачать
+                    </button>
+                    <button className="btn btn-danger btn-sm ms-2" onClick={() => handleDelete(certificate)}>
+                      Удалить
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="3">Нет загруженных сертификатов</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

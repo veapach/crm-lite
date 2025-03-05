@@ -1,10 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { FaBars } from 'react-icons/fa';
+import '../styles/Navbar.css';
 
 function Navbar() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isClosing, setIsClosing] = useState(false); // Состояние для анимации закрытия
   const location = useLocation();
+  const menuRef = useRef(null); // Ref для меню
+  const buttonRef = useRef(null); // Ref для кнопки меню
 
+  // Проверка аутентификации
   useEffect(() => {
     const checkAuth = () => {
       const token = localStorage.getItem('token');
@@ -19,103 +26,106 @@ function Navbar() {
     };
   }, []);
 
+  // Закрытие меню при клике за его пределами
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Если клик произошел вне меню и не по кнопке меню
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target)
+      ) {
+        closeMenu(); // Закрываем меню с анимацией
+      }
+    };
+
+    // Добавляем обработчик события
+    document.addEventListener('mousedown', handleClickOutside);
+
+    // Убираем обработчик при размонтировании
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Функция для закрытия меню с анимацией
+  const closeMenu = () => {
+    setIsClosing(true); // Запускаем анимацию закрытия
+    setTimeout(() => {
+      setIsMenuOpen(false); // Закрываем меню после завершения анимации
+      setIsClosing(false); // Сбрасываем состояние анимации
+    }, 300); // Время анимации (должно совпадать с CSS)
+  };
+
+  // Обработчик для кнопки меню
+  const handleMenuButtonClick = () => {
+    if (isMenuOpen) {
+      closeMenu(); // Закрываем меню с анимацией
+    } else {
+      setIsMenuOpen(true); // Открываем меню
+    }
+  };
+
   return (
     <div>
-      <nav className="navbar navbar-expand-lg" style={{ backgroundColor: '#333333', color: '#e3e3e3' }}>
+      {/* Классический Navbar для ПК */}
+      <nav className="navbar navbar-expand-lg d-none d-md-block" style={{ backgroundColor: '#333', color: '#e3e3e3' }}>
         <div className="container">
           <Link className="navbar-brand" style={{ fontFamily: 'Villula', color: '#e3e3e3' }} to="/">
             CRM
           </Link>
           <div className="collapse navbar-collapse" id="navbarNav">
             <ul className="navbar-nav ml-auto">
-              {isAuthenticated && (
+              {isAuthenticated ? (
                 <>
                   <li className="nav-item mx-1">
-                    <Link 
-                      className="nav-link rounded-pill" 
-                      style={{ 
-                        color: location.pathname === '/requests' ? '#2e2e2e' : '#e3e3e3',
-                        backgroundColor: location.pathname === '/requests' ? '#e4e7e5' : '#262626',
-                        padding: '8px 16px'
-                      }} 
-                      to="/requests"
-                    >
-                      Заявки
-                    </Link>
+                    <Link className={`nav-link rounded-pill ${location.pathname === '/requests' ? 'active' : ''}`} to="/requests">Заявки</Link>
                   </li>
                   <li className="nav-item mx-1">
-                    <Link 
-                      className="nav-link rounded-pill" 
-                      style={{ 
-                        color: location.pathname === '/new-report' ? '#2e2e2e' : '#e3e3e3',
-                        backgroundColor: location.pathname === '/new-report' ? '#e4e7e5' : '#262626',
-                        padding: '8px 16px'
-                      }} 
-                      to="/new-report"
-                    >
-                      Новый отчет
-                    </Link>
+                    <Link className={`nav-link rounded-pill ${location.pathname === '/new-report' ? 'active' : ''}`} to="/new-report">Новый отчет</Link>
                   </li>
                   <li className="nav-item mx-1">
-                    <Link 
-                      className="nav-link rounded-pill" 
-                      style={{ 
-                        color: location.pathname === '/reports' ? '#2e2e2e' : '#e3e3e3',
-                        backgroundColor: location.pathname === '/reports' ? '#e4e7e5' : '#262626',
-                        padding: '8px 16px'
-                      }} 
-                      to="/reports"
-                    >
-                      Отчеты
-                    </Link>
+                    <Link className={`nav-link rounded-pill ${location.pathname === '/reports' ? 'active' : ''}`} to="/reports">Отчеты</Link>
                   </li>
                   <li className="nav-item mx-1">
-                    <Link 
-                      className="nav-link rounded-pill" 
-                      style={{ 
-                        color: location.pathname === '/certificates' ? '#2e2e2e' : '#e3e3e3',
-                        backgroundColor: location.pathname === '/certificates' ? '#e4e7e5' : '#262626',
-                        padding: '8px 16px'
-                      }} 
-                      to="/certificates"
-                    >
-                      Сертификаты
-                    </Link>
+                    <Link className={`nav-link rounded-pill ${location.pathname === '/certificates' ? 'active' : ''}`} to="/certificates">Сертификаты</Link>
                   </li>
                   <li className="nav-item mx-1">
-                    <Link 
-                      className="nav-link rounded-pill" 
-                      style={{ 
-                        color: location.pathname === '/profile' ? '#2e2e2e' : '#e3e3e3',
-                        backgroundColor: location.pathname === '/profile' ? '#e4e7e5' : '#262626',
-                        padding: '8px 16px'
-                      }} 
-                      to="/profile"
-                    >
-                      Профиль
-                    </Link>
+                    <Link className={`nav-link rounded-pill ${location.pathname === '/profile' ? 'active' : ''}`} to="/profile">Профиль</Link>
                   </li>
                 </>
-              )}
-              {!isAuthenticated && (
+              ) : (
                 <li className="nav-item mx-1">
-                  <Link 
-                    className="nav-link rounded-pill" 
-                    style={{ 
-                      color: location.pathname === '/auth' ? '#2e2e2e' : '#e3e3e3',
-                      backgroundColor: location.pathname === '/auth' ? '#e4e7e5' : '#262626',
-                      padding: '8px 16px'
-                    }} 
-                    to="/auth"
-                  >
-                    Вход/Регистрация
-                  </Link>
+                  <Link className={`nav-link rounded-pill ${location.pathname === '/auth' ? 'active' : ''}`} to="/auth">Вход/Регистрация</Link>
                 </li>
               )}
             </ul>
           </div>
         </div>
       </nav>
+
+      {/* Мобильный Navbar */}
+      <div className="d-md-none mobile-navbar">
+        <button className={`menu-button ${isMenuOpen ? 'open' : ''}`} onClick={handleMenuButtonClick} ref={buttonRef}>
+          <FaBars />
+        </button>
+        <div className={`navbar-menu ${isMenuOpen ? 'open' : ''} ${isClosing ? 'closing' : ''}`} ref={menuRef}>
+          <ul className="navbar-nav">
+            {isAuthenticated ? (
+              <>
+                <li><Link to="/requests" onClick={closeMenu}>Заявки</Link></li>
+                <li><Link to="/new-report" onClick={closeMenu}>Новый отчет</Link></li>
+                <li><Link to="/reports" onClick={closeMenu}>Отчеты</Link></li>
+                <li><Link to="/certificates" onClick={closeMenu}>Сертификаты</Link></li>
+                <li><Link to="/profile" onClick={closeMenu}>Профиль</Link></li>
+              </>
+            ) : (
+              <li><Link to="/auth" onClick={closeMenu}>Вход/Регистрация</Link></li>
+            )}
+          </ul>
+        </div>
+      </div>
     </div>
   );
 }
