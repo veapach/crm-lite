@@ -17,7 +17,7 @@ export default function Auth() {
     setError('');
 
     try {
-      const { data } = await axios.post(`http://localhost:8080/api/${isLogin ? 'login' : 'register'}`, form);
+      const { data } = await axios.post(`http://77.239.113.150:8080/api/${isLogin ? 'login' : 'register'}`, form);
 
       localStorage.setItem('token', data.token);
       // Добавляем событие storage для обновления navbar

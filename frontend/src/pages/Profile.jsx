@@ -24,7 +24,7 @@ export default function Profile() {
           return;
         }
 
-        const { data } = await axios.get('http://localhost:8080/api/check-auth', {
+        const { data } = await axios.get('http://77.239.113.150:8080/api/check-auth', {
           headers: {
             Authorization: token,
             'Content-Type': 'application/json',
@@ -90,7 +90,7 @@ export default function Profile() {
         ...(editForm.password && { password: editForm.password }),
       };
 
-      await axios.put('http://localhost:8080/api/profile', updateData, {
+      await axios.put('http://77.239.113.150:8080/api/profile', updateData, {
         headers: {
           Authorization: token,
           'Content-Type': 'application/json',

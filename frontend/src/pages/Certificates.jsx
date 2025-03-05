@@ -20,7 +20,7 @@ function Certificates() {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const { data } = await axios.get('http://localhost:8080/api/check-auth', {
+      const { data } = await axios.get('http://77.239.113.150:8080/api/check-auth', {
         headers: {
           Authorization: token,
         },
@@ -33,7 +33,7 @@ function Certificates() {
 
   const fetchCertificates = async () => {
     try {
-      const response = await axios.get('http://localhost:8080/api/certificates');
+      const response = await axios.get('http://77.239.113.150:8080/api/certificates');
       setCertificates(response.data || []);
     } catch (error) {
       console.error('Ошибка при загрузке сертификатов', error);
@@ -53,7 +53,7 @@ function Certificates() {
     Array.from(files).forEach((file) => formData.append('file', file, file.name));
 
     try {
-      await axios.post('http://localhost:8080/api/certificates', formData, {
+      await axios.post('http://77.239.113.150:8080/api/certificates', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       fetchCertificates();
@@ -64,7 +64,7 @@ function Certificates() {
 
   const handleDownload = (filename) => {
     axios({
-      url: `http://localhost:8080/api/certificates/download/${filename}`,
+      url: `http://77.239.113.150:8080/api/certificates/download/${filename}`,
       method: 'GET',
       responseType: 'blob',
     })
@@ -84,7 +84,7 @@ function Certificates() {
     if (!newName || !newName.trim()) return;
 
     try {
-      await axios.put('http://localhost:8080/api/certificates/rename', { oldName, newName });
+      await axios.put('http://77.239.113.150:8080/api/certificates/rename', { oldName, newName });
       setNewNames((prev) => ({ ...prev, [oldName]: '' }));
       fetchCertificates();
     } catch (error) {
@@ -94,7 +94,7 @@ function Certificates() {
 
   const handleDelete = async (filename) => {
     try {
-      await axios.delete(`http://localhost:8080/api/certificates/delete/${filename}`);
+      await axios.delete(`http://77.239.113.150:8080/api/certificates/delete/${filename}`);
       fetchCertificates();
     } catch (error) {
       console.error('Ошибка при удалении файла', error);
@@ -169,7 +169,7 @@ function Certificates() {
                 <tr key={index}>
                   <td>
                     <img
-                      src={`http://localhost:8080/api/certificates/download/${certificate}`}
+                      src={`http://77.239.113.150:8080/api/certificates/download/${certificate}`}
                       alt="Preview"
                       width="50"
                       height="50"

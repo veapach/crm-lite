@@ -105,7 +105,7 @@ function NewReport() {
     }
   
     try {
-      const response = await axios.post('http://localhost:8080/api/report', formData, {
+      const response = await axios.post('http://77.239.113.150:8080/api/report', formData, {
         headers: { 'Content-Type': 'application/json' },
       });
   
