@@ -63,16 +63,19 @@ function Certificates() {
   };
 
   const handleDownload = (filename) => {
+    const encodedFilename = encodeURIComponent(filename);
+
     axios({
-      url: `http://77.239.113.150:8080/api/certificates/download/${filename}`,
+      url: `http://77.239.113.150:8080/api/certificates/download/${encodedFilename}`,
       method: 'GET',
       responseType: 'blob',
     })
       .then((response) => {
+        const decodedFilename = decodeURIComponent(encodedFilename);
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
-        link.setAttribute('download', filename);
+        link.setAttribute('download', decodedFilename);
         document.body.appendChild(link);
         link.click();
       })
@@ -169,7 +172,7 @@ function Certificates() {
                 <tr key={index}>
                   <td>
                     <img
-                      src={`http://77.239.113.150:8080/api/certificates/download/${certificate}`}
+                      src={`http://77.239.113.150:8080/api/certificates/download/${encodeURIComponent(certificate)}`}
                       alt="Preview"
                       width="50"
                       height="50"

@@ -2,7 +2,9 @@ package certificates
 
 import (
 	"backend/internal/db"
+	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 
@@ -47,15 +49,26 @@ func UploadCertificateHandler(c *gin.Context) {
 }
 
 func DownloadCertificateHandler(c *gin.Context) {
-	filename := c.Param("filename")
+
+	filename, err := url.QueryUnescape(c.Param("filename"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректное имя файла"})
+		return
+	}
+
 	filePath := filepath.Join("uploads", "certificates", filename)
+
+	c.Header("Access-Control-Allow-Origin", "http://crmlite-vv.ru")
+	c.Header("Access-Control-Allow-Methods", "GET, OPTIONS")
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден"})
 		return
 	}
 
-	c.Header("Access-Control-Allow-Origin", "http://crmlite-vv.ru")
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename*=UTF-8''%s", url.PathEscape(filename)))
+	c.Header("Content-Type", "application/octet-stream")
+
 	c.File(filePath)
 }
 
