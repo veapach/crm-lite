@@ -4,7 +4,6 @@ import (
 	"backend/internal/db"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -14,8 +13,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
-
-var logFile *os.File
 
 type ReportData struct {
 	Date            string                   `json:"date"`
@@ -31,16 +28,6 @@ type ReportData struct {
 	Photos          []string                 `json:"photos"`
 	FirstName       string                   `json:"firstName"`
 	LastName        string                   `json:"lastName"`
-}
-
-func init() {
-	var err error
-	logFile, err = os.OpenFile("report_log.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		panic("Не удалось создать файл логов: " + err.Error())
-	}
-	log.SetOutput(logFile)
-	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 }
 
 func CreateReport(c *gin.Context) {
@@ -104,25 +91,13 @@ func CreateReport(c *gin.Context) {
 		return
 	}
 
-	outputStr := strings.TrimSpace(string(output))
-	outputStr = strings.ReplaceAll(outputStr, "\r", "")
-	outputStr = strings.ReplaceAll(outputStr, "\n", "")
-	outputStr = strings.TrimPrefix(outputStr, "\ufeff")
-	parts := strings.Split(outputStr, "|")
-	if len(parts) != 2 {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Некорректный вывод от Python скрипта"})
-		return
-	}
+	displayName := strings.TrimSpace(string(output))
+	displayName = strings.ReplaceAll(displayName, "\r", "")
+	displayName = strings.ReplaceAll(displayName, "\n", "")
+	displayName = strings.TrimPrefix(displayName, "\ufeff")
 
-	log.Println("Output from script:", outputStr)
-	filePath, displayName := parts[0], parts[1]
-
-	filePath = "uploads/reports/" + strings.TrimSpace(displayName)
-
-	fileName := filepath.Base(filePath)
-	log.Println("Generated file name:", fileName)
-	relativeFilePath := filepath.Clean(filePath)
-	log.Println("Checking if file exists:", filePath)
+	filePath := "uploads/reports/" + strings.TrimSpace(displayName)
+	filePath = filepath.Clean(filePath)
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Сгенерированный файл не найден: %v", err)})
@@ -130,7 +105,7 @@ func CreateReport(c *gin.Context) {
 	}
 
 	report := db.Report{
-		Filename: strings.TrimSpace(relativeFilePath),
+		Filename: strings.TrimSpace(filePath),
 		Date:     reportData.Date,
 		Address:  reportData.Address,
 		UserID:   userID.(uint),
@@ -171,4 +146,3 @@ func GetReportsHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, reports)
 }
-

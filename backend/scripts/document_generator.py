@@ -110,7 +110,7 @@ def generate_document(json_file):
 
     doc.save(output_path)
 
-    print(os.path.abspath(output_path), "|", os.path.basename(output_path))
+    print(os.path.basename(output_path))
 
 
 if __name__ == "__main__":
