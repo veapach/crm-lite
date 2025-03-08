@@ -4,16 +4,30 @@ import (
 	"backend/internal/db"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
 	"golang.org/x/crypto/bcrypt"
 )
 
-var secretKey = []byte("testjwtkey")
+func init() {
+	if err := godotenv.Load(); err != nil {
+		panic("No .env file found")
+	}
+	var exists bool
+	jwtkey, exists = os.LookupEnv("JWTKEY")
+	if !exists {
+		panic("JWTKEY not found in .env file")
+	}
+}
+
+var jwtkey string
+var secretKey = []byte(jwtkey)
 
 func Register(c *gin.Context) {
 	var input db.User
