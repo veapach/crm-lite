@@ -55,6 +55,7 @@ func DownloadCertificateHandler(c *gin.Context) {
 		return
 	}
 
+	c.Header("Access-Control-Allow-Origin", "http://crmlite-vv.ru")
 	c.File(filePath)
 }
 
