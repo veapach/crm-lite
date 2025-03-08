@@ -4,6 +4,7 @@ import (
 	"backend/internal/db"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -13,6 +14,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
+
+var logFile *os.File
 
 type ReportData struct {
 	Date            string                   `json:"date"`
@@ -28,6 +31,16 @@ type ReportData struct {
 	Photos          []string                 `json:"photos"`
 	FirstName       string                   `json:"firstName"`
 	LastName        string                   `json:"lastName"`
+}
+
+func init() {
+	var err error
+	logFile, err = os.OpenFile("report_log.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		panic("Не удалось создать файл логов: " + err.Error())
+	}
+	log.SetOutput(logFile)
+	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 }
 
 func CreateReport(c *gin.Context) {
@@ -101,12 +114,15 @@ func CreateReport(c *gin.Context) {
 		return
 	}
 
-	fmt.Println("Output from script:", outputStr)
+	log.Println("Output from script:", outputStr)
 	filePath, displayName := parts[0], parts[1]
 
+	filePath = "uploads/reports/" + strings.TrimSpace(displayName)
+
 	fileName := filepath.Base(filePath)
+	log.Println("Generated file name:", fileName)
 	relativeFilePath := filepath.Clean(filePath)
-	fmt.Println("Checking if file exists:", filePath)
+	log.Println("Checking if file exists:", filePath)
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Сгенерированный файл не найден: %v", err)})
@@ -155,3 +171,4 @@ func GetReportsHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, reports)
 }
+
