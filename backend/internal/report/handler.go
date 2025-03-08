@@ -100,10 +100,13 @@ func CreateReport(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Некорректный вывод от Python скрипта"})
 		return
 	}
+
+	fmt.Println("Output from script:", outputStr)
 	filePath, displayName := parts[0], parts[1]
 
 	fileName := filepath.Base(filePath)
-	relativeFilePath := filepath.Join("uploads", "reports", fileName)
+	relativeFilePath := filepath.Clean(filePath)
+	fmt.Println("Checking if file exists:", filePath)
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Сгенерированный файл не найден: %v", err)})
