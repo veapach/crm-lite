@@ -1,4 +1,4 @@
-package certificates
+package files
 
 import (
 	"backend/internal/db"
@@ -11,7 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func GetCertificatesHandler(c *gin.Context) {
+func GetFiles(c *gin.Context) {
 	var certificates []db.Certificate
 	if err := db.DB.Find(&certificates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении сертификатов"})
@@ -26,12 +26,12 @@ func GetCertificatesHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, filenames)
 }
 
-func UploadCertificateHandler(c *gin.Context) {
+func UploadFiles(c *gin.Context) {
 	form, _ := c.MultipartForm()
 	files := form.File["file"]
 
 	for _, file := range files {
-		filePath := filepath.Join("uploads", "certificates", file.Filename)
+		filePath := filepath.Join("uploads", "files", file.Filename)
 
 		if err := c.SaveUploadedFile(file, filePath); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении файла"})
@@ -48,7 +48,7 @@ func UploadCertificateHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Файлы успешно загружены"})
 }
 
-func DownloadCertificateHandler(c *gin.Context) {
+func DownloadFiles(c *gin.Context) {
 
 	filename, err := url.QueryUnescape(c.Param("filename"))
 	if err != nil {
@@ -56,9 +56,10 @@ func DownloadCertificateHandler(c *gin.Context) {
 		return
 	}
 
-	filePath := filepath.Join("uploads", "certificates", filename)
+	filePath := filepath.Join("uploads", "files", filename)
 
 	c.Header("Access-Control-Allow-Origin", "http://crmlite-vv.ru")
+	c.Header("Access-Control-Allow-Origin", "http://localhost:3000")
 	c.Header("Access-Control-Allow-Methods", "GET, OPTIONS")
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
@@ -72,7 +73,7 @@ func DownloadCertificateHandler(c *gin.Context) {
 	c.File(filePath)
 }
 
-func RenameCertificateHandler(c *gin.Context) {
+func RenameFiles(c *gin.Context) {
 	var request struct {
 		OldName string `json:"oldName"`
 		NewName string `json:"newName"`
@@ -82,10 +83,10 @@ func RenameCertificateHandler(c *gin.Context) {
 		return
 	}
 
-	oldPath := filepath.Join("uploads", "certificates", request.OldName)
+	oldPath := filepath.Join("uploads", "files", request.OldName)
 	ext := filepath.Ext(request.OldName)
 	newNameWithExt := request.NewName + ext
-	newPath := filepath.Join("uploads", "certificates", newNameWithExt)
+	newPath := filepath.Join("uploads", "files", newNameWithExt)
 
 	if _, err := os.Stat(oldPath); os.IsNotExist(err) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден"})
@@ -105,9 +106,9 @@ func RenameCertificateHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Файл успешно переименован"})
 }
 
-func DeleteCertificateHandler(c *gin.Context) {
+func DeleteFiles(c *gin.Context) {
 	filename := c.Param("filename")
-	filePath := filepath.Join("uploads", "certificates", filename)
+	filePath := filepath.Join("uploads", "files", filename)
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден"})
@@ -127,7 +128,7 @@ func DeleteCertificateHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Файл успешно удален"})
 }
 
-func SearchCertificatesHandler(c *gin.Context) {
+func SearchFiles(c *gin.Context) {
 	query := c.DefaultQuery("query", "")
 
 	var certificates []db.Certificate

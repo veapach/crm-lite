@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 
-	"backend/internal/certificates"
 	"backend/internal/db"
+	"backend/internal/files"
 	"backend/internal/report"
 	"backend/internal/requests"
 	"backend/internal/users"
@@ -17,7 +17,7 @@ import (
 
 func createRequiredDirectories() {
 	dirs := []string{
-		"uploads/certificates",
+		"uploads/files",
 		"uploads/reports",
 	}
 
@@ -36,7 +36,7 @@ func main() {
 
 	r := gin.Default()
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://crmlite-vv.ru"},
+		AllowOrigins:     []string{"http://crmlite-vv.ru", "http://localhost:3000"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Authorization", "Content-Type"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -44,12 +44,12 @@ func main() {
 	}))
 
 	// Сертификаты
-	r.GET("/api/certificates", certificates.GetCertificatesHandler)
-	r.POST("/api/certificates", certificates.UploadCertificateHandler)
-	r.GET("/api/certificates/download/:filename", certificates.DownloadCertificateHandler)
-	r.PUT("/api/certificates/rename", certificates.RenameCertificateHandler)
-	r.DELETE("/api/certificates/delete/:filename", certificates.DeleteCertificateHandler)
-	r.GET("/api/certificates/search", certificates.SearchCertificatesHandler)
+	r.GET("/api/files", files.GetFiles)
+	r.POST("/api/files", files.UploadFiles)
+	r.GET("/api/files/download/:filename", files.DownloadFiles)
+	r.PUT("/api/files/rename", files.RenameFiles)
+	r.DELETE("/api/files/delete/:filename", files.DeleteFiles)
+	r.GET("/api/files/search", files.SearchFiles)
 
 	// Пользователь
 	r.POST("/api/register", users.Register)

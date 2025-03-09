@@ -30,6 +30,15 @@ type ReportData struct {
 	LastName        string                   `json:"lastName"`
 }
 
+//func DeleteReport(c *gin.Context){
+//	userID, exists := c.Get("userID")
+//	if !exists{
+//		c.JSON(http.StatusUnauthorized, gin.H{"error":"пользователь не авторизован"})
+//		return
+//	}
+//
+//}
+
 func CreateReport(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {

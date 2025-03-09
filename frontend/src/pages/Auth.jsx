@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import config from '../config';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -17,7 +18,7 @@ export default function Auth() {
     setError('');
 
     try {
-      const { data } = await axios.post(`http://77.239.113.150:8080/api/${isLogin ? 'login' : 'register'}`, form);
+      const { data } = await axios.post(`http://${config.API_BASE_URL}:8080/api/${isLogin ? 'login' : 'register'}`, form);
 
       localStorage.setItem('token', data.token);
       // Добавляем событие storage для обновления navbar

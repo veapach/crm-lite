@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import config from '../config';
 
 export default function Profile() {
   const [user, setUser] = useState(null);
@@ -24,7 +25,7 @@ export default function Profile() {
           return;
         }
 
-        const { data } = await axios.get('http://77.239.113.150:8080/api/check-auth', {
+        const { data } = await axios.get(`http://${config.API_BASE_URL}:8080/api/check-auth`, {
           headers: {
             Authorization: token,
             'Content-Type': 'application/json',
@@ -90,7 +91,7 @@ export default function Profile() {
         ...(editForm.password && { password: editForm.password }),
       };
 
-      await axios.put('http://77.239.113.150:8080/api/profile', updateData, {
+      await axios.put(`http://${config.API_BASE_URL}:8080/api/profile`, updateData, {
         headers: {
           Authorization: token,
           'Content-Type': 'application/json',

@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import config from '../config';
 
 function NewReport() {
   const navigate = useNavigate();
@@ -105,7 +106,7 @@ function NewReport() {
     }
   
     try {
-      const response = await axios.post('http://77.239.113.150:8080/api/report', formData, {
+      const response = await axios.post(`http://${config.API_BASE_URL}:8080/api/report`, formData, {
         headers: { 'Content-Type': 'application/json' },
       });
   

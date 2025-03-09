@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import '../styles/Certificates.css'; // Подключаем CSS файл
+import '../styles/Files.css';
+import config from '../config';
 
-function Certificates() {
+function Files() {
   const [files, setFiles] = useState([]);
   const [certificates, setCertificates] = useState([]);
   const [newNames, setNewNames] = useState({});
@@ -20,7 +21,7 @@ function Certificates() {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const { data } = await axios.get('http://77.239.113.150:8080/api/check-auth', {
+      const { data } = await axios.get(`http://${config.API_BASE_URL}:8080/api/check-auth`, {
         headers: {
           Authorization: token,
         },
@@ -33,7 +34,7 @@ function Certificates() {
 
   const fetchCertificates = async () => {
     try {
-      const response = await axios.get('http://77.239.113.150:8080/api/certificates');
+      const response = await axios.get(`http://${config.API_BASE_URL}:8080/api/files`);
       setCertificates(response.data || []);
     } catch (error) {
       console.error('Ошибка при загрузке сертификатов', error);
@@ -53,7 +54,7 @@ function Certificates() {
     Array.from(files).forEach((file) => formData.append('file', file, file.name));
 
     try {
-      await axios.post('http://77.239.113.150:8080/api/certificates', formData, {
+      await axios.post(`http://${config.API_BASE_URL}:8080/api/files`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       fetchCertificates();
@@ -66,7 +67,7 @@ function Certificates() {
     const encodedFilename = encodeURIComponent(filename);
 
     axios({
-      url: `http://77.239.113.150:8080/api/certificates/download/${encodedFilename}`,
+      url: `http://${config.API_BASE_URL}:8080/api/files/download/${encodedFilename}`,
       method: 'GET',
       responseType: 'blob',
     })
@@ -87,7 +88,7 @@ function Certificates() {
     if (!newName || !newName.trim()) return;
 
     try {
-      await axios.put('http://77.239.113.150:8080/api/certificates/rename', { oldName, newName });
+      await axios.put(`http://${config.API_BASE_URL}:8080/api/files/rename`, { oldName, newName });
       setNewNames((prev) => ({ ...prev, [oldName]: '' }));
       fetchCertificates();
     } catch (error) {
@@ -97,7 +98,7 @@ function Certificates() {
 
   const handleDelete = async (filename) => {
     try {
-      await axios.delete(`http://77.239.113.150:8080/api/certificates/delete/${filename}`);
+      await axios.delete(`http://${config.API_BASE_URL}:8080/api/files/delete/${filename}`);
       fetchCertificates();
     } catch (error) {
       console.error('Ошибка при удалении файла', error);
@@ -116,7 +117,7 @@ function Certificates() {
 
   return (
     <div className="container mt-3">
-      <h1>Хранилище сертификатов</h1>
+      <h1>Хранилище файлов</h1>
 
       <form onSubmit={handleUpload} className="mb-4">
         <div className="mb-3">
@@ -156,7 +157,7 @@ function Certificates() {
         </div>
       </div>
 
-      <h3>Загруженные сертификаты</h3>
+      <h3>Загруженные файлы</h3>
       <div className="table-responsive">
         <table className="table">
           <thead>
@@ -172,7 +173,7 @@ function Certificates() {
                 <tr key={index}>
                   <td>
                     <img
-                      src={`http://77.239.113.150:8080/api/certificates/download/${encodeURIComponent(certificate)}`}
+                      src={`http://${config.API_BASE_URL}:8080/api/files/download/${encodeURIComponent(certificate)}`}
                       alt="Preview"
                       width="50"
                       height="50"
@@ -201,7 +202,7 @@ function Certificates() {
               ))
             ) : (
               <tr>
-                <td colSpan="3">Нет загруженных сертификатов</td>
+                <td colSpan="3">Нет загруженных файлов</td>
               </tr>
             )}
           </tbody>
@@ -211,4 +212,4 @@ function Certificates() {
   );
 }
 
-export default Certificates;
+export default Files;

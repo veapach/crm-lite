@@ -89,7 +89,7 @@ function Navbar() {
                     <Link className={`nav-link rounded-pill ${location.pathname === '/reports' ? 'active' : ''}`} to="/reports">Отчеты</Link>
                   </li>
                   <li className="nav-item mx-1">
-                    <Link className={`nav-link rounded-pill ${location.pathname === '/certificates' ? 'active' : ''}`} to="/certificates">Сертификаты</Link>
+                    <Link className={`nav-link rounded-pill ${location.pathname === '/files' ? 'active' : ''}`} to="/files">Файлы</Link>
                   </li>
                   <li className="nav-item mx-1">
                     <Link className={`nav-link rounded-pill ${location.pathname === '/profile' ? 'active' : ''}`} to="/profile">Профиль</Link>
@@ -117,7 +117,7 @@ function Navbar() {
                 {/* <li><Link to="/requests" onClick={closeMenu}>Заявки</Link></li> */}
                 <li><Link to="/new-report" onClick={closeMenu}>Новый отчет</Link></li>
                 <li><Link to="/reports" onClick={closeMenu}>Отчеты</Link></li>
-                <li><Link to="/certificates" onClick={closeMenu}>Сертификаты</Link></li>
+                <li><Link to="/files" onClick={closeMenu}>Файлы</Link></li>
                 <li><Link to="/profile" onClick={closeMenu}>Профиль</Link></li>
               </>
             ) : (
