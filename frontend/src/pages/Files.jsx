@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import '../styles/Files.css';
+import { Modal } from 'react-bootstrap';
 
 function Files() {
   const [files, setFiles] = useState([]);
@@ -9,6 +10,12 @@ function Files() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showOnlyMine, setShowOnlyMine] = useState(false);
   const [user, setUser] = useState(null);
+  
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [enlargedImage, setEnlargedImage] = useState('');
+  
+  const pressTimer = useRef(null);
+  const [isPressing, setIsPressing] = useState(false);
 
   useEffect(() => {
     fetchCertificates();
@@ -97,6 +104,43 @@ function Files() {
     }
   };
 
+  const handleImageMouseDown = (certificate) => {
+    setIsPressing(true);
+    
+    pressTimer.current = setTimeout(() => {
+      if (isPressing) {
+        setEnlargedImage(`${axios.defaults.baseURL}/api/files/preview/${encodeURIComponent(certificate)}`);
+        setShowImageModal(true);
+      }
+    }, 500);
+  };
+
+  const handleImageMouseUp = () => {
+    setIsPressing(false);
+    clearTimeout(pressTimer.current);
+  };
+
+  const handleImageMouseLeave = () => {
+    setIsPressing(false);
+    clearTimeout(pressTimer.current);
+  };
+
+  const handleImageTouchStart = (certificate) => {
+    setIsPressing(true);
+    
+    pressTimer.current = setTimeout(() => {
+      if (isPressing) {
+        setEnlargedImage(`${axios.defaults.baseURL}/api/files/preview/${encodeURIComponent(certificate)}`);
+        setShowImageModal(true);
+      }
+    }, 500);
+  };
+
+  const handleImageTouchEnd = () => {
+    setIsPressing(false);
+    clearTimeout(pressTimer.current);
+  };
+
   const filteredCertificates = certificates.filter((certificate) => {
     const matchesSearch = certificate.toLowerCase().includes(searchQuery.toLowerCase());
     if (!showOnlyMine) return matchesSearch;
@@ -169,7 +213,13 @@ function Files() {
                       alt="Preview"
                       width="50"
                       height="50"
-                      style={{ objectFit: 'contain' }}
+                      style={{ objectFit: 'contain', cursor: 'pointer' }}
+                      onMouseDown={() => handleImageMouseDown(certificate)}
+                      onMouseUp={handleImageMouseUp}
+                      onMouseLeave={handleImageMouseLeave}
+                      onTouchStart={() => handleImageTouchStart(certificate)}
+                      onTouchEnd={handleImageTouchEnd}
+                      title="Удерживайте для увеличения"
                     />
                   </td>
                   <td>{certificate}</td>
@@ -201,6 +251,24 @@ function Files() {
           </tbody>
         </table>
       </div>
+
+      <Modal 
+        show={showImageModal} 
+        onHide={() => setShowImageModal(false)} 
+        centered
+        size="lg"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Увеличенное изображение</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="text-center">
+          <img 
+            src={enlargedImage} 
+            alt="Enlarged preview" 
+            style={{ maxWidth: '100%', maxHeight: '70vh' }} 
+          />
+        </Modal.Body>
+      </Modal>
     </div>
   );
 }

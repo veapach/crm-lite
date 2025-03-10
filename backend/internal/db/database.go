@@ -44,6 +44,11 @@ type Request struct {
 	Report      *Report `gorm:"foreignKey:ReportID;constraint:OnDelete:SET NULL" json:"-"`
 }
 
+type Address struct {
+	ID      uint   `gorm:"primaryKey" json:"id"`
+	Address string `gorm:"uniqueIndex;not null" json:"address"`
+}
+
 func InitDB() {
 	var err error
 	DB, err = gorm.Open(sqlite.Open("database.db"), &gorm.Config{})
@@ -51,5 +56,5 @@ func InitDB() {
 		log.Fatal("Ошибка при подключении к БД:", err)
 	}
 
-	DB.AutoMigrate(&File{}, &User{}, &Report{}, &Request{})
+	DB.AutoMigrate(&File{}, &User{}, &Report{}, &Request{}, &Address{})
 }

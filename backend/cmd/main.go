@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"backend/internal/address"
 	"backend/internal/db"
 	"backend/internal/files"
 	"backend/internal/report"
@@ -94,6 +95,11 @@ func main() {
 	r.POST("/api/requests", users.AuthMiddleware(), requests.CreateRequest)
 	r.PUT("/api/requests/:id", users.AuthMiddleware(), requests.UpdateRequest)
 	r.DELETE("/api/requests/:id", users.AuthMiddleware(), requests.DeleteReport)
+
+	// Адреса объектов
+	r.GET("/api/addresses", address.GetAddresses)
+	r.POST("/api/addresses", users.AuthMiddleware(), address.AddAddress)
+	r.DELETE("/api/addresses/:id", users.AuthMiddleware(), address.DeleteAddress)
 
 	// Статические файлы
 	r.Static("/uploads/reports", "./uploads/reports")

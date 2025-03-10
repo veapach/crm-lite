@@ -62,3 +62,18 @@
       white-space: nowrap;
     }
   }
+
+/* Добавляем стили для увеличенного изображения */
+.modal-body img {
+  transition: transform 0.3s ease;
+}
+
+/* Стили для превью изображений */
+.table img {
+  transition: all 0.2s ease;
+}
+
+.table img:active {
+  transform: scale(2);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}

@@ -4,6 +4,7 @@ import (
 	"backend/internal/db"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -81,8 +82,23 @@ func CreateReport(c *gin.Context) {
 
 	var reportData ReportData
 	if err := c.ShouldBindJSON(&reportData); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Неверный формат запроса: %v", err)})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат данных"})
 		return
+	}
+
+	// Проверяем, существует ли адрес в базе данных, если нет - добавляем
+	if reportData.Address != "" {
+		var existingAddress db.Address
+		if err := db.DB.Where("address = ?", strings.TrimSpace(reportData.Address)).First(&existingAddress).Error; err != nil {
+			// Адрес не найден, добавляем его
+			newAddress := db.Address{
+				Address: strings.TrimSpace(reportData.Address),
+			}
+			if err := db.DB.Create(&newAddress).Error; err != nil {
+				// Логируем ошибку, но продолжаем создание отчета
+				log.Printf("Ошибка при добавлении нового адреса: %v", err)
+			}
+		}
 	}
 
 	reportData.FirstName = user.FirstName
