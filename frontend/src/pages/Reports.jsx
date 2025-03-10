@@ -22,7 +22,7 @@ function Reports() {
 
   const fetchReports = useCallback(async () => {
     try {
-      const response = await axios.get(`http://77.239.113.150:8080/api/reports?onlyMine=${showOnlyMine}`);
+      const response = await axios.get(`/api/reports?onlyMine=${showOnlyMine}`);
       setReports(response.data);
     } catch (error) {
       console.error('Ошибка при загрузке отчетов', error);
@@ -33,7 +33,7 @@ function Reports() {
     setSelectedReport(report);
     setShowPreview(true);
     try {
-      const response = await axios.get(`http://77.239.113.150:8080/${report.filename}`, {
+      const response = await axios.get(`/${report.filename}`, {
         responseType: 'arraybuffer',
       });
       const arrayBuffer = response.data;
@@ -49,7 +49,7 @@ function Reports() {
 
   const handleDownload = async (filename) => {
     try {
-      const response = await axios.get(`http://77.239.113.150:8080/${filename}`, {
+      const response = await axios.get(`/${filename}`, {
         responseType: 'blob',
       });
 
@@ -65,6 +65,18 @@ function Reports() {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       setError('Ошибка при скачивании файла');
+    }
+  };
+
+  const handleDelete = async (filename) => {
+    if (window.confirm('Вы уверены, что хотите удалить этот отчет?')) {
+      try {
+        await axios.delete(`/api/reports/${encodeURIComponent(filename)}`);
+        fetchReports();
+      } catch (error) {
+        setError('Ошибка при удалении отчета');
+        console.error('Ошибка при удалении отчета:', error);
+      }
     }
   };
 
@@ -152,6 +164,9 @@ function Reports() {
                   </button>
                   <button className="btn btn-success" onClick={() => handleDownload(report.filename)}>
                     Скачать
+                  </button>
+                  <button className="btn btn-danger" onClick={() => handleDelete(report.filename)}>
+                    Удалить
                   </button>
                 </div>
               </div>

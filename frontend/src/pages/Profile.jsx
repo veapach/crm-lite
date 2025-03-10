@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 
 export default function Profile() {
   const [user, setUser] = useState(null);
@@ -14,23 +15,12 @@ export default function Profile() {
   });
   const [updateMessage, setUpdateMessage] = useState('');
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          navigate('/auth');
-          return;
-        }
-
-        const { data } = await axios.get('http://77.239.113.150:8080/api/check-auth', {
-          headers: {
-            Authorization: token,
-            'Content-Type': 'application/json',
-          },
-        });
-
+        const { data } = await axios.get('/api/check-auth');
         setUser(data.user);
         setEditForm({
           firstName: data.user.firstName,
@@ -40,19 +30,21 @@ export default function Profile() {
         });
       } catch (err) {
         setError('Ошибка загрузки профиля');
-        localStorage.removeItem('token');
-        window.dispatchEvent(new Event('storage'));
-        navigate('/auth');
       }
     };
 
     fetchUser();
-  }, [navigate]);
+  }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    window.dispatchEvent(new Event('storage'));
-    navigate('/auth');
+  const handleLogout = async () => {
+    try {
+      await axios.post("/api/logout", {});
+      logout(); // Обновляем состояние авторизации
+      document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      navigate('/auth');
+    } catch (err) {
+      setError('Ошибка при выходе из системы');
+    }
   };
 
   const handleEdit = () => {
@@ -82,7 +74,6 @@ export default function Profile() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
       const updateData = {
         firstName: editForm.firstName,
         lastName: editForm.lastName,
@@ -90,12 +81,7 @@ export default function Profile() {
         ...(editForm.password && { password: editForm.password }),
       };
 
-      await axios.put('http://77.239.113.150:8080/api/profile', updateData, {
-        headers: {
-          Authorization: token,
-          'Content-Type': 'application/json',
-        },
-      });
+      await axios.put('/api/profile', updateData);
 
       setUser({
         ...user,

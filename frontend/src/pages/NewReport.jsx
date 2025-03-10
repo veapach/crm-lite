@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { FaChevronDown } from 'react-icons/fa';
 
 function NewReport() {
   const navigate = useNavigate();
@@ -38,9 +39,40 @@ function NewReport() {
   const [previewImages, setPreviewImages] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
+  const [addresses, setAddresses] = useState([]);
+  const [filteredAddresses, setFilteredAddresses] = useState([]);
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
 
   const fileInputRef = useRef(null);
+  const addressInputRef = useRef(null);
   const [uploadedFiles, setUploadedFiles] = useState([]);
+
+  // Загружаем список адресов при монтировании компонента
+  const fetchAddresses = async () => {
+    try {
+      const response = await axios.get('/api/addresses');
+      setAddresses(response.data);
+    } catch (error) {
+      console.error('Ошибка при загрузке адресов:', error);
+    }
+  };
+
+  // Используем эту функцию при монтировании компонента
+  useEffect(() => {
+    fetchAddresses();
+  }, []);
+
+  const toggleAddressList = () => {
+    if (showAddressSuggestions) {
+      setShowAddressSuggestions(false);
+    } else {
+      // Если список скрыт, показываем все адреса
+      setFilteredAddresses(addresses.map(addr => addr.address));
+      setShowAddressSuggestions(true);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -48,6 +80,34 @@ function NewReport() {
       ...prev,
       [name]: value,
     }));
+    
+    // Обновляем состояние валидации при изменении поля
+    if (name === 'date' || name === 'address') {
+      setValidationErrors(prev => ({
+        ...prev,
+        [name]: value.trim() === ''
+      }));
+    }
+
+    // Если изменяется поле адреса, фильтруем подсказки
+    if (name === 'address') {
+      if (value.trim() === '') {
+        setFilteredAddresses([]);
+        setShowAddressSuggestions(false);
+      } else {
+        const filtered = addresses
+          .filter(addr => addr.address.toLowerCase().includes(value.toLowerCase()))
+          .map(addr => addr.address);
+        setFilteredAddresses(filtered);
+        setShowAddressSuggestions(filtered.length > 0);
+      }
+    }
+  };
+
+  const handleAddressSelect = (address) => {
+    setFormData(prev => ({ ...prev, address }));
+    setShowAddressSuggestions(false);
+    setValidationErrors(prev => ({ ...prev, address: false }));
   };
 
   const handlePhotoChange = (e) => {
@@ -98,30 +158,73 @@ function NewReport() {
     e.preventDefault();
     setError('');
     setSuccess('');
-  
-    if (!formData.date || !formData.address) {
-      setError('Пожалуйста, заполните обязательные поля (дата и адрес)');
+    
+    // Проверяем обязательные поля
+    const errors = {
+      date: !formData.date,
+      address: !formData.address
+    };
+    
+    setValidationErrors(errors);
+    
+    if (errors.date || errors.address) {
+      setError('Пожалуйста, заполните обязательные поля (дата и объект)');
       return;
     }
-  
+    
+    // Показываем индикатор загрузки и скрываем форму
+    setIsLoading(true);
+    
     try {
-      const response = await axios.post('http://77.239.113.150:8080/api/report', formData, {
+      const response = await axios.post('/api/report', formData, {
         headers: { 'Content-Type': 'application/json' },
       });
-  
-      const newReportId = response.data.id; // Предполагается, что API возвращает ID созданного отчета
+      
+      const newReportId = response.data.id;
       setSuccess('Отчет успешно создан');
       
+      // Обновляем список адресов, чтобы включить новый адрес
+      fetchAddresses();
+      
+      // Перенаправляем на страницу отчетов после успешного создания
       setTimeout(() => navigate(`/reports?highlight=${newReportId}`), 2000);
     } catch (err) {
       setError(err.response?.data?.error || 'Ошибка при создании отчета');
+      setIsLoading(false); // Показываем форму снова в случае ошибки
     }
   };
-  
+
+  // Определяем стиль для полей ввода в зависимости от валидации
+  const getInputStyle = (fieldName) => {
+    if (validationErrors[fieldName] === undefined) return {};
+    return {
+      borderColor: validationErrors[fieldName] ? '#dc3545' : '#28a745',
+      borderWidth: '2px'
+    };
+  };
+
+  // Если идет загрузка, показываем индикатор вместо формы
+  if (isLoading) {
+    return (
+      <div className="container mt-5 mb-5 text-center">
+        <h1>Создание отчета</h1>
+        <div className="my-5">
+          <div className="spinner-border text-primary" role="status" style={{ width: '3rem', height: '3rem' }}>
+            <span className="visually-hidden">Загрузка...</span>
+          </div>
+          <h4 className="mt-3">Создаем отчет, пожалуйста подождите...</h4>
+          {success && <div className="alert alert-success mt-3">{success}</div>}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mt-5 mb-5">
       <h1>Создание отчета</h1>
+
+      {error && <div className="alert alert-danger">{error}</div>}
+      {success && <div className="alert alert-success">{success}</div>}
 
       <form onSubmit={handleSubmit} className="needs-validation">
         <div className="mb-3">
@@ -132,20 +235,54 @@ function NewReport() {
             name="date"
             value={formData.date}
             onChange={handleChange}
+            style={getInputStyle('date')}
             required
           />
         </div>
 
-        <div className="mb-3">
+        <div className="mb-3 position-relative">
           <label className="form-label fw-bold">Объект *</label>
-          <input
-            type="text"
-            className="form-control"
-            name="address"
-            value={formData.address}
-            onChange={handleChange}
-            required
-          />
+          <div className="input-group">
+            <input
+              type="text"
+              className="form-control"
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              style={getInputStyle('address')}
+              ref={addressInputRef}
+              required
+              autoComplete="off"
+            />
+            <button 
+              type="button" 
+              className="btn btn-outline-secondary" 
+              onClick={toggleAddressList}
+              title="Показать все адреса"
+            >
+              <FaChevronDown />
+            </button>
+          </div>
+          {showAddressSuggestions && (
+            <div className="position-absolute w-100 mt-1 bg-white border rounded shadow-sm" style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}>
+              {filteredAddresses.length > 0 ? (
+                filteredAddresses.map((address, index) => (
+                  <div 
+                    key={index} 
+                    className="p-2 border-bottom cursor-pointer hover-bg-light"
+                    onClick={() => handleAddressSelect(address)}
+                    style={{ cursor: 'pointer' }}
+                    onMouseOver={(e) => e.target.style.backgroundColor = '#f8f9fa'}
+                    onMouseOut={(e) => e.target.style.backgroundColor = ''}
+                  >
+                    {address}
+                  </div>
+                ))
+              ) : (
+                <div className="p-2 text-muted">Нет подходящих адресов</div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="mb-3">
@@ -280,9 +417,6 @@ function NewReport() {
         <button type="submit" className="btn btn-primary">
           Создать отчет
         </button>
-
-        {error && <div className="alert alert-danger mt-3">{error}</div>}
-        {success && <div className="alert alert-success mt-3">{success}</div>}
       </form>
     </div>
   );

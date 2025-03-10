@@ -24,10 +24,7 @@ function Requests() {
 
   const fetchRequests = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get('http://77.239.113.150:8080/api/requests', {
-        headers: { Authorization: token }
-      });
+      const response = await axios.get('/api/requests');
       setRequests(response.data);
     } catch (error) {
       console.error('Ошибка при получении заявок:', error);
@@ -37,10 +34,7 @@ function Requests() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
-      await axios.post('http://77.239.113.150:8080/api/requests', formData, {
-        headers: { Authorization: token }
-      });
+      await axios.post('/api/requests', formData);
       setShowModal(false);
       fetchRequests();
       setFormData({
@@ -59,10 +53,8 @@ function Requests() {
   const handleStatusChange = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(`http://77.239.113.150:8080/api/requests/${selectedRequest.id}`, 
-        { ...selectedRequest, status: e.target.status.value },
-        { headers: { Authorization: token } }
+      await axios.put(`/api/requests/${selectedRequest.id}`,
+        { ...selectedRequest, status: e.target.status.value }
       );
       setShowStatusModal(false);
       fetchRequests();
@@ -73,10 +65,7 @@ function Requests() {
 
   const handleDelete = async () => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`http://77.239.113.150:8080/api/requests/${selectedRequest.id}`, {
-        headers: { Authorization: token }
-      });
+      await axios.delete(`/api/requests/${selectedRequest.id}`);
       setShowDeleteModal(false);
       fetchRequests();
     } catch (error) {

@@ -1,14 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import '../styles/Certificates.css'; // Подключаем CSS файл
+import '../styles/Files.css';
+import { Modal } from 'react-bootstrap';
 
-function Certificates() {
+function Files() {
   const [files, setFiles] = useState([]);
   const [certificates, setCertificates] = useState([]);
   const [newNames, setNewNames] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
   const [showOnlyMine, setShowOnlyMine] = useState(false);
   const [user, setUser] = useState(null);
+  
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [enlargedImage, setEnlargedImage] = useState('');
+  
+  const pressTimer = useRef(null);
+  const [isPressing, setIsPressing] = useState(false);
 
   useEffect(() => {
     fetchCertificates();
@@ -17,14 +24,7 @@ function Certificates() {
 
   const fetchUserData = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-
-      const { data } = await axios.get('http://77.239.113.150:8080/api/check-auth', {
-        headers: {
-          Authorization: token,
-        },
-      });
+      const { data } = await axios.get('/api/check-auth');
       setUser(data.user);
     } catch (error) {
       console.error('Ошибка при получении данных пользователя', error);
@@ -33,7 +33,7 @@ function Certificates() {
 
   const fetchCertificates = async () => {
     try {
-      const response = await axios.get('http://77.239.113.150:8080/api/certificates');
+      const response = await axios.get('/api/files');
       setCertificates(response.data || []);
     } catch (error) {
       console.error('Ошибка при загрузке сертификатов', error);
@@ -53,7 +53,7 @@ function Certificates() {
     Array.from(files).forEach((file) => formData.append('file', file, file.name));
 
     try {
-      await axios.post('http://77.239.113.150:8080/api/certificates', formData, {
+      await axios.post('/api/files', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       fetchCertificates();
@@ -66,7 +66,7 @@ function Certificates() {
     const encodedFilename = encodeURIComponent(filename);
 
     axios({
-      url: `http://77.239.113.150:8080/api/certificates/download/${encodedFilename}`,
+      url: `/api/files/download/${encodedFilename}`,
       method: 'GET',
       responseType: 'blob',
     })
@@ -87,7 +87,7 @@ function Certificates() {
     if (!newName || !newName.trim()) return;
 
     try {
-      await axios.put('http://77.239.113.150:8080/api/certificates/rename', { oldName, newName });
+      await axios.put('/api/files/rename', { oldName, newName });
       setNewNames((prev) => ({ ...prev, [oldName]: '' }));
       fetchCertificates();
     } catch (error) {
@@ -97,11 +97,48 @@ function Certificates() {
 
   const handleDelete = async (filename) => {
     try {
-      await axios.delete(`http://77.239.113.150:8080/api/certificates/delete/${filename}`);
+      await axios.delete(`/api/files/delete/${filename}`);
       fetchCertificates();
     } catch (error) {
       console.error('Ошибка при удалении файла', error);
     }
+  };
+
+  const handleImageMouseDown = (certificate) => {
+    setIsPressing(true);
+    
+    pressTimer.current = setTimeout(() => {
+      if (isPressing) {
+        setEnlargedImage(`${axios.defaults.baseURL}/api/files/preview/${encodeURIComponent(certificate)}`);
+        setShowImageModal(true);
+      }
+    }, 500);
+  };
+
+  const handleImageMouseUp = () => {
+    setIsPressing(false);
+    clearTimeout(pressTimer.current);
+  };
+
+  const handleImageMouseLeave = () => {
+    setIsPressing(false);
+    clearTimeout(pressTimer.current);
+  };
+
+  const handleImageTouchStart = (certificate) => {
+    setIsPressing(true);
+    
+    pressTimer.current = setTimeout(() => {
+      if (isPressing) {
+        setEnlargedImage(`${axios.defaults.baseURL}/api/files/preview/${encodeURIComponent(certificate)}`);
+        setShowImageModal(true);
+      }
+    }, 500);
+  };
+
+  const handleImageTouchEnd = () => {
+    setIsPressing(false);
+    clearTimeout(pressTimer.current);
   };
 
   const filteredCertificates = certificates.filter((certificate) => {
@@ -116,7 +153,7 @@ function Certificates() {
 
   return (
     <div className="container mt-3">
-      <h1>Хранилище сертификатов</h1>
+      <h1>Хранилище файлов</h1>
 
       <form onSubmit={handleUpload} className="mb-4">
         <div className="mb-3">
@@ -156,7 +193,7 @@ function Certificates() {
         </div>
       </div>
 
-      <h3>Загруженные сертификаты</h3>
+      <h3>Загруженные файлы</h3>
       <div className="table-responsive">
         <table className="table">
           <thead>
@@ -172,10 +209,17 @@ function Certificates() {
                 <tr key={index}>
                   <td>
                     <img
-                      src={`http://77.239.113.150:8080/api/certificates/download/${encodeURIComponent(certificate)}`}
+                      src={`${axios.defaults.baseURL}/api/files/preview/${encodeURIComponent(certificate)}`}
                       alt="Preview"
                       width="50"
                       height="50"
+                      style={{ objectFit: 'contain', cursor: 'pointer' }}
+                      onMouseDown={() => handleImageMouseDown(certificate)}
+                      onMouseUp={handleImageMouseUp}
+                      onMouseLeave={handleImageMouseLeave}
+                      onTouchStart={() => handleImageTouchStart(certificate)}
+                      onTouchEnd={handleImageTouchEnd}
+                      title="Удерживайте для увеличения"
                     />
                   </td>
                   <td>{certificate}</td>
@@ -201,14 +245,32 @@ function Certificates() {
               ))
             ) : (
               <tr>
-                <td colSpan="3">Нет загруженных сертификатов</td>
+                <td colSpan="3">Нет загруженных файлов</td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
+
+      <Modal 
+        show={showImageModal} 
+        onHide={() => setShowImageModal(false)} 
+        centered
+        size="lg"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Увеличенное изображение</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="text-center">
+          <img 
+            src={enlargedImage} 
+            alt="Enlarged preview" 
+            style={{ maxWidth: '100%', maxHeight: '70vh' }} 
+          />
+        </Modal.Body>
+      </Modal>
     </div>
   );
 }
 
-export default Certificates;
+export default Files;

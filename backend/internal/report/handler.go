@@ -4,6 +4,7 @@ import (
 	"backend/internal/db"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -30,6 +31,42 @@ type ReportData struct {
 	LastName        string                   `json:"lastName"`
 }
 
+func DeleteReport(c *gin.Context) {
+	reportName := c.Param("reportname")
+
+	var reportPath string
+	if strings.Contains(reportName, "uploads") || strings.Contains(reportName, "reports") {
+		reportPath = reportName
+	} else {
+		reportPath = filepath.Join("uploads", "reports", reportName)
+	}
+
+	if _, err := os.Stat(reportPath); os.IsNotExist(err) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден"})
+		return
+	}
+
+	if err := os.Remove(reportPath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при удалении файла"})
+		return
+	}
+
+	filename := filepath.Base(reportPath)
+
+	var report db.Report
+	if err := db.DB.Where("filename = ? OR filename LIKE ?", reportPath, "%"+filename).First(&report).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Отчет не найден в базе данных"})
+		return
+	}
+
+	if err := db.DB.Delete(&report).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при удалении данных из БД"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Отчет успешно удален"})
+}
+
 func CreateReport(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -45,8 +82,23 @@ func CreateReport(c *gin.Context) {
 
 	var reportData ReportData
 	if err := c.ShouldBindJSON(&reportData); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Неверный формат запроса: %v", err)})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат данных"})
 		return
+	}
+
+	// Проверяем, существует ли адрес в базе данных, если нет - добавляем
+	if reportData.Address != "" {
+		var existingAddress db.Address
+		if err := db.DB.Where("address = ?", strings.TrimSpace(reportData.Address)).First(&existingAddress).Error; err != nil {
+			// Адрес не найден, добавляем его
+			newAddress := db.Address{
+				Address: strings.TrimSpace(reportData.Address),
+			}
+			if err := db.DB.Create(&newAddress).Error; err != nil {
+				// Логируем ошибку, но продолжаем создание отчета
+				log.Printf("Ошибка при добавлении нового адреса: %v", err)
+			}
+		}
 	}
 
 	reportData.FirstName = user.FirstName
