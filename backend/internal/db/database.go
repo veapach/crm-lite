@@ -9,7 +9,7 @@ import (
 
 var DB *gorm.DB
 
-type Certificate struct {
+type File struct {
 	ID       uint   `gorm:"primaryKey" json:"id"`
 	Filename string `gorm:"uniqueIndex" json:"filename"`
 }
@@ -51,5 +51,5 @@ func InitDB() {
 		log.Fatal("Ошибка при подключении к БД:", err)
 	}
 
-	DB.AutoMigrate(&Certificate{}, &User{}, &Report{}, &Request{})
+	DB.AutoMigrate(&File{}, &User{}, &Report{}, &Request{})
 }

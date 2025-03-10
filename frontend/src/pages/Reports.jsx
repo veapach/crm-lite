@@ -68,6 +68,18 @@ function Reports() {
     }
   };
 
+  const handleDelete = async (filename) => {
+    if (window.confirm('Вы уверены, что хотите удалить этот отчет?')) {
+      try {
+        await axios.delete(`/api/reports/${encodeURIComponent(filename)}`);
+        fetchReports();
+      } catch (error) {
+        setError('Ошибка при удалении отчета');
+        console.error('Ошибка при удалении отчета:', error);
+      }
+    }
+  };
+
   const filteredReports = reports
     .filter(
       (report) => report.address.toLowerCase().includes(searchTerm.toLowerCase()) || report.date.includes(searchTerm)
@@ -152,6 +164,9 @@ function Reports() {
                   </button>
                   <button className="btn btn-success" onClick={() => handleDownload(report.filename)}>
                     Скачать
+                  </button>
+                  <button className="btn btn-danger" onClick={() => handleDelete(report.filename)}>
+                    Удалить
                   </button>
                 </div>
               </div>

@@ -86,6 +86,7 @@ func main() {
 	// Отчеты
 	r.POST("/api/report", users.AuthMiddleware(), report.CreateReport)
 	r.GET("/api/reports", users.AuthMiddleware(), report.GetReportsHandler)
+	r.DELETE("/api/reports/:reportname", users.AuthMiddleware(), report.DeleteReport)
 
 	// Заявки
 	r.GET("/api/requests", users.AuthMiddleware(), requests.GetRequests)

@@ -30,14 +30,41 @@ type ReportData struct {
 	LastName        string                   `json:"lastName"`
 }
 
-//func DeleteReport(c *gin.Context){
-//	userID, exists := c.Get("userID")
-//	if !exists{
-//		c.JSON(http.StatusUnauthorized, gin.H{"error":"пользователь не авторизован"})
-//		return
-//	}
-//
-//}
+func DeleteReport(c *gin.Context) {
+	reportName := c.Param("reportname")
+
+	var reportPath string
+	if strings.Contains(reportName, "uploads") || strings.Contains(reportName, "reports") {
+		reportPath = reportName
+	} else {
+		reportPath = filepath.Join("uploads", "reports", reportName)
+	}
+
+	if _, err := os.Stat(reportPath); os.IsNotExist(err) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден"})
+		return
+	}
+
+	if err := os.Remove(reportPath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при удалении файла"})
+		return
+	}
+
+	filename := filepath.Base(reportPath)
+
+	var report db.Report
+	if err := db.DB.Where("filename = ? OR filename LIKE ?", reportPath, "%"+filename).First(&report).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Отчет не найден в базе данных"})
+		return
+	}
+
+	if err := db.DB.Delete(&report).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при удалении данных из БД"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Отчет успешно удален"})
+}
 
 func CreateReport(c *gin.Context) {
 	userID, exists := c.Get("userID")

@@ -12,14 +12,14 @@ import (
 )
 
 func GetFiles(c *gin.Context) {
-	var certificates []db.Certificate
-	if err := db.DB.Find(&certificates).Error; err != nil {
+	var files []db.File
+	if err := db.DB.Find(&files).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении сертификатов"})
 		return
 	}
 
 	var filenames []string
-	for _, cert := range certificates {
+	for _, cert := range files {
 		filenames = append(filenames, cert.Filename)
 	}
 
@@ -38,7 +38,7 @@ func UploadFiles(c *gin.Context) {
 			return
 		}
 
-		certificate := db.Certificate{Filename: file.Filename}
+		certificate := db.File{Filename: file.Filename}
 		if err := db.DB.Create(&certificate).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении данных в БД"})
 			return
@@ -76,10 +76,6 @@ func DownloadFiles(c *gin.Context) {
 
 	filePath := filepath.Join("uploads", "files", filename)
 
-	c.Header("Access-Control-Allow-Origin", "http://crmlite-vv.ru")
-	c.Header("Access-Control-Allow-Origin", "http://localhost:3000")
-	c.Header("Access-Control-Allow-Methods", "GET, OPTIONS")
-
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден"})
 		return
@@ -116,7 +112,7 @@ func RenameFiles(c *gin.Context) {
 		return
 	}
 
-	if err := db.DB.Model(&db.Certificate{}).Where("filename = ?", request.OldName).Update("filename", newNameWithExt).Error; err != nil {
+	if err := db.DB.Model(&db.File{}).Where("filename = ?", request.OldName).Update("filename", newNameWithExt).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при обновлении имени файла в БД"})
 		return
 	}
@@ -138,7 +134,7 @@ func DeleteFiles(c *gin.Context) {
 		return
 	}
 
-	if err := db.DB.Where("filename = ?", filename).Delete(&db.Certificate{}).Error; err != nil {
+	if err := db.DB.Where("filename = ?", filename).Delete(&db.File{}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при удалении данных из БД"})
 		return
 	}
@@ -149,14 +145,14 @@ func DeleteFiles(c *gin.Context) {
 func SearchFiles(c *gin.Context) {
 	query := c.DefaultQuery("query", "")
 
-	var certificates []db.Certificate
-	if err := db.DB.Where("filename LIKE ?", "%"+query+"%").Find(&certificates).Error; err != nil {
+	var files []db.File
+	if err := db.DB.Where("filename LIKE ?", "%"+query+"%").Find(&files).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при поиске сертификатов"})
 		return
 	}
 
 	var filenames []string
-	for _, cert := range certificates {
+	for _, cert := range files {
 		filenames = append(filenames, cert.Filename)
 	}
 
