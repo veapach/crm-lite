@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {BrowserRouter as Router, Navigate, Route, Routes} from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Dashboard from './pages/Dashboard';
@@ -8,10 +8,12 @@ import Files from './pages/Files';
 import Profile from './pages/Profile';
 import Auth from './pages/Auth';
 import Requests from './pages/Requests';
+import MaintenancePage from './pages/MaintenancePage';
 import ProtectedRoute from "./components/ProtectedRoute";
 import axios from "axios";
 import config from "./config";
 import { AuthProvider } from './context/AuthContext';
+import './App.css';
 
 axios.defaults.withCredentials = true;
 axios.defaults.baseURL = `http://${config.API_BASE_URL}:8080`;
@@ -41,6 +43,52 @@ axios.interceptors.response.use(
 );
 
 function App() {
+  const [serverAvailable, setServerAvailable] = useState(true);
+  const [checkingServer, setCheckingServer] = useState(true);
+
+  useEffect(() => {
+    // Функция для проверки доступности сервера
+    const checkServerAvailability = async () => {
+      try {
+        setCheckingServer(true);
+        // Используем эндпоинт, который должен быстро отвечать
+        await axios.get('/api/check-health', { timeout: 5000 });
+        setServerAvailable(true);
+      } catch (error) {
+        console.error('Сервер недоступен:', error);
+        setServerAvailable(false);
+      } finally {
+        setCheckingServer(false);
+      }
+    };
+
+    // Проверяем доступность сервера при загрузке
+    checkServerAvailability();
+
+    // Устанавливаем интервал для периодической проверки (каждые 30 секунд)
+    const intervalId = setInterval(checkServerAvailability, 30000);
+
+    // Очищаем интервал при размонтировании компонента
+    return () => clearInterval(intervalId);
+  }, []);
+
+  // Показываем загрузку, пока проверяем сервер
+  if (checkingServer) {
+    return (
+      <div className="d-flex justify-content-center align-items-center" style={{ height: '100vh' }}>
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Загрузка...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Если сервер недоступен, показываем страницу обслуживания
+  if (!serverAvailable) {
+    return <MaintenancePage />;
+  }
+
+  // Если сервер доступен, показываем обычное приложение
   return (
     <AuthProvider>
       <Router>

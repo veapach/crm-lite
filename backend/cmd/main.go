@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"time"
 
@@ -104,6 +105,11 @@ func main() {
 	// Статические файлы
 	r.Static("/uploads/reports", "./uploads/reports")
 	r.Static("/uploads/files", "./uploads/files")
+
+	// Эндпоинт для проверки доступности сервера
+	r.GET("/api/check-health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
 
 	log.Fatal(r.Run(":8080"))
 }
