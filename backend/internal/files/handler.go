@@ -48,8 +48,26 @@ func UploadFiles(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Файлы успешно загружены"})
 }
 
-func DownloadFiles(c *gin.Context) {
+func PreviewFiles(c *gin.Context) {
+	filename, err := url.QueryUnescape(c.Param("filename"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректное имя файла"})
+		return
+	}
 
+	filePath := filepath.Join("uploads", "files", filename)
+
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден"})
+		return
+	}
+
+	c.Header("Content-Type", "image/*")
+	c.Header("Cache-Control", "public, max-age=31536000")
+	c.File(filePath)
+}
+
+func DownloadFiles(c *gin.Context) {
 	filename, err := url.QueryUnescape(c.Param("filename"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректное имя файла"})

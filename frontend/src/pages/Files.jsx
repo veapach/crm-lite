@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import '../styles/Files.css';
-import config from '../config';
 
 function Files() {
   const [files, setFiles] = useState([]);
@@ -18,14 +17,7 @@ function Files() {
 
   const fetchUserData = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-
-      const { data } = await axios.get(`http://${config.API_BASE_URL}:8080/api/check-auth`, {
-        headers: {
-          Authorization: token,
-        },
-      });
+      const { data } = await axios.get('/api/check-auth');
       setUser(data.user);
     } catch (error) {
       console.error('Ошибка при получении данных пользователя', error);
@@ -34,7 +26,7 @@ function Files() {
 
   const fetchCertificates = async () => {
     try {
-      const response = await axios.get(`http://${config.API_BASE_URL}:8080/api/files`);
+      const response = await axios.get('/api/files');
       setCertificates(response.data || []);
     } catch (error) {
       console.error('Ошибка при загрузке сертификатов', error);
@@ -54,7 +46,7 @@ function Files() {
     Array.from(files).forEach((file) => formData.append('file', file, file.name));
 
     try {
-      await axios.post(`http://${config.API_BASE_URL}:8080/api/files`, formData, {
+      await axios.post('/api/files', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       fetchCertificates();
@@ -67,7 +59,7 @@ function Files() {
     const encodedFilename = encodeURIComponent(filename);
 
     axios({
-      url: `http://${config.API_BASE_URL}:8080/api/files/download/${encodedFilename}`,
+      url: `/api/files/download/${encodedFilename}`,
       method: 'GET',
       responseType: 'blob',
     })
@@ -88,7 +80,7 @@ function Files() {
     if (!newName || !newName.trim()) return;
 
     try {
-      await axios.put(`http://${config.API_BASE_URL}:8080/api/files/rename`, { oldName, newName });
+      await axios.put('/api/files/rename', { oldName, newName });
       setNewNames((prev) => ({ ...prev, [oldName]: '' }));
       fetchCertificates();
     } catch (error) {
@@ -98,7 +90,7 @@ function Files() {
 
   const handleDelete = async (filename) => {
     try {
-      await axios.delete(`http://${config.API_BASE_URL}:8080/api/files/delete/${filename}`);
+      await axios.delete(`/api/files/delete/${filename}`);
       fetchCertificates();
     } catch (error) {
       console.error('Ошибка при удалении файла', error);
@@ -173,10 +165,11 @@ function Files() {
                 <tr key={index}>
                   <td>
                     <img
-                      src={`http://${config.API_BASE_URL}:8080/api/files/download/${encodeURIComponent(certificate)}`}
+                      src={`${axios.defaults.baseURL}/api/files/preview/${encodeURIComponent(certificate)}`}
                       alt="Preview"
                       width="50"
                       height="50"
+                      style={{ objectFit: 'contain' }}
                     />
                   </td>
                   <td>{certificate}</td>

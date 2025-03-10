@@ -2,29 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { FaBars } from 'react-icons/fa';
 import '../styles/Navbar.css';
+import { useAuth } from '../context/AuthContext';
 
 function Navbar() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { isAuthenticated } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false); // Состояние для анимации закрытия
   const location = useLocation();
   const menuRef = useRef(null); // Ref для меню
   const buttonRef = useRef(null); // Ref для кнопки меню
-
-  // Проверка аутентификации
-  useEffect(() => {
-    const checkAuth = () => {
-      const token = localStorage.getItem('token');
-      setIsAuthenticated(!!token);
-    };
-
-    checkAuth();
-    window.addEventListener('storage', checkAuth);
-
-    return () => {
-      window.removeEventListener('storage', checkAuth);
-    };
-  }, []);
 
   // Закрытие меню при клике за его пределами
   useEffect(() => {

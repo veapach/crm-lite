@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"backend/internal/db"
 	"backend/internal/files"
@@ -13,7 +14,26 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
+
+func init() {
+	if err := godotenv.Load(); err != nil {
+		panic("No .env file found")
+	}
+	ginMode, exists := os.LookupEnv("GIN_MODE")
+	if !exists {
+		panic("GIN_MODE not found in .env file")
+	}
+	if ginMode == "release" {
+		gin.SetMode(gin.ReleaseMode)
+		serverMode = "Сервер запущен в режиме RELEASE"
+	} else {
+		serverMode = "Сервер запущен в режиме DEBUG на http://localhost:8080"
+	}
+}
+
+var serverMode string
 
 func createRequiredDirectories() {
 	dirs := []string{
@@ -35,25 +55,31 @@ func main() {
 	db.InitDB()
 
 	r := gin.Default()
+
+	fmt.Println(serverMode)
+
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://crmlite-vv.ru", "http://localhost:3000"},
+		AllowOrigins:     []string{"http://localhost:3000", "http://crmlite-vv.ru"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Authorization", "Content-Type"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
 	}))
 
 	// Сертификаты
-	r.GET("/api/files", files.GetFiles)
-	r.POST("/api/files", files.UploadFiles)
-	r.GET("/api/files/download/:filename", files.DownloadFiles)
-	r.PUT("/api/files/rename", files.RenameFiles)
-	r.DELETE("/api/files/delete/:filename", files.DeleteFiles)
-	r.GET("/api/files/search", files.SearchFiles)
+	r.GET("/api/files", users.AuthMiddleware(), files.GetFiles)
+	r.POST("/api/files", users.AuthMiddleware(), files.UploadFiles)
+	r.GET("/api/files/preview/:filename", files.PreviewFiles)
+	r.GET("/api/files/download/:filename", users.AuthMiddleware(), files.DownloadFiles)
+	r.PUT("/api/files/rename", users.AuthMiddleware(), files.RenameFiles)
+	r.DELETE("/api/files/delete/:filename", users.AuthMiddleware(), files.DeleteFiles)
+	r.GET("/api/files/search", users.AuthMiddleware(), files.SearchFiles)
 
 	// Пользователь
 	r.POST("/api/register", users.Register)
 	r.POST("/api/login", users.Login)
+	r.POST("/api/logout", users.Logout)
 	r.GET("/api/check-auth", users.CheckAuth)
 	r.PUT("/api/profile", users.AuthMiddleware(), users.UpdateProfile)
 
@@ -68,8 +94,9 @@ func main() {
 	r.PUT("/api/requests/:id", users.AuthMiddleware(), requests.UpdateRequest)
 	r.DELETE("/api/requests/:id", users.AuthMiddleware(), requests.DeleteReport)
 
+	// Статические файлы
 	r.Static("/uploads/reports", "./uploads/reports")
+	r.Static("/uploads/files", "./uploads/files")
 
-	fmt.Println("Сервер запущен на http://localhost:8080")
 	log.Fatal(r.Run(":8080"))
 }

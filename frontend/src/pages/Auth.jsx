@@ -1,13 +1,24 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import config from '../config';
+import { useAuth } from '../context/AuthContext';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [form, setForm] = useState({ phone: '', password: '', firstName: '', lastName: '', department: '' });
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
+
+  useEffect(() => {
+    // Проверяем наличие сообщения об ошибке авторизации
+    const authError = localStorage.getItem('authError');
+    if (authError) {
+      setError(authError);
+      localStorage.removeItem('authError');
+    }
+  }, []);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -18,16 +29,15 @@ export default function Auth() {
     setError('');
 
     try {
-      const { data } = await axios.post(`http://${config.API_BASE_URL}:8080/api/${isLogin ? 'login' : 'register'}`, form);
-
-      localStorage.setItem('token', data.token);
-      // Добавляем событие storage для обновления navbar
-      window.dispatchEvent(new Event('storage'));
-
-      navigate('/profile');
-    } catch (err) {
-      console.error('Ошибка:', err.response?.data || err.message);
-      setError(err.response?.data?.message || 'Произошла ошибка');
+      await axios.post(`/api/${isLogin ? "login" : "register"}`, form);
+      login(); // Обновляем состояние авторизации
+      
+      // Получаем URL для редиректа
+      const params = new URLSearchParams(location.search);
+      const redirectUrl = params.get('redirect') || '/';
+      navigate(redirectUrl);
+    } catch (e) {
+      setError(e.response?.data?.message || "Произошла ошибка");
     }
   };
 

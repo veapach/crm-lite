@@ -3,7 +3,6 @@ import axios from 'axios';
 import { renderAsync } from 'docx-preview';
 import { Modal } from 'react-bootstrap';
 import '../styles/Reports.css';
-import config from '../config';
 
 function Reports() {
   const [reports, setReports] = useState([]);
@@ -23,7 +22,7 @@ function Reports() {
 
   const fetchReports = useCallback(async () => {
     try {
-      const response = await axios.get(`http://${config.API_BASE_URL}:8080/api/reports?onlyMine=${showOnlyMine}`);
+      const response = await axios.get(`/api/reports?onlyMine=${showOnlyMine}`);
       setReports(response.data);
     } catch (error) {
       console.error('Ошибка при загрузке отчетов', error);
@@ -34,7 +33,7 @@ function Reports() {
     setSelectedReport(report);
     setShowPreview(true);
     try {
-      const response = await axios.get(`http://${config.API_BASE_URL}:8080/${report.filename}`, {
+      const response = await axios.get(`/${report.filename}`, {
         responseType: 'arraybuffer',
       });
       const arrayBuffer = response.data;
@@ -50,7 +49,7 @@ function Reports() {
 
   const handleDownload = async (filename) => {
     try {
-      const response = await axios.get(`http://${config.API_BASE_URL}:8080/${filename}`, {
+      const response = await axios.get(`/${filename}`, {
         responseType: 'blob',
       });
 

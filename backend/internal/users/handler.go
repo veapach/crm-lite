@@ -65,7 +65,7 @@ func Register(c *gin.Context) {
 func generateToken(userID uint) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": userID,
-		"exp":     time.Now().Add(time.Hour * 24).Unix(),
+		"exp":     time.Now().Add(time.Hour * 730).Unix(),
 	})
 	return token.SignedString(secretKey)
 }
@@ -76,36 +76,70 @@ func Login(c *gin.Context) {
 		Password string `json:"password"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid format"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат данных"})
 		return
 	}
 
 	var user db.User
 	if err := db.DB.Where("phone = ?", input.Phone).First(&user).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Пользователь не найден"})
 		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Incorrect password"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверный пароль"})
 		return
 	}
 
 	token, err := generateToken(user.ID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error while generating token"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при генерации токена"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"token": token})
+	c.SetCookie(
+		"token",
+		token,
+		int((time.Hour * 730).Seconds()),
+		"/",
+		"",
+		false,
+		true,
+	)
 
+	c.JSON(http.StatusOK, gin.H{
+		"token": token,
+		"user": gin.H{
+			"id":         user.ID,
+			"firstName":  user.FirstName,
+			"lastName":   user.LastName,
+			"department": user.Department,
+			"phone":      user.Phone,
+		},
+	})
+}
+
+func Logout(c *gin.Context) {
+	c.SetCookie(
+		"token",
+		"",
+		-1,
+		"/",
+		"",
+		false,
+		true,
+	)
+	c.JSON(http.StatusOK, gin.H{"message": "Успешный выход"})
 }
 
 func CheckAuth(c *gin.Context) {
-	tokenString := c.GetHeader("Authorization")
-	if tokenString == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "токен отсутствует"})
-		return
+	tokenString, err := c.Cookie("token")
+	if err != nil {
+		tokenString = c.GetHeader("Authorization")
+		if tokenString == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "токен отсутствует"})
+			return
+		}
 	}
 
 	if strings.HasPrefix(tokenString, "Bearer") {
@@ -119,13 +153,19 @@ func CheckAuth(c *gin.Context) {
 	})
 
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "недействительный токен: " + err.Error()})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "недействительный токен"})
 		return
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok || !token.Valid {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "недействительные утверждения токена"})
+		return
+	}
+
+	exp := claims["exp"].(float64)
+	if int64(exp) < time.Now().Unix() {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "срок действия токена истек"})
 		return
 	}
 
@@ -211,11 +251,14 @@ func UpdateProfile(c *gin.Context) {
 
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenString := c.GetHeader("Authorization")
-		if tokenString == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "токен отсутствует"})
-			c.Abort()
-			return
+		tokenString, err := c.Cookie("token")
+		if err != nil {
+			tokenString = c.GetHeader("Authorization")
+			if tokenString == "" {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "токен отсутствует"})
+				c.Abort()
+				return
+			}
 		}
 
 		if strings.HasPrefix(tokenString, "Bearer") {
@@ -238,6 +281,13 @@ func AuthMiddleware() gin.HandlerFunc {
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "недействительные утверждения токена"})
+			c.Abort()
+			return
+		}
+
+		exp := claims["exp"].(float64)
+		if int64(exp) < time.Now().Unix() {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "срок действия токена истек"})
 			c.Abort()
 			return
 		}
