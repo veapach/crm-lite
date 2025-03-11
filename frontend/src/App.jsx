@@ -15,7 +15,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import './App.css';
 
 axios.defaults.withCredentials = true;
-axios.defaults.baseURL = `http://${config.API_BASE_URL}:8080`;
+axios.defaults.baseURL = `https://${config.API_BASE_URL}`;
 
 function App() {
   const [serverAvailable, setServerAvailable] = useState(true);
