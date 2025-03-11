@@ -1,0 +1,62 @@
+@font-face {
+    font-family: 'Villula';
+    src: url('../public/assets/fonts/Villula-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Play';
+    src: url('../public/assets/fonts/Play-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'OpenSans';
+    src: url('../public/assets/fonts/OpenSans.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+body {
+    overflow-x: hidden;
+    font-family: 'OpenSans', 'Play', sans-serif;
+    font-size: 20px;
+    background-color: #e8e8e8;
+    color: #333333;
+}
+
+.custom-file-input-wrapper {
+    position: relative;
+    display: inline-block;
+}
+  
+.custom-file-input-wrapper .btn {
+    position: relative;
+    z-index: 1;
+}
+
+/* Стили для страницы обслуживания */
+.maintenance-container {
+  max-width: 800px;
+  margin: 0 auto;
+  border-left: 5px solid #ffc107;
+}
+
+.maintenance-container h1 {
+  color: #343a40;
+}
+
+.maintenance-container .btn-primary {
+  background-color: #0088cc;
+  border-color: #0088cc;
+  transition: all 0.3s ease;
+}
+
+.maintenance-container .btn-primary:hover {
+  background-color: #006699;
+  border-color: #006699;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
