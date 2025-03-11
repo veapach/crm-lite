@@ -64,7 +64,7 @@ func main() {
 		AllowOrigins:     []string{"http://localhost:3000", "http://crmlite-vv.ru", "http://77.239.113.150:3000", "https://crmlite-vv.ru", "https://77.239.113.150:3000"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
-		ExposeHeaders:    []string{"Content-Length"},
+		ExposeHeaders:    []string{"Content-Length", "Set-Cookie"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
@@ -111,5 +111,6 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
-	log.Fatal(r.Run(":8080"))
+	//log.Fatal(r.Run(":8080"))
+	log.Fatal(r.RunTLS(":8080", "/etc/letsencrypt/live/crmlite-vv.ru/fullchain.pem", "/etc/letsencrypt/live/crmlite-vv.ru/privkey.pem"))
 }
