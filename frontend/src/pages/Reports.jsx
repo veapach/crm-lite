@@ -33,7 +33,7 @@ function Reports() {
     setSelectedReport(report);
     setShowPreview(true);
     try {
-      const response = await axios.get(`/${report.filename}`, {
+      const response = await axios.get(`uploads/reports/${report.filename}`, {
         responseType: 'arraybuffer',
       });
       const arrayBuffer = response.data;
@@ -49,7 +49,7 @@ function Reports() {
 
   const handleDownload = async (filename) => {
     try {
-      const response = await axios.get(`/${filename}`, {
+      const response = await axios.get(`uploads/reports/${filename}`, {
         responseType: 'blob',
       });
 

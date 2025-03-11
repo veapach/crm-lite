@@ -5,34 +5,17 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
-
-    const checkAuth = async () => {
-        try {
-            await axios.get("/api/check-auth");
-            setIsAuthenticated(true);
-        } catch (err) {
-            setIsAuthenticated(false);
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
     useEffect(() => {
-        checkAuth();
+        axios.get("/api/check-auth")
+            .then(() => setIsAuthenticated(true))
+            .catch(() => setIsAuthenticated(false));
     }, []);
 
-    const login = () => {
-        setIsAuthenticated(true);
-    };
-
+    const login = () => setIsAuthenticated(true);
     const logout = () => {
-        setIsAuthenticated(false);
+        axios.post("/api/logout").then(() => setIsAuthenticated(false));
     };
-
-    if (isLoading) {
-        return null; // или компонент загрузки
-    }
 
     return (
         <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
@@ -42,9 +25,6 @@ export const AuthProvider = ({ children }) => {
 };
 
 export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (!context) {
-        throw new Error('useAuth must be used within an AuthProvider');
-    }
-    return context;
-}; 
+    return useContext(AuthContext);
+};
+

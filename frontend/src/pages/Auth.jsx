@@ -12,7 +12,6 @@ export default function Auth() {
   const { login } = useAuth();
 
   useEffect(() => {
-    // Проверяем наличие сообщения об ошибке авторизации
     const authError = localStorage.getItem('authError');
     if (authError) {
       setError(authError);
@@ -29,15 +28,23 @@ export default function Auth() {
     setError('');
 
     try {
-      await axios.post(`/api/${isLogin ? "login" : "register"}`, form);
-      login(); // Обновляем состояние авторизации
-      
-      // Получаем URL для редиректа
+      let response;
+      if (isLogin) {
+        response = await axios.post('/api/login', form);
+      } else {
+        response = await axios.post('/api/register', form);
+      }
+
+      // После успешной авторизации, обновляем состояние авторизации
+      login(response.data.token);
+
       const params = new URLSearchParams(location.search);
       const redirectUrl = params.get('redirect') || '/';
       navigate(redirectUrl);
     } catch (e) {
-      setError(e.response?.data?.message || "Произошла ошибка");
+      // Обрабатываем ошибки с учетом структуры, которую возвращает сервер
+      const errorMessage = e.response?.data?.error || e.response?.data?.message || "Произошла ошибка";
+      setError(errorMessage);
     }
   };
 
@@ -132,3 +139,4 @@ export default function Auth() {
     </div>
   );
 }
+

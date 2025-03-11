@@ -102,7 +102,7 @@ func Login(c *gin.Context) {
 		token,
 		int((time.Hour * 730).Seconds()),
 		"/",
-		"",
+		"crmlite-vv.ru",
 		false,
 		true,
 	)
@@ -125,7 +125,7 @@ func Logout(c *gin.Context) {
 		"",
 		-1,
 		"/",
-		"",
+		"crmlite-vv.ru",
 		false,
 		true,
 	)
@@ -297,3 +297,4 @@ func AuthMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
+

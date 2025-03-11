@@ -157,7 +157,7 @@ func CreateReport(c *gin.Context) {
 	}
 
 	report := db.Report{
-		Filename: strings.TrimSpace(filePath),
+		Filename: displayName,
 		Date:     reportData.Date,
 		Address:  reportData.Address,
 		UserID:   userID.(uint),

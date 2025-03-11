@@ -61,7 +61,7 @@ func main() {
 	fmt.Println(serverMode)
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "http://crmlite-vv.ru"},
+		AllowOrigins:     []string{"http://localhost:3000", "http://crmlite-vv.ru", "http://77.239.113.150:3000"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
 		ExposeHeaders:    []string{"Content-Length"},
