@@ -29,9 +29,9 @@ func init() {
 	}
 	if ginMode == "release" {
 		gin.SetMode(gin.ReleaseMode)
-		serverMode = "Сервер запущен в режиме RELEASE"
+		serverMode = "RELEASE"
 	} else {
-		serverMode = "Сервер запущен в режиме DEBUG на http://localhost:8080"
+		serverMode = "DEBUG"
 	}
 }
 
@@ -58,10 +58,8 @@ func main() {
 
 	r := gin.Default()
 
-	fmt.Println(serverMode)
-
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"https://crmlite-vv.ru", "https://77.239.113.150:3000"},
+		AllowOrigins:     []string{"https://crmlite-vv.ru", "https://77.239.113.150:3000", "http://localhost:3000"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
 		ExposeHeaders:    []string{"Content-Length", "Set-Cookie"},
@@ -83,6 +81,7 @@ func main() {
 	r.POST("/api/login", users.Login)
 	r.POST("/api/logout", users.Logout)
 	r.GET("/api/check-auth", users.CheckAuth)
+	r.GET("/api/users", users.AuthMiddleware(), users.GetUsers)
 	r.PUT("/api/profile", users.AuthMiddleware(), users.UpdateProfile)
 
 	// Отчеты
@@ -111,6 +110,14 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
-	//log.Fatal(r.Run(":8080"))
-	log.Fatal(r.RunTLS(":8080", "/etc/letsencrypt/live/crmlite-vv.ru/fullchain.pem", "/etc/letsencrypt/live/crmlite-vv.ru/privkey.pem"))
+	if serverMode == "RELEASE" {
+		fmt.Println("Сервер запущен в режиме " + serverMode)
+		log.Fatal(r.RunTLS(":8080", "/etc/letsencrypt/live/crmlite-vv.ru/fullchain.pem", "/etc/letsencrypt/live/crmlite-vv.ru/privkey.pem"))
+	} else if serverMode == "DEBUG" {
+		fmt.Println("Сервер запущен в режиме " + serverMode)
+		log.Fatal(r.Run(":8080"))
+	} else {
+		panic("serverMode(gin) is not set")
+	}
+
 }

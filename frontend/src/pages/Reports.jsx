@@ -6,6 +6,7 @@ import '../styles/Reports.css';
 
 function Reports() {
   const [reports, setReports] = useState([]);
+  const [users, setUsers] = useState({});
   const [error, setError] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
@@ -20,6 +21,19 @@ function Reports() {
   };
   
 
+  const fetchUsers = useCallback(async () => {
+    try {
+      const response = await axios.get('/api/users');
+      const usersData = {};
+      response.data.forEach(user => {
+        usersData[user.id] = user;
+      });
+      setUsers(usersData);
+    } catch (error) {
+      console.error('Ошибка при загрузке пользователей', error);
+    }
+  }, []);
+
   const fetchReports = useCallback(async () => {
     try {
       const response = await axios.get(`/api/reports?onlyMine=${showOnlyMine}`);
@@ -28,6 +42,11 @@ function Reports() {
       console.error('Ошибка при загрузке отчетов', error);
     }
   }, [showOnlyMine]);
+
+  const getUserFullName = (userId) => {
+    if (!users[userId]) return 'Неизвестный пользователь';
+    return `${users[userId].lastName || ''} ${users[userId].firstName || ''}`.trim();
+  };
 
   const handlePreviewClick = async (report) => {
     setSelectedReport(report);
@@ -92,7 +111,8 @@ function Reports() {
 
   useEffect(() => {
     fetchReports();
-  }, [fetchReports]);
+    fetchUsers();
+  }, [fetchReports, fetchUsers]);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -156,8 +176,11 @@ function Reports() {
           >
             <div className="card shadow-sm">
               <div className="card-body">
-                <h5 className="card-title">Дата: {formatDate(report.date)}</h5>
-                <p className="card-text">Объект: {report.address}</p>
+                <h5 className="card-title">Объект: {report.address}</h5>
+                <p className="card-text">Дата: {formatDate(report.date)}</p>
+                <p className="card-text" style={{ fontSize: '0.9em', color: 'gray' }}>
+                  {getUserFullName(report.userId || report.user_id)}
+                </p>
                 <div className="d-flex justify-content-between">
                   <button className="btn btn-primary" onClick={() => handlePreviewClick(report)}>
                     Предпросмотр

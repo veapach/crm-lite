@@ -187,6 +187,16 @@ func CheckAuth(c *gin.Context) {
 	})
 }
 
+func GetUsers(c *gin.Context) {
+	var users []db.User
+	if err := db.DB.Find(&users).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении пользователей"})
+		return
+	}
+
+	c.JSON(http.StatusOK, users)
+}
+
 func UpdateProfile(c *gin.Context) {
 	tokenString := c.GetHeader("Authorization")
 	if tokenString == "" {
@@ -297,4 +307,3 @@ func AuthMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
-
