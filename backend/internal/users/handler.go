@@ -28,11 +28,26 @@ func init() {
 
 var jwtkey string
 var secretKey = []byte(jwtkey)
+var allowedPhones = []string{"79197627770", "79267547359", "89163838980", "123"}
+
+func checkIfPhoneAllowed(inputPhone string, allowedPhones []string) bool {
+	for _, phone := range allowedPhones {
+		if phone == inputPhone {
+			return true
+		}
+	}
+	return false
+}
 
 func Register(c *gin.Context) {
 	var input db.User
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	if isAllowed := checkIfPhoneAllowed(input.Phone, allowedPhones); !isAllowed {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "У вас нет доступа к сайту"})
 		return
 	}
 
