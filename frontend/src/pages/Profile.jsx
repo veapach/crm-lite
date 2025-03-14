@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
@@ -14,7 +13,6 @@ export default function Profile() {
     password: '',
   });
   const [updateMessage, setUpdateMessage] = useState('');
-  const navigate = useNavigate();
   const { logout } = useAuth();
 
   useEffect(() => {
@@ -38,10 +36,7 @@ export default function Profile() {
 
   const handleLogout = async () => {
     try {
-      await axios.post("/api/logout", {});
-      logout(); // Обновляем состояние авторизации
-      document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-      navigate('/auth');
+      logout(); // Используем функцию logout из AuthContext, которая уже содержит всю необходимую логику
     } catch (err) {
       setError('Ошибка при выходе из системы');
     }

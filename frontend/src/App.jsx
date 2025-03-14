@@ -23,7 +23,7 @@ axios.defaults.baseURL = `${config.API_BASE_URL}`;
 function App() {
   const [serverAvailable, setServerAvailable] = useState(true);
   const [initialCheckDone, setInitialCheckDone] = useState(false);
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, loading } = useAuth();
 
   useEffect(() => {
     const checkServerAvailability = async () => {
@@ -40,8 +40,9 @@ function App() {
     checkServerAvailability();
   }, []);
 
-  if (!initialCheckDone) {
-    return <div>Загрузка...</div>;
+  // Показываем индикатор загрузки, пока проверяем авторизацию
+  if (loading || !initialCheckDone) {
+    return <div className="loading-container">Загрузка...</div>;
   }
 
   if (!serverAvailable) {
@@ -56,7 +57,7 @@ function App() {
       <Navbar />
       <div className="container">
         <Routes>
-          <Route path="/auth" element={<Auth />} />
+          <Route path="/auth" element={isAuthenticated ? <Navigate to="/" replace /> : <Auth />} />
           <Route path="/" element={isAuthenticated ? <Dashboard /> : <Navigate to="/auth" replace />} />
           <Route path="/new-report" element={isAuthenticated ? <NewReport /> : <Navigate to="/auth" replace />} />
           <Route path="/reports" element={isAuthenticated ? <Reports /> : <Navigate to="/auth" replace />} />

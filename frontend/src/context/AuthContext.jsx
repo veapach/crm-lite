@@ -6,12 +6,14 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         checkAuth();
     }, []);
 
     const checkAuth = async () => {
+        setLoading(true);
         try {
             const response = await axios.get("/api/check-auth");
             setIsAuthenticated(true);
@@ -19,6 +21,8 @@ export const AuthProvider = ({ children }) => {
         } catch (error) {
             setIsAuthenticated(false);
             setUser(null);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -47,7 +51,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated, login, logout, user, checkAuth }}>
+        <AuthContext.Provider value={{ isAuthenticated, login, logout, user, checkAuth, loading }}>
             {children}
         </AuthContext.Provider>
     );
