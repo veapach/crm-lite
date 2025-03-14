@@ -28,15 +28,13 @@ func init() {
 
 var jwtkey string
 var secretKey = []byte(jwtkey)
-var allowedPhones = []string{"79197627770", "79267547359", "89163838980", "123"}
 
-func checkIfPhoneAllowed(inputPhone string, allowedPhones []string) bool {
-	for _, phone := range allowedPhones {
-		if phone == inputPhone {
-			return true
-		}
+func checkIfPhoneAllowed(inputPhone string) bool {
+	var allowedPhone db.AllowedPhone
+	if err := db.DB.Where("phone = ?", inputPhone).First(&allowedPhone).Error; err != nil {
+		return false
 	}
-	return false
+	return true
 }
 
 func Register(c *gin.Context) {
@@ -46,7 +44,7 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	if isAllowed := checkIfPhoneAllowed(input.Phone, allowedPhones); !isAllowed {
+	if isAllowed := checkIfPhoneAllowed(input.Phone); !isAllowed {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "У вас нет доступа к сайту"})
 		return
 	}
@@ -122,6 +120,26 @@ func Login(c *gin.Context) {
 		true,
 	)
 
+	c.SetCookie(
+		"token",
+		token,
+		int((time.Hour * 730).Seconds()),
+		"/",
+		"localhost",
+		false,
+		true,
+	)
+
+	c.SetCookie(
+		"token",
+		token,
+		int((time.Hour * 730).Seconds()),
+		"/",
+		"",
+		false,
+		true,
+	)
+
 	c.JSON(http.StatusOK, gin.H{
 		"token": token,
 		"user": gin.H{
@@ -144,6 +162,27 @@ func Logout(c *gin.Context) {
 		false,
 		true,
 	)
+
+	c.SetCookie(
+		"token",
+		"",
+		-1,
+		"/",
+		"localhost",
+		false,
+		true,
+	)
+
+	c.SetCookie(
+		"token",
+		"",
+		-1,
+		"/",
+		"",
+		false,
+		true,
+	)
+
 	c.JSON(http.StatusOK, gin.H{"message": "Успешный выход"})
 }
 
@@ -155,11 +194,12 @@ func CheckAuth(c *gin.Context) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "токен отсутствует"})
 			return
 		}
+
+		if strings.HasPrefix(tokenString, "Bearer") {
+			tokenString = strings.TrimPrefix(strings.TrimPrefix(tokenString, "Bearer"), " ")
+		}
 	}
 
-	if strings.HasPrefix(tokenString, "Bearer") {
-		tokenString = strings.TrimPrefix(strings.TrimPrefix(tokenString, "Bearer"), " ")
-	}
 	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("неожиданный метод подписи: %v", t.Header["alg"])
@@ -274,6 +314,139 @@ func UpdateProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "профиль успешно обновлен"})
 }
 
+func GetAllowedPhones(c *gin.Context) {
+	var allowedPhones []db.AllowedPhone
+	if err := db.DB.Find(&allowedPhones).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении разрешенных телефонов"})
+		return
+	}
+
+	phoneNumbers := make([]string, len(allowedPhones))
+	for i, phone := range allowedPhones {
+		phoneNumbers[i] = phone.Phone
+	}
+
+	c.JSON(http.StatusOK, phoneNumbers)
+}
+
+func AddAllowedPhone(c *gin.Context) {
+	var input struct {
+		Phone string `json:"phone" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный формат данных"})
+		return
+	}
+
+	var existingPhone db.AllowedPhone
+	if err := db.DB.Where("phone = ?", input.Phone).First(&existingPhone).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "телефон уже в списке разрешенных"})
+		return
+	}
+
+	allowedPhone := db.AllowedPhone{
+		Phone: input.Phone,
+	}
+
+	if err := db.DB.Create(&allowedPhone).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка при добавлении телефона"})
+		return
+	}
+
+	var allowedPhones []db.AllowedPhone
+	db.DB.Find(&allowedPhones)
+
+	phoneNumbers := make([]string, len(allowedPhones))
+	for i, phone := range allowedPhones {
+		phoneNumbers[i] = phone.Phone
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "телефон успешно добавлен", "phones": phoneNumbers})
+}
+
+func RemoveAllowedPhone(c *gin.Context) {
+	phone := c.Param("phone")
+	if phone == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "не указан телефон"})
+		return
+	}
+
+	var allowedPhone db.AllowedPhone
+	if err := db.DB.Where("phone = ?", phone).First(&allowedPhone).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "телефон не найден в списке разрешенных"})
+		return
+	}
+
+	if err := db.DB.Delete(&allowedPhone).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка при удалении телефона"})
+		return
+	}
+
+	var allowedPhones []db.AllowedPhone
+	db.DB.Find(&allowedPhones)
+
+	phoneNumbers := make([]string, len(allowedPhones))
+	for i, phone := range allowedPhones {
+		phoneNumbers[i] = phone.Phone
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "телефон успешно удален", "phones": phoneNumbers})
+}
+
+func UpdateUser(c *gin.Context) {
+	targetUserID := c.Param("id")
+	if targetUserID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "не указан ID пользователя"})
+		return
+	}
+
+	var input struct {
+		FirstName  string `json:"firstName"`
+		LastName   string `json:"lastName"`
+		Department string `json:"department"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный формат данных"})
+		return
+	}
+
+	updates := map[string]interface{}{
+		"first_name": input.FirstName,
+		"last_name":  input.LastName,
+		"department": input.Department,
+	}
+
+	if err := db.DB.Model(&db.User{}).Where("id = ?", targetUserID).Updates(updates).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка при обновлении пользователя"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "пользователь успешно обновлен"})
+}
+
+func DeleteUser(c *gin.Context) {
+	targetUserID := c.Param("id")
+	if targetUserID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "не указан ID пользователя"})
+		return
+	}
+
+	userID, exists := c.Get("userID")
+	if exists && fmt.Sprintf("%v", userID) == targetUserID {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "нельзя удалить самого себя"})
+		return
+	}
+
+	if err := db.DB.Delete(&db.User{}, targetUserID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка при удалении пользователя"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "пользователь успешно удален"})
+}
+
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenString, err := c.Cookie("token")
@@ -284,10 +457,10 @@ func AuthMiddleware() gin.HandlerFunc {
 				c.Abort()
 				return
 			}
-		}
 
-		if strings.HasPrefix(tokenString, "Bearer") {
-			tokenString = strings.TrimPrefix(strings.TrimPrefix(tokenString, "Bearer"), " ")
+			if strings.HasPrefix(tokenString, "Bearer") {
+				tokenString = strings.TrimPrefix(strings.TrimPrefix(tokenString, "Bearer"), " ")
+			}
 		}
 
 		token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
@@ -319,6 +492,32 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		userID := uint(claims["user_id"].(float64))
 		c.Set("userID", userID)
+		c.Next()
+	}
+}
+
+func AdminMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID, exists := c.Get("userID")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
+			c.Abort()
+			return
+		}
+
+		var user db.User
+		if err := db.DB.First(&user, userID).Error; err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не найден"})
+			c.Abort()
+			return
+		}
+
+		if user.Department != "Админ" {
+			c.JSON(http.StatusForbidden, gin.H{"error": "недостаточно прав"})
+			c.Abort()
+			return
+		}
+
 		c.Next()
 	}
 }

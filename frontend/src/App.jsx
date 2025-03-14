@@ -8,10 +8,13 @@ import Files from './pages/Files';
 import Profile from './pages/Profile';
 import Auth from './pages/Auth';
 import Requests from './pages/Requests';
+import Admin from './pages/Admin';
 import MaintenancePage from './pages/MaintenancePage';
 import axios from "axios";
 import config from "./config";
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
 
 axios.defaults.withCredentials = true;
@@ -20,7 +23,7 @@ axios.defaults.baseURL = `${config.API_BASE_URL}`;
 function App() {
   const [serverAvailable, setServerAvailable] = useState(true);
   const [initialCheckDone, setInitialCheckDone] = useState(false);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   useEffect(() => {
     const checkServerAvailability = async () => {
@@ -45,6 +48,9 @@ function App() {
     return <MaintenancePage />;
   }
 
+  // Проверка, является ли пользователь администратором
+  const isAdmin = user && user.department === 'Админ';
+
   return (
     <Router>
       <Navbar />
@@ -57,9 +63,11 @@ function App() {
           <Route path="/files" element={isAuthenticated ? <Files /> : <Navigate to="/auth" replace />} />
           <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/auth" replace />} />
           <Route path="/requests" element={isAuthenticated ? <Requests /> : <Navigate to="/auth" replace />} />
+          <Route path="/admin" element={isAuthenticated && isAdmin ? <Admin /> : <Navigate to="/" replace />} />
           <Route path="*" element={<Navigate to="/auth" replace />} />
         </Routes>
       </div>
+      <ToastContainer position="top-right" autoClose={3000} />
     </Router>
   );
 }

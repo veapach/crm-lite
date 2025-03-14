@@ -1,157 +1,160 @@
 {
-  
+  
   "name": "frontend",
-  
+  
   "version": "0.1.0",
-  
+  
   "private": true,
-  
+  
   "dependencies": {
-  
-    
+  
+    
   "@react-pdf-viewer/core": "^3.12.0",
-  
-    
+  
+    
   "@react-pdf-viewer/default-layout": "^3.12.0",
-  
-    
+  
+    
   "@testing-library/jest-dom": "^6.6.3",
-  
-    
+  
+    
   "@testing-library/react": "^16.2.0",
-  
-    
+  
+    
   "@testing-library/user-event": "^14.6.1",
-  
-    
+  
+    
   "axios": "^1.8.1",
-  
-    
+  
+    
   "bootstrap": "^5.3.3",
-  
-    
+  
+    
   "cra-template": "1.2.0",
-  
-    
+  
+    
   "docx-preview": "^0.3.4",
-  
-    
+  
+    
   "pdfjs-dist": "^3.11.174",
-  
-    
+  
+    
   "react": "^19.0.0",
-  
-    
+  
+    
   "react-bootstrap": "^2.10.9",
-  
-    
+  
+    
   "react-dom": "^19.0.0",
-  
-    
+  
+    
   "react-icons": "^5.5.0",
-  
-    
+  
+    
   "react-pdf": "^9.2.1",
-  
-    
+  
+    
   "react-router-dom": "^7.1.5",
-  
-    
+  
+    
   "react-scripts": "5.0.1",
-  
-    
+  
+    
   "react-swipeable": "^7.0.2",
-  
-    
+  
+    
+  "react-toastify": "^11.0.5",
+  
+    
   "web-vitals": "^4.2.4"
-  
+  
   },
-  
+  
   "overrides": {
-  
-    
+  
+    
   "docx-preview": {
-  
-    
-    
+  
+    
+    
   "source-map-loader": false
-  
-    
+  
+    
   }
-  
+  
   },
-  
+  
   "scripts": {
-  
-    
+  
+    
   "start": "react-scripts start",
-  
-    
+  
+    
   "build": "react-scripts build",
-  
-    
+  
+    
   "test": "react-scripts test",
-  
-    
+  
+    
   "eject": "react-scripts eject"
-  
+  
   },
-  
+  
   "eslintConfig": {
-  
-    
+  
+    
   "extends": [
-  
-    
-    
+  
+    
+    
   "react-app",
-  
-    
-    
+  
+    
+    
   "react-app/jest"
-  
-    
+  
+    
   ]
-  
+  
   },
-  
+  
   "browserslist": {
-  
-    
+  
+    
   "production": [
-  
-    
-    
+  
+    
+    
   ">0.2%",
-  
-    
-    
+  
+    
+    
   "not dead",
-  
-    
-    
+  
+    
+    
   "not op_mini all"
-  
-    
+  
+    
   ],
-  
-    
+  
+    
   "development": [
-  
-    
-    
+  
+    
+    
   "last 1 chrome version",
-  
-    
-    
+  
+    
+    
   "last 1 firefox version",
-  
-    
-    
+  
+    
+    
   "last 1 safari version"
-  
-    
+  
+    
   ]
-  
+  
   }
 }

@@ -1,0 +1,236 @@
+.admin-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.admin-container h1 {
+  margin-bottom: 30px;
+  color: #333;
+  text-align: center;
+}
+
+/* Стили для вкладок */
+.admin-tabs {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 30px;
+  border-bottom: 1px solid #ddd;
+}
+
+.admin-tabs button {
+  padding: 10px 20px;
+  margin: 0 5px;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.admin-tabs button:hover {
+  color: #2dbe64;
+}
+
+.admin-tabs button.active {
+  border-bottom: 3px solid #2dbe64;
+  color: #2dbe64;
+  font-weight: bold;
+}
+
+/* Общие стили для разделов */
+.admin-content {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+}
+
+.admin-content h2 {
+  margin-bottom: 20px;
+  color: #333;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+
+.admin-content h3 {
+  margin: 20px 0 15px;
+  color: #444;
+}
+
+/* Стили для таблиц */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+table th, table td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+table th {
+  background-color: #f8f8f8;
+  font-weight: bold;
+}
+
+table tr:hover {
+  background-color: #f5f5f5;
+}
+
+/* Стили для кнопок */
+button {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+.edit-btn {
+  background-color: #4a90e2;
+  color: white;
+  margin-right: 5px;
+}
+
+.save-btn {
+  background-color: #2dbe64;
+  color: white;
+  margin-right: 5px;
+}
+
+.cancel-btn {
+  background-color: #999;
+  color: white;
+}
+
+.delete-btn {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.upload-btn {
+  background-color: #2dbe64;
+  color: white;
+  padding: 10px 20px;
+  font-size: 16px;
+  margin-top: 15px;
+}
+
+/* Стили для форм */
+input[type="text"],
+input[type="date"],
+select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-bottom: 10px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+/* Стили для раздела адресов */
+.address-controls {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.address-add, .address-search {
+  width: 48%;
+}
+
+.address-add input, .address-search input {
+  width: calc(100% - 100px);
+  margin-right: 10px;
+}
+
+/* Стили для раздела пользователей */
+.allowed-phones {
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.phone-add {
+  display: flex;
+  margin-bottom: 15px;
+}
+
+.phone-add input {
+  flex-grow: 1;
+  margin-right: 10px;
+}
+
+.phones-list ul {
+  list-style: none;
+  padding: 0;
+}
+
+.phones-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+/* Стили для раздела загрузки отчетов */
+.report-upload-form {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Стили для контейнера с полем ввода адреса и выпадающим списком */
+.address-input-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.address-input-container input,
+.address-input-container select {
+  width: 100%;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+  .admin-tabs {
+    flex-direction: column;
+  }
+  
+  .admin-tabs button {
+    margin-bottom: 10px;
+  }
+  
+  .address-controls {
+    flex-direction: column;
+  }
+  
+  .address-add, .address-search {
+    width: 100%;
+    margin-bottom: 15px;
+  }
+  
+  table {
+    display: block;
+    overflow-x: auto;
+  }
+} 

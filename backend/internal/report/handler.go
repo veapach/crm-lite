@@ -4,6 +4,7 @@ import (
 	"backend/internal/db"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -86,16 +88,13 @@ func CreateReport(c *gin.Context) {
 		return
 	}
 
-	// Проверяем, существует ли адрес в базе данных, если нет - добавляем
 	if reportData.Address != "" {
 		var existingAddress db.Address
 		if err := db.DB.Where("address = ?", strings.TrimSpace(reportData.Address)).First(&existingAddress).Error; err != nil {
-			// Адрес не найден, добавляем его
 			newAddress := db.Address{
 				Address: strings.TrimSpace(reportData.Address),
 			}
 			if err := db.DB.Create(&newAddress).Error; err != nil {
-				// Логируем ошибку, но продолжаем создание отчета
 				log.Printf("Ошибка при добавлении нового адреса: %v", err)
 			}
 		}
@@ -197,4 +196,75 @@ func GetReportsHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, reports)
+}
+
+func UploadReport(c *gin.Context) {
+	_, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
+		return
+	}
+
+	file, header, err := c.Request.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "не удалось получить файл"})
+		return
+	}
+	defer file.Close()
+
+	date := c.PostForm("date")
+	address := c.PostForm("address")
+	reportUserID := c.PostForm("userId")
+
+	if date == "" || address == "" || reportUserID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "не все поля заполнены"})
+		return
+	}
+
+	var reportUser db.User
+	if err := db.DB.First(&reportUser, reportUserID).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "указанный пользователь не найден"})
+		return
+	}
+
+	if err := os.MkdirAll("uploads/reports", 0755); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка при создании директории для отчетов"})
+		return
+	}
+
+	timestamp := time.Now().Format("20060102_150405")
+	fileExt := filepath.Ext(header.Filename)
+	fileName := fmt.Sprintf("%s_%s%s", timestamp, strings.ReplaceAll(address, " ", "_"), fileExt)
+	filePath := filepath.Join("uploads/reports", fileName)
+
+	out, err := os.Create(filePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка при создании файла на сервере"})
+		return
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, file)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка при сохранении файла"})
+		return
+	}
+
+	report := db.Report{
+		Filename: fileName,
+		Date:     date,
+		Address:  address,
+		UserID:   reportUser.ID,
+	}
+
+	if err := db.DB.Create(&report).Error; err != nil {
+		os.Remove(filePath)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка при сохранении информации в базу данных"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Отчет успешно загружен",
+		"report":  report,
+	})
 }

@@ -5,20 +5,49 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [user, setUser] = useState(null);
 
     useEffect(() => {
-        axios.get("/api/check-auth")
-            .then(() => setIsAuthenticated(true))
-            .catch(() => setIsAuthenticated(false));
+        checkAuth();
     }, []);
 
-    const login = () => setIsAuthenticated(true);
-    const logout = () => {
-        axios.post("/api/logout").then(() => setIsAuthenticated(false));
+    const checkAuth = async () => {
+        try {
+            const response = await axios.get("/api/check-auth");
+            setIsAuthenticated(true);
+            setUser(response.data.user);
+        } catch (error) {
+            setIsAuthenticated(false);
+            setUser(null);
+        }
+    };
+
+    const login = () => {
+        checkAuth();
+    };
+
+    const logout = async () => {
+        try {
+            await axios.post("/api/logout");
+            // Очищаем состояние
+            setIsAuthenticated(false);
+            setUser(null);
+            // Очищаем localStorage если он используется
+            localStorage.removeItem('token');
+            // Перенаправляем на страницу авторизации
+            window.location.href = '/auth';
+        } catch (error) {
+            console.error("Ошибка при выходе:", error);
+            // Даже в случае ошибки, очищаем состояние и перенаправляем
+            setIsAuthenticated(false);
+            setUser(null);
+            localStorage.removeItem('token');
+            window.location.href = '/auth';
+        }
     };
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+        <AuthContext.Provider value={{ isAuthenticated, login, logout, user, checkAuth }}>
             {children}
         </AuthContext.Provider>
     );

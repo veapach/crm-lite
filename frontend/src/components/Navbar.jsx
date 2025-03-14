@@ -5,12 +5,15 @@ import '../styles/Navbar.css';
 import { useAuth } from '../context/AuthContext';
 
 function Navbar() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false); // Состояние для анимации закрытия
   const location = useLocation();
   const menuRef = useRef(null); // Ref для меню
   const buttonRef = useRef(null); // Ref для кнопки меню
+
+  // Проверка, является ли пользователь администратором
+  const isAdmin = user && user.department === 'Админ';
 
   // Закрытие меню при клике за его пределами
   useEffect(() => {
@@ -80,6 +83,11 @@ function Navbar() {
                   <li className="nav-item mx-1">
                     <Link className={`nav-link rounded-pill ${location.pathname === '/profile' ? 'active' : ''}`} to="/profile">Профиль</Link>
                   </li>
+                  {isAdmin && (
+                    <li className="nav-item mx-1">
+                      <Link className={`nav-link rounded-pill ${location.pathname === '/admin' ? 'active' : ''}`} to="/admin">Администрирование</Link>
+                    </li>
+                  )}
                 </>
               ) : (
                 <li className="nav-item mx-1">
@@ -105,6 +113,9 @@ function Navbar() {
                 <li><Link to="/reports" onClick={closeMenu}>Отчеты</Link></li>
                 <li><Link to="/files" onClick={closeMenu}>Файлы</Link></li>
                 <li><Link to="/profile" onClick={closeMenu}>Профиль</Link></li>
+                {isAdmin && (
+                  <li><Link to="/admin" onClick={closeMenu}>Администрирование</Link></li>
+                )}
               </>
             ) : (
               <li><Link to="/auth" onClick={closeMenu}>Вход/Регистрация</Link></li>

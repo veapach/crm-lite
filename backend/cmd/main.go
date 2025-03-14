@@ -84,10 +84,18 @@ func main() {
 	r.GET("/api/users", users.AuthMiddleware(), users.GetUsers)
 	r.PUT("/api/profile", users.AuthMiddleware(), users.UpdateProfile)
 
+	// Администрирование пользователей
+	r.GET("/api/allowed-phones", users.AuthMiddleware(), users.AdminMiddleware(), users.GetAllowedPhones)
+	r.POST("/api/allowed-phones", users.AuthMiddleware(), users.AdminMiddleware(), users.AddAllowedPhone)
+	r.DELETE("/api/allowed-phones/:phone", users.AuthMiddleware(), users.AdminMiddleware(), users.RemoveAllowedPhone)
+	r.PUT("/api/users/:id", users.AuthMiddleware(), users.AdminMiddleware(), users.UpdateUser)
+	r.DELETE("/api/users/:id", users.AuthMiddleware(), users.AdminMiddleware(), users.DeleteUser)
+
 	// Отчеты
 	r.POST("/api/report", users.AuthMiddleware(), report.CreateReport)
 	r.GET("/api/reports", users.AuthMiddleware(), report.GetReportsHandler)
 	r.DELETE("/api/reports/:reportname", users.AuthMiddleware(), report.DeleteReport)
+	r.POST("/api/reports/upload", users.AuthMiddleware(), users.AdminMiddleware(), report.UploadReport)
 
 	// Заявки
 	r.GET("/api/requests", users.AuthMiddleware(), requests.GetRequests)
