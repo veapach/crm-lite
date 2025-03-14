@@ -58,8 +58,8 @@ function Navbar() {
 
   return (
     <div>
-      {/* Классический Navbar для ПК */}
-      <nav className="navbar navbar-expand-lg d-none d-md-block" style={{ backgroundColor: '#333', color: '#e3e3e3' }}>
+      {/* Десктопный Navbar: показываем только от 992px */}
+      <nav className="navbar navbar-expand-lg d-none d-lg-block" style={{ backgroundColor: '#333', color: '#e3e3e3' }}>
         <div className="container">
           <Link className="navbar-brand" style={{ fontFamily: 'Villula', color: '#e3e3e3' }} to="/">
             CRM
@@ -68,9 +68,6 @@ function Navbar() {
             <ul className="navbar-nav ml-auto">
               {isAuthenticated ? (
                 <>
-                  {/* <li className="nav-item mx-1">
-                    <Link className={`nav-link rounded-pill ${location.pathname === '/requests' ? 'active' : ''}`} to="/requests">Заявки</Link>
-                  </li> */}
                   <li className="nav-item mx-1">
                     <Link className={`nav-link rounded-pill ${location.pathname === '/new-report' ? 'active' : ''}`} to="/new-report">Новый отчет</Link>
                   </li>
@@ -98,9 +95,9 @@ function Navbar() {
           </div>
         </div>
       </nav>
-
-      {/* Мобильный Navbar */}
-      <div className="d-md-none mobile-navbar">
+  
+      {/* Мобильный Navbar: показываем до 992px */}
+      <div className="d-lg-none mobile-navbar">
         <button className={`menu-button ${isMenuOpen ? 'open' : ''}`} onClick={handleMenuButtonClick} ref={buttonRef}>
           <FaBars />
         </button>
@@ -108,7 +105,6 @@ function Navbar() {
           <ul className="navbar-nav">
             {isAuthenticated ? (
               <>
-                {/* <li><Link to="/requests" onClick={closeMenu}>Заявки</Link></li> */}
                 <li><Link to="/new-report" onClick={closeMenu}>Новый отчет</Link></li>
                 <li><Link to="/reports" onClick={closeMenu}>Отчеты</Link></li>
                 <li><Link to="/files" onClick={closeMenu}>Файлы</Link></li>
@@ -125,6 +121,8 @@ function Navbar() {
       </div>
     </div>
   );
+  
+  
 }
 
 export default Navbar;

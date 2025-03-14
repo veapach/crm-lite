@@ -27,6 +27,12 @@ body {
     color: #333333;
 }
 
+.content-wrapper {
+  padding-top: 70px;
+}
+
+
+
 .custom-file-input-wrapper {
     position: relative;
     display: inline-block;

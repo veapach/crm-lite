@@ -55,7 +55,7 @@ function App() {
   return (
     <Router>
       <Navbar />
-      <div className="container">
+      <div className="container content-wrapper">
         <Routes>
           <Route path="/auth" element={isAuthenticated ? <Navigate to="/" replace /> : <Auth />} />
           <Route path="/" element={isAuthenticated ? <Dashboard /> : <Navigate to="/auth" replace />} />

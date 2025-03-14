@@ -1,38 +1,39 @@
 /* Общие стили для Navbar */
 .navbar {
-    position: fixed;
-    bottom: 0;
-    width: 100%;
-    background-color: #333;
-    display: flex;
-    justify-content: flex-end;
-    padding: 10px;
-    z-index: 1000;
-  }
-  
-  .nav-link {
-    display: block;
-    padding: 10px;
-    color: #e3e3e3;
-    text-decoration: none;
-    font-size: 18px;
-  }
-  
-  .nav-link.active {
-    background-color: #e4e7e5;
-    color: #2e2e2e;
-  }
-  
-  /* Стили для мобильного Navbar */
-  @media (max-width: 768px) {
-    .mobile-navbar {
+  position: fixed;
+  top: 0;
+  bottom: auto;
+  width: 100%;
+  background-color: #333;
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px;
+  z-index: 1000;
+}
+
+.nav-link {
+  display: block;
+  padding: 10px;
+  color: #e3e3e3;
+  text-decoration: none;
+  font-size: 18px;
+}
+
+.nav-link.active {
+  background-color: #e4e7e5;
+  color: #2e2e2e;
+}
+
+/* Мобильный Navbar */
+@media (max-width: 992px) {
+  .mobile-navbar {
       position: fixed;
       bottom: 0;
       right: 0;
       z-index: 1100;
-    }
+  }
   
-    .menu-button {
+  .menu-button {
       background-color: #2dbe64;
       color: white;
       border: none;
@@ -45,14 +46,14 @@
       right: 20px;
       z-index: 1200;
       transition: transform 0.3s ease, background-color 0.3s ease;
-    }
+  }
   
-    .menu-button.open {
-      transform: scale(0.9); /* Уменьшение кнопки при открытом меню */
-      background-color: #1e7a4c; /* Изменение цвета при открытом меню */
-    }
+  .menu-button.open {
+      transform: scale(0.9);
+      background-color: #1e7a4c;
+  }
   
-    .navbar-menu {
+  .navbar-menu {
       display: none;
       position: fixed;
       bottom: 90px;
@@ -64,40 +65,40 @@
       opacity: 0;
       transform: translateY(20px);
       transition: opacity 0.3s ease, transform 0.3s ease;
-    }
+  }
   
-    .navbar-menu.open {
+  .navbar-menu.open {
       display: block;
       opacity: 1;
       transform: translateY(0);
-    }
+  }
   
-    .navbar-menu.closing {
+  .navbar-menu.closing {
       animation: slideOut 0.3s ease forwards;
-    }
+  }
   
-    @keyframes slideOut {
+  @keyframes slideOut {
       from {
-        opacity: 1;
-        transform: translateY(0);
+          opacity: 1;
+          transform: translateY(0);
       }
       to {
-        opacity: 0;
-        transform: translateY(20px);
+          opacity: 0;
+          transform: translateY(20px);
       }
-    }
+  }
   
-    .navbar-menu ul {
+  .navbar-menu ul {
       list-style: none;
       padding: 0;
       margin: 0;
-    }
+  }
   
-    .navbar-menu ul li {
+  .navbar-menu ul li {
       margin: 15px 0;
-    }
+  }
   
-    .navbar-menu ul li a {
+  .navbar-menu ul li a {
       color: #e3e3e3;
       text-decoration: none;
       font-size: 18px;
@@ -105,10 +106,11 @@
       display: block;
       border-radius: 8px;
       transition: background-color 0.3s ease, color 0.3s ease;
-    }
+  }
   
-    .navbar-menu ul li a:hover {
+  .navbar-menu ul li a:hover {
       background-color: #2dbe64;
       color: white;
-    }
   }
+}
+

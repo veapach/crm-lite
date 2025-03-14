@@ -158,41 +158,48 @@ function NewReport() {
     e.preventDefault();
     setError('');
     setSuccess('');
-    
+  
     // Проверяем обязательные поля
     const errors = {
       date: !formData.date,
       address: !formData.address
     };
-    
+  
     setValidationErrors(errors);
-    
+  
     if (errors.date || errors.address) {
       setError('Пожалуйста, заполните обязательные поля (дата и объект)');
       return;
     }
-    
+  
+    // Если выбрана классификация "Другое", заменяем значение
+    let dataToSend = { ...formData };
+    if (dataToSend.classification === 'Другое') {
+      dataToSend.classification = dataToSend.customClass;
+    }
+  
     // Показываем индикатор загрузки и скрываем форму
     setIsLoading(true);
-    
+  
     try {
-      const response = await axios.post('/api/report', formData, {
+      const response = await axios.post('/api/report', dataToSend, {
         headers: { 'Content-Type': 'application/json' },
       });
-      
+  
       const newReportId = response.data.id;
       setSuccess('Отчет успешно создан');
-      
+  
       // Обновляем список адресов, чтобы включить новый адрес
       fetchAddresses();
-      
+  
       // Перенаправляем на страницу отчетов после успешного создания
       setTimeout(() => navigate(`/reports?highlight=${newReportId}`), 2000);
     } catch (err) {
       setError(err.response?.data?.error || 'Ошибка при создании отчета');
-      setIsLoading(false); // Показываем форму снова в случае ошибки
+      setIsLoading(false);
     }
   };
+  
 
   // Определяем стиль для полей ввода в зависимости от валидации
   const getInputStyle = (fieldName) => {
