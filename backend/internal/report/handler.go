@@ -18,19 +18,22 @@ import (
 )
 
 type ReportData struct {
-	Date            string                   `json:"date"`
-	Address         string                   `json:"address"`
-	Classification  string                   `json:"classification"`
-	CustomClass     string                   `json:"customClass"`
-	Material        string                   `json:"material"`
-	Recommendations string                   `json:"recommendations"`
-	Defects         string                   `json:"defects"`
-	AdditionalWorks string                   `json:"additionalWorks"`
-	Comments        string                   `json:"comments"`
-	ChecklistItems  []map[string]interface{} `json:"checklistItems"`
-	Photos          []string                 `json:"photos"`
-	FirstName       string                   `json:"firstName"`
-	LastName        string                   `json:"lastName"`
+	Date             string                   `json:"date"`
+	Address          string                   `json:"address"`
+	Machine_name     string                   `json:"machine_name"`
+	Machine_number   string                   `json:"machine_number"`
+	Inventory_number string                   `json:"inventory_number"`
+	Classification   string                   `json:"classification"`
+	CustomClass      string                   `json:"customClass"`
+	Material         string                   `json:"material"`
+	Recommendations  string                   `json:"recommendations"`
+	Defects          string                   `json:"defects"`
+	AdditionalWorks  string                   `json:"additionalWorks"`
+	Comments         string                   `json:"comments"`
+	ChecklistItems   []map[string]interface{} `json:"checklistItems"`
+	Photos           []string                 `json:"photos"`
+	FirstName        string                   `json:"firstName"`
+	LastName         string                   `json:"lastName"`
 }
 
 func DeleteReport(c *gin.Context) {

@@ -56,6 +56,12 @@ def generate_document(json_file):
                     cell.text = cell.text.replace("[дата]", user_info["date"])
                 if "[адрес]" in cell.text:
                     cell.text = cell.text.replace("[адрес]", user_info["address"])
+                if "[назв_обор]" in cell.text:
+                    cell.text = cell.text.replace("[назв_обор]", user_info["machine_name"])
+                if "[номер_обор]" in cell.text:
+                    cell.text = cell.text.replace("[номер_обор]", user_info["machine_number"])
+                if "[инв_номер]" in cell.text:
+                    cell.text = cell.text.replace("[инв_номер]", user_info["inventory_number"])
                 if "[классификация]" in cell.text:
                     cell.text = cell.text.replace(
                         "[классификация]", user_info["classification"]

@@ -8,6 +8,9 @@ function NewReport() {
   const [formData, setFormData] = useState({
     date: '',
     address: '',
+    machine_name: '',
+    machine_number: '',
+    inventory_number: '',
     classification: 'ТО',
     customClass: '',
     material: '',
@@ -290,6 +293,39 @@ function NewReport() {
               )}
             </div>
           )}
+        </div>
+
+        <div className="mb-3">
+          <label className="form-label fw-bold">Название оборудования</label>
+          <textarea
+            className="form-control"
+            name="machine_name"
+            value={formData.machine_name}
+            onChange={handleChange}
+            rows="1"
+          />
+        </div>
+
+        <div className="mb-3">
+          <label className="form-label fw-bold">Номер оборудования</label>
+          <textarea
+            className="form-control"
+            name="machine_number"
+            value={formData.machine_number}
+            onChange={handleChange}
+            rows="1"
+          />
+        </div>
+
+        <div className="mb-3">
+          <label className="form-label fw-bold">Инвентаризационный номер</label>
+          <textarea
+            className="form-control"
+            name="inventory_number"
+            value={formData.inventory_number}
+            onChange={handleChange}
+            rows="1"
+          />
         </div>
 
         <div className="mb-3">
