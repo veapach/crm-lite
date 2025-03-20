@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import '../styles/Files.css';
 import { Modal } from 'react-bootstrap';
@@ -13,9 +13,6 @@ function Files() {
   
   const [showImageModal, setShowImageModal] = useState(false);
   const [enlargedImage, setEnlargedImage] = useState('');
-  
-  const pressTimer = useRef(null);
-  const [isPressing, setIsPressing] = useState(false);
 
   useEffect(() => {
     fetchCertificates();
@@ -104,41 +101,14 @@ function Files() {
     }
   };
 
-  const handleImageMouseDown = (certificate) => {
-    setIsPressing(true);
-    
-    pressTimer.current = setTimeout(() => {
-      if (isPressing) {
-        setEnlargedImage(`${axios.defaults.baseURL}/api/files/preview/${encodeURIComponent(certificate)}`);
-        setShowImageModal(true);
-      }
-    }, 500);
+  const handleImageClick = (certificate) => {
+    setEnlargedImage(`${axios.defaults.baseURL}/api/files/preview/${encodeURIComponent(certificate)}`);
+    setShowImageModal(true);
   };
 
-  const handleImageMouseUp = () => {
-    setIsPressing(false);
-    clearTimeout(pressTimer.current);
-  };
-
-  const handleImageMouseLeave = () => {
-    setIsPressing(false);
-    clearTimeout(pressTimer.current);
-  };
-
-  const handleImageTouchStart = (certificate) => {
-    setIsPressing(true);
-    
-    pressTimer.current = setTimeout(() => {
-      if (isPressing) {
-        setEnlargedImage(`${axios.defaults.baseURL}/api/files/preview/${encodeURIComponent(certificate)}`);
-        setShowImageModal(true);
-      }
-    }, 500);
-  };
-
-  const handleImageTouchEnd = () => {
-    setIsPressing(false);
-    clearTimeout(pressTimer.current);
+  const handleCloseModal = () => {
+    setShowImageModal(false);
+    setEnlargedImage('');
   };
 
   const filteredCertificates = certificates.filter((certificate) => {
@@ -214,12 +184,8 @@ function Files() {
                       width="50"
                       height="50"
                       style={{ objectFit: 'contain', cursor: 'pointer' }}
-                      onMouseDown={() => handleImageMouseDown(certificate)}
-                      onMouseUp={handleImageMouseUp}
-                      onMouseLeave={handleImageMouseLeave}
-                      onTouchStart={() => handleImageTouchStart(certificate)}
-                      onTouchEnd={handleImageTouchEnd}
-                      title="Удерживайте для увеличения"
+                      onClick={() => handleImageClick(certificate)}
+                      title="Нажмите для увеличения"
                     />
                   </td>
                   <td>{certificate}</td>
@@ -254,19 +220,24 @@ function Files() {
 
       <Modal 
         show={showImageModal} 
-        onHide={() => setShowImageModal(false)} 
+        onHide={handleCloseModal}
         centered
         size="lg"
       >
         <Modal.Header closeButton>
-          <Modal.Title>Увеличенное изображение</Modal.Title>
         </Modal.Header>
-        <Modal.Body className="text-center">
-          <img 
-            src={enlargedImage} 
-            alt="Enlarged preview" 
-            style={{ maxWidth: '100%', maxHeight: '70vh' }} 
-          />
+        <Modal.Body className="text-center p-0">
+          {enlargedImage && (
+            <img
+              src={enlargedImage}
+              alt="Enlarged preview"
+              style={{
+                maxWidth: '100%',
+                maxHeight: 'calc(100vh - 150px)',
+                objectFit: 'contain'
+              }}
+            />
+          )}
         </Modal.Body>
       </Modal>
     </div>
