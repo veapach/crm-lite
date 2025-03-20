@@ -332,6 +332,8 @@ function NewReport() {
           <label className="form-label fw-bold">Классификация</label>
           <select className="form-select" name="classification" value={formData.classification} onChange={handleChange}>
             <option value="ТО">ТО</option>
+            <option value="ТО Китчен">ТО Китчен</option>
+            <option value="ТО Пекарня">ТО Пекарня</option>
             <option value="ПНР">ПНР</option>
             <option value="Аварийный вызов">Аварийный вызов</option>
             <option value="Другое">Другое</option>

@@ -7,16 +7,16 @@ import (
 	"os"
 	"time"
 
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
+
 	"backend/internal/address"
 	"backend/internal/db"
 	"backend/internal/files"
 	"backend/internal/report"
 	"backend/internal/requests"
 	"backend/internal/users"
-
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 )
 
 func init() {
@@ -59,9 +59,19 @@ func main() {
 	r := gin.Default()
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"https://crmlite-vv.ru", "https://77.239.113.150:3000", "http://localhost:3000"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
+		AllowOrigins: []string{
+			"https://crmlite-vv.ru",
+			"https://77.239.113.150:3000",
+			"http://localhost:3000",
+		},
+		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders: []string{
+			"Origin",
+			"Content-Type",
+			"Accept",
+			"Authorization",
+			"X-Requested-With",
+		},
 		ExposeHeaders:    []string{"Content-Length", "Set-Cookie"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
@@ -85,9 +95,24 @@ func main() {
 	r.PUT("/api/profile", users.AuthMiddleware(), users.UpdateProfile)
 
 	// Администрирование пользователей
-	r.GET("/api/allowed-phones", users.AuthMiddleware(), users.AdminMiddleware(), users.GetAllowedPhones)
-	r.POST("/api/allowed-phones", users.AuthMiddleware(), users.AdminMiddleware(), users.AddAllowedPhone)
-	r.DELETE("/api/allowed-phones/:phone", users.AuthMiddleware(), users.AdminMiddleware(), users.RemoveAllowedPhone)
+	r.GET(
+		"/api/allowed-phones",
+		users.AuthMiddleware(),
+		users.AdminMiddleware(),
+		users.GetAllowedPhones,
+	)
+	r.POST(
+		"/api/allowed-phones",
+		users.AuthMiddleware(),
+		users.AdminMiddleware(),
+		users.AddAllowedPhone,
+	)
+	r.DELETE(
+		"/api/allowed-phones/:phone",
+		users.AuthMiddleware(),
+		users.AdminMiddleware(),
+		users.RemoveAllowedPhone,
+	)
 	r.PUT("/api/users/:id", users.AuthMiddleware(), users.AdminMiddleware(), users.UpdateUser)
 	r.DELETE("/api/users/:id", users.AuthMiddleware(), users.AdminMiddleware(), users.DeleteUser)
 
@@ -95,7 +120,13 @@ func main() {
 	r.POST("/api/report", users.AuthMiddleware(), report.CreateReport)
 	r.GET("/api/reports", users.AuthMiddleware(), report.GetReportsHandler)
 	r.DELETE("/api/reports/:reportname", users.AuthMiddleware(), report.DeleteReport)
-	r.POST("/api/reports/upload", users.AuthMiddleware(), users.AdminMiddleware(), report.UploadReport)
+	r.POST(
+		"/api/reports/upload",
+		users.AuthMiddleware(),
+		users.AdminMiddleware(),
+		report.UploadReport,
+	)
+	r.GET("/api/reportspermonth", users.AuthMiddleware(), report.GetReportsPerMonth)
 
 	// Заявки
 	r.GET("/api/requests", users.AuthMiddleware(), requests.GetRequests)
@@ -120,12 +151,17 @@ func main() {
 
 	if serverMode == "RELEASE" {
 		fmt.Println("Сервер запущен в режиме " + serverMode)
-		log.Fatal(r.RunTLS(":8080", "/etc/letsencrypt/live/crmlite-vv.ru/fullchain.pem", "/etc/letsencrypt/live/crmlite-vv.ru/privkey.pem"))
+		log.Fatal(
+			r.RunTLS(
+				":8080",
+				"/etc/letsencrypt/live/crmlite-vv.ru/fullchain.pem",
+				"/etc/letsencrypt/live/crmlite-vv.ru/privkey.pem",
+			),
+		)
 	} else if serverMode == "DEBUG" {
 		fmt.Println("Сервер запущен в режиме " + serverMode)
 		log.Fatal(r.Run(":8080"))
 	} else {
 		panic("serverMode(gin) is not set")
 	}
-
 }

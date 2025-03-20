@@ -1,7 +1,6 @@
 package report
 
 import (
-	"backend/internal/db"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -15,6 +14,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+
+	"backend/internal/db"
 )
 
 type ReportData struct {
@@ -81,7 +82,10 @@ func CreateReport(c *gin.Context) {
 
 	var user db.User
 	if err := db.DB.First(&user, userID).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении данных пользователя"})
+		c.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": "Ошибка при получении данных пользователя"},
+		)
 		return
 	}
 
@@ -108,39 +112,56 @@ func CreateReport(c *gin.Context) {
 
 	jsonData, err := json.MarshalIndent(reportData, "", "  ")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Ошибка при обработке данных: %v", err)})
+		c.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": fmt.Sprintf("Ошибка при обработке данных: %v", err)},
+		)
 		return
 	}
 
 	tempFile, err := os.CreateTemp("", "report_data_*.json")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Ошибка при создании временного файла: %v", err)})
+		c.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": fmt.Sprintf("Ошибка при создании временного файла: %v", err)},
+		)
 		return
 	}
 	defer os.Remove(tempFile.Name())
 
 	if _, err := tempFile.Write(jsonData); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Ошибка при записи данных: %v", err)})
+		c.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": fmt.Sprintf("Ошибка при записи данных: %v", err)},
+		)
 		return
 	}
 	tempFile.Close()
 
 	scriptPath := filepath.Join("scripts", "document_generator.py")
 	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Скрипт Python не найден: %v", err)})
+		c.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": fmt.Sprintf("Скрипт Python не найден: %v", err)},
+		)
 		return
 	}
 
-	pythonCmd := "python3"
+	venvPython := filepath.Join("scripts", "venv", "bin", "python3")
+
 	if runtime.GOOS == "windows" {
-		pythonCmd = "python"
+		venvPython = filepath.Join("scripts", "venv", "Scripts", "python.exe")
 	}
-	cmd := exec.Command(pythonCmd, scriptPath, tempFile.Name())
+	cmd := exec.Command(venvPython, scriptPath, tempFile.Name())
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Ошибка при генерации документа: %v\nOutput: %s", err, string(output)),
+			"error": fmt.Sprintf(
+				"Ошибка при генерации документа: %v\nOutput: %s",
+				err,
+				string(output),
+			),
 		})
 		return
 	}
@@ -154,7 +175,10 @@ func CreateReport(c *gin.Context) {
 	filePath = filepath.Clean(filePath)
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Сгенерированный файл не найден: %v", err)})
+		c.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": fmt.Sprintf("Сгенерированный файл не найден: %v", err)},
+		)
 		return
 	}
 
@@ -166,7 +190,10 @@ func CreateReport(c *gin.Context) {
 	}
 
 	if result := db.DB.Create(&report); result.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Ошибка при сохранении в БД: %v", result.Error)})
+		c.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": fmt.Sprintf("Ошибка при сохранении в БД: %v", result.Error)},
+		)
 		return
 	}
 
@@ -176,6 +203,25 @@ func CreateReport(c *gin.Context) {
 		"displayName": displayName,
 		"id":          report.ID,
 	})
+}
+
+func GetReportsPerMonth(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
+		return
+	}
+
+	var count int64
+	if err := db.DB.Model(&db.Report{}).Where("user_id = ?", userID).Count(&count).Error; err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": "Ошибка при получении кол-ва отчетов за месяц"},
+		)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"count": count})
 }
 
 func GetReportsHandler(c *gin.Context) {
@@ -231,7 +277,10 @@ func UploadReport(c *gin.Context) {
 	}
 
 	if err := os.MkdirAll("uploads/reports", 0755); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка при создании директории для отчетов"})
+		c.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": "ошибка при создании директории для отчетов"},
+		)
 		return
 	}
 
@@ -242,7 +291,10 @@ func UploadReport(c *gin.Context) {
 
 	out, err := os.Create(filePath)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка при создании файла на сервере"})
+		c.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": "ошибка при создании файла на сервере"},
+		)
 		return
 	}
 	defer out.Close()
@@ -262,7 +314,10 @@ func UploadReport(c *gin.Context) {
 
 	if err := db.DB.Create(&report).Error; err != nil {
 		os.Remove(filePath)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка при сохранении информации в базу данных"})
+		c.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": "ошибка при сохранении информации в базу данных"},
+		)
 		return
 	}
 

@@ -15,11 +15,11 @@ function Reports() {
   const [showOnlyMine, setShowOnlyMine] = useState(true);
   const viewerRef = useRef(null);
   const [highlightedReportId, setHighlightedReportId] = useState(null);
+  const [reportsPerMonth, setReportsPerMonth] = useState(0); // Добавлено состояние для хранения количества отчетов
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('ru-RU');
   };
-  
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -31,6 +31,15 @@ function Reports() {
       setUsers(usersData);
     } catch (error) {
       console.error('Ошибка при загрузке пользователей', error);
+    }
+  }, []);
+
+  const fetchReportsPerMonth = useCallback(async () => {
+    try {
+      const response = await axios.get("/api/reportspermonth");
+      setReportsPerMonth(response.data.count); // Сохраняем количество отчетов в состоянии
+    } catch (error) {
+      console.error('Ошибка при загрузке кол-ва отчетов', error);
     }
   }, []);
 
@@ -112,7 +121,8 @@ function Reports() {
   useEffect(() => {
     fetchReports();
     fetchUsers();
-  }, [fetchReports, fetchUsers]);
+    fetchReportsPerMonth();
+  }, [fetchReports, fetchUsers, fetchReportsPerMonth]);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -131,6 +141,7 @@ function Reports() {
   return (
     <div className="container mt-5">
       <h1>Отчеты</h1>
+      <h3>Кол-во ваших отчетов: {reportsPerMonth}</h3> {/* Отображаем количество отчетов */}
       {error && <p className="text-danger">{error}</p>}
 
       <div className="row">
@@ -204,7 +215,7 @@ function Reports() {
             Предпросмотр отчета
             {selectedReport && (
               <button className="btn btn-success ms-3" onClick={() => handleDownload(selectedReport.filename)}>
-                Скачать
+              Скачать
               </button>
             )}
           </Modal.Title>
