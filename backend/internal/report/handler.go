@@ -205,23 +205,35 @@ func CreateReport(c *gin.Context) {
 	})
 }
 
-func GetReportsPerMonth(c *gin.Context) {
+func GetReportsCount(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
 		return
 	}
 
-	var count int64
-	if err := db.DB.Model(&db.Report{}).Where("user_id = ?", userID).Count(&count).Error; err != nil {
-		c.JSON(
-			http.StatusInternalServerError,
-			gin.H{"error": "Ошибка при получении кол-ва отчетов за месяц"},
-		)
+	now := time.Now()
+	startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	endOfMonth := startOfMonth.AddDate(0, 1, 0).Add(-time.Second)
+
+	var totalCount, monthCount int64
+
+	if err := db.DB.Model(&db.Report{}).Where("user_id = ?", userID).Count(&totalCount).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении общего кол-ва отчетов"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"count": count})
+	if err := db.DB.Model(&db.Report{}).
+		Where("user_id = ? AND date BETWEEN ? AND ?", userID, startOfMonth.Format("2006-01-02"), endOfMonth.Format("2006-01-02")).
+		Count(&monthCount).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении кол-ва отчетов за месяц"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"total": totalCount,
+		"month": monthCount,
+	})
 }
 
 func GetReportsHandler(c *gin.Context) {

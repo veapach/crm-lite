@@ -15,7 +15,7 @@ function Reports() {
   const [showOnlyMine, setShowOnlyMine] = useState(true);
   const viewerRef = useRef(null);
   const [highlightedReportId, setHighlightedReportId] = useState(null);
-  const [reportsPerMonth, setReportsPerMonth] = useState(0); // Добавлено состояние для хранения количества отчетов
+  const [reportsStats, setReportsStats] = useState({ total: 0, month: 0 });
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('ru-RU');
@@ -34,12 +34,12 @@ function Reports() {
     }
   }, []);
 
-  const fetchReportsPerMonth = useCallback(async () => {
+  const fetchReportsCount = useCallback(async () => {
     try {
-      const response = await axios.get("/api/reportspermonth");
-      setReportsPerMonth(response.data.count); // Сохраняем количество отчетов в состоянии
+      const response = await axios.get("/api/reportscount");
+      setReportsStats(response.data);
     } catch (error) {
-      console.error('Ошибка при загрузке кол-ва отчетов', error);
+      console.error('Ошибка при загрузке статистики отчетов', error);
     }
   }, []);
 
@@ -121,8 +121,8 @@ function Reports() {
   useEffect(() => {
     fetchReports();
     fetchUsers();
-    fetchReportsPerMonth();
-  }, [fetchReports, fetchUsers, fetchReportsPerMonth]);
+    fetchReportsCount();
+  }, [fetchReports, fetchUsers, fetchReportsCount]);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -141,7 +141,10 @@ function Reports() {
   return (
     <div className="container mt-5">
       <h1>Отчеты</h1>
-      <h3>Кол-во ваших отчетов: {reportsPerMonth}</h3> {/* Отображаем количество отчетов */}
+      <div className="d-flex gap-4 mb-3">
+        <h3>За текущий месяц: {reportsStats.month}</h3>
+        <h3>Всего отчетов: {reportsStats.total}</h3>
+      </div>
       {error && <p className="text-danger">{error}</p>}
 
       <div className="row">

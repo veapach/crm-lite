@@ -126,7 +126,7 @@ func main() {
 		users.AdminMiddleware(),
 		report.UploadReport,
 	)
-	r.GET("/api/reportspermonth", users.AuthMiddleware(), report.GetReportsPerMonth)
+	r.GET("/api/reportscount", users.AuthMiddleware(), report.GetReportsCount)
 
 	// Заявки
 	r.GET("/api/requests", users.AuthMiddleware(), requests.GetRequests)
