@@ -1,6 +1,9 @@
 test.xlsx
 
 # Зависимости
+venv/
+/venv
+venv
 node_modules/
 /node_modules
 /.pnp
