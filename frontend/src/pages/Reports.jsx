@@ -16,6 +16,9 @@ function Reports() {
   const viewerRef = useRef(null);
   const [highlightedReportId, setHighlightedReportId] = useState(null);
   const [reportsStats, setReportsStats] = useState({ total: 0, month: 0 });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
+  const [isDateFiltered, setIsDateFiltered] = useState(false);
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('ru-RU');
@@ -45,12 +48,16 @@ function Reports() {
 
   const fetchReports = useCallback(async () => {
     try {
-      const response = await axios.get(`/api/reports?onlyMine=${showOnlyMine}`);
+      let url = `/api/reports?onlyMine=${showOnlyMine}`;
+      if (isDateFiltered && dateRange.startDate && dateRange.endDate) {
+        url += `&startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`;
+      }
+      const response = await axios.get(url);
       setReports(response.data);
     } catch (error) {
       console.error('Ошибка при загрузке отчетов', error);
     }
-  }, [showOnlyMine]);
+  }, [showOnlyMine, isDateFiltered]);
 
   const getUserFullName = (userId) => {
     if (!users[userId]) return 'Неизвестный пользователь';
@@ -164,18 +171,40 @@ function Reports() {
           </select>
         </div>
         <div className="col-md-3">
-          <div className="form-check mt-2">
-            <input
-              type="checkbox"
-              className="form-check-input me-2"
-              id="showOnlyMine"
-              checked={showOnlyMine}
-              onChange={(e) => setShowOnlyMine(e.target.checked)}
-            />
-            <label className="form-check-label" htmlFor="showOnlyMine">
-              Созданные вами отчеты
-            </label>
-          </div>
+          {isDateFiltered ? (
+            <button 
+              className="btn btn-secondary w-100" 
+              onClick={() => {
+                setIsDateFiltered(false);
+                setDateRange({ startDate: '', endDate: '' });
+              }}
+            >
+              Назад
+            </button>
+          ) : (
+            <div className="form-check mt-2">
+              <input
+                type="checkbox"
+                className="form-check-input me-2"
+                id="showOnlyMine"
+                checked={showOnlyMine}
+                onChange={(e) => setShowOnlyMine(e.target.checked)}
+              />
+              <label className="form-check-label" htmlFor="showOnlyMine">
+                Созданные вами отчеты
+              </label>
+            </div>
+          )}
+        </div>
+        <div className="col-md-12 mt-3">
+          {!isDateFiltered && (
+            <button 
+              className="btn btn-primary" 
+              onClick={() => setShowDatePicker(true)}
+            >
+              Выбрать интервал
+            </button>
+          )}
         </div>
       </div>
 
@@ -234,6 +263,52 @@ function Reports() {
             }}
           />
         </Modal.Body>
+      </Modal>
+
+      <Modal show={showDatePicker} onHide={() => setShowDatePicker(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Выберите интервал дат</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div className="mb-3">
+            <label className="form-label">От:</label>
+            <input
+              type="date"
+              className="form-control"
+              value={dateRange.startDate}
+              onChange={(e) => setDateRange(prev => ({ ...prev, startDate: e.target.value }))}
+            />
+          </div>
+          <div className="mb-3">
+            <label className="form-label">До:</label>
+            <input
+              type="date"
+              className="form-control"
+              value={dateRange.endDate}
+              onChange={(e) => setDateRange(prev => ({ ...prev, endDate: e.target.value }))}
+            />
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <button 
+            className="btn btn-secondary" 
+            onClick={() => setShowDatePicker(false)}
+          >
+            Отмена
+          </button>
+          <button 
+            className="btn btn-primary" 
+            onClick={() => {
+              if (dateRange.startDate && dateRange.endDate) {
+                setIsDateFiltered(true);
+                setShowDatePicker(false);
+                fetchReports();
+              }
+            }}
+          >
+            Выгрузить отчеты
+          </button>
+        </Modal.Footer>
       </Modal>
     </div>
   );

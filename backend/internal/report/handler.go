@@ -244,11 +244,18 @@ func GetReportsHandler(c *gin.Context) {
 	}
 
 	showOnlyMine := c.DefaultQuery("onlyMine", "true")
+	startDate := c.Query("startDate")
+	endDate := c.Query("endDate")
+
 	var reports []db.Report
 	query := db.DB
 
 	if showOnlyMine == "true" {
 		query = query.Where("user_id = ?", userID)
+	}
+
+	if startDate != "" && endDate != "" {
+		query = query.Where("date BETWEEN ? AND ?", startDate, endDate)
 	}
 
 	if err := query.Find(&reports).Error; err != nil {
