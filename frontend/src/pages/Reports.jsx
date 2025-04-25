@@ -3,6 +3,10 @@ import axios from 'axios';
 import { renderAsync } from 'docx-preview';
 import { Modal } from 'react-bootstrap';
 import '../styles/Reports.css';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Устанавливаем worker для PDF.js
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 function Reports() {
   const [reports, setReports] = useState([]);
@@ -57,7 +61,7 @@ function Reports() {
     } catch (error) {
       console.error('Ошибка при загрузке отчетов', error);
     }
-  }, [showOnlyMine, isDateFiltered]);
+  }, [showOnlyMine, isDateFiltered, dateRange.startDate, dateRange.endDate]);
 
   const getUserFullName = (userId) => {
     if (!users[userId]) return 'Неизвестный пользователь';
@@ -72,13 +76,62 @@ function Reports() {
         responseType: 'arraybuffer',
       });
       const arrayBuffer = response.data;
-      setTimeout(() => {
-        renderAsync(arrayBuffer, viewerRef.current).catch(() => {
-          setError('Произошла ошибка при рендеринге документа');
-        });
-      }, 100);
+      
+      if (report.filename.toLowerCase().endsWith('.pdf')) {
+        // Для PDF файлов
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const pdf = await loadingTask.promise;
+        
+        // Рендерим все страницы PDF вертикально
+        const container = viewerRef.current;
+        container.innerHTML = ''; // Очищаем контейнер
+
+        // Определяем масштаб в зависимости от устройства
+        const isMobile = window.innerWidth <= 768;
+        const scale = isMobile ? 1.2 : 1.5; // Увеличиваем масштаб для мобильных с 0.8 до 1.0
+
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+          const canvas = document.createElement('canvas');
+          container.appendChild(canvas);
+          const page = await pdf.getPage(pageNum);
+          
+          // Определяем правильный масштаб для устройства
+          let currentScale = scale;
+          if (isMobile) {
+            const containerWidth = container.clientWidth - 12; // Уменьшаем отступы с 32 до 20
+            const defaultViewport = page.getViewport({ scale });
+            const ratio = containerWidth / defaultViewport.width;
+            currentScale = scale * ratio;
+          }
+          
+          const viewport = page.getViewport({ scale: currentScale });
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+          
+          const context = canvas.getContext('2d');
+          await page.render({
+            canvasContext: context,
+            viewport: viewport
+          }).promise;
+
+          // Добавляем отступ между страницами
+          if (pageNum < pdf.numPages) {
+            const spacer = document.createElement('div');
+            spacer.style.height = '20px';
+            container.appendChild(spacer);
+          }
+        }
+      } else {
+        // Для DOCX файлов используем существующий docx-preview
+        setTimeout(() => {
+          renderAsync(arrayBuffer, viewerRef.current).catch(() => {
+            setError('Произошла ошибка при рендеринге документа');
+          });
+        }, 100);
+      }
     } catch (error) {
-      setError('Ошибка при загрузке файла');
+      setError('Ошибка при загрузке документа');
+      console.error('Ошибка при загрузке документа:', error);
     }
   };
 
@@ -224,7 +277,7 @@ function Reports() {
                 <p className="card-text" style={{ fontSize: '0.9em', color: 'gray' }}>
                   {getUserFullName(report.userId || report.user_id)}
                 </p>
-                <div className="d-flex justify-content-between">
+                <div className="d-flex justify-content между">
                   <button className="btn btn-primary" onClick={() => handlePreviewClick(report)}>
                     Предпросмотр
                   </button>
@@ -247,21 +300,26 @@ function Reports() {
             Предпросмотр отчета
             {selectedReport && (
               <button className="btn btn-success ms-3" onClick={() => handleDownload(selectedReport.filename)}>
-              Скачать
+                Скачать
               </button>
             )}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <div
+          <div 
             ref={viewerRef}
             style={{
-              border: '1px solid #ccc',
-              padding: '16px',
-              height: '70vh',
-              overflow: 'auto',
+              maxHeight: '70vh',
+              overflowY: 'auto',
+              overflowX: 'hidden',
+              padding: window.innerWidth <= 768 ? '8px' : '16px 0 16px 0', // Убираем горизонтальные отступы на ПК
+              margin: '0',
+              textAlign: 'left',
+              width: '100%'
             }}
-          />
+          >
+            {/* Содержимое будет добавлено динамически */}
+          </div>
         </Modal.Body>
       </Modal>
 

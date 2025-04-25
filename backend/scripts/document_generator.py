@@ -6,6 +6,11 @@ import json
 import sys
 import os
 import base64
+import platform
+import subprocess
+import docx2pdf
+import pymupdf as fitz
+import random
 
 sys.stdout.reconfigure(encoding="utf-8")
 
@@ -112,7 +117,6 @@ def generate_document(json_file):
                     cell.text = ""
                     for photo in user_info.get("photos", []):
                         add_photo_to_document(doc, photo, cell)
-
     base_filename = f"Акт выполненных работ {user_info['date'].replace(':', '.')} {user_info['address']}.docx"
     output_path = os.path.join(uploads_dir, base_filename)
 
@@ -125,9 +129,89 @@ def generate_document(json_file):
         counter += 1
 
     doc.save(output_path)
+    
+    pdf_path = convert_to_pdf(output_path)
+    if pdf_path:
+        final_pdf = add_stamp_to_pdf(pdf_path)
+        if final_pdf:
+            # Выводим только имя файла
+            filename = os.path.basename(final_pdf)
+            sys.stderr.write("Generated PDF successfully\n")  # Отладочная информация идет в stderr
+            sys.stdout.write(filename + "\n")  # Только имя файла идет в stdout
+            sys.stdout.flush()
 
-    print(os.path.basename(output_path))
+def convert_to_pdf(docx_path):
+    pdf_path = docx_path.replace(".docx", ".pdf")
+    system = platform.system()
 
+    if system == "Windows":
+        try:
+            from docx2pdf import convert
+            # Перенаправляем весь вывод docx2pdf в stderr
+            import sys
+            original_stdout = sys.stdout
+            sys.stdout = sys.stderr
+            convert(docx_path, pdf_path)
+            sys.stdout = original_stdout
+            
+            os.remove(docx_path)  # Удаляем временный DOCX файл
+        except Exception as e:
+            print("Ошибка конвертации docx2pdf:", e, file=sys.stderr)
+            return None
+    elif system == "Linux":
+        try:
+            # Получаем директорию, где находится docx файл
+            output_dir = os.path.dirname(docx_path)
+            
+            # Запускаем конвертацию, указывая выходную директорию
+            subprocess.run(
+                ["libreoffice", "--headless", "--convert-to", "pdf", 
+                 "--outdir", output_dir, docx_path],
+                check=True,
+                stderr=subprocess.PIPE  # Перенаправляем вывод в stderr
+            )
+            os.remove(docx_path)  # Удаляем временный DOCX файл
+        except subprocess.CalledProcessError as e:
+            print(f"Ошибка при конвертации через LibreOffice: {e}", file=sys.stderr)
+            return None
+    else:
+        print("Неподдерживаемая ОС", file=sys.stderr)
+        return None
+
+    return pdf_path if os.path.exists(pdf_path) else None
+
+def add_stamp_to_pdf(pdf_path):
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    stamp_path = os.path.join(script_dir, "stamp.png")
+    output_pdf = pdf_path.replace(".pdf", "_stamped.pdf")
+
+    if not os.path.exists(stamp_path):
+        print("Файл stamp.png не найден", file=sys.stderr)
+        return None
+
+    doc = fitz.open(pdf_path)
+    
+    # Первая печать на первой странице (немного опущена и сдвинута левее)
+    first_page = doc[0]
+    image_rect1 = fitz.Rect(100, 10, 300, 210)  # Опущена наполовину и сдвинута левее
+    first_page.insert_image(image_rect1, filename=stamp_path, overlay=True)
+
+    # Вторая печать на последней странице (немного опущена)
+    last_page = doc[-1]
+    image_rect2 = fitz.Rect(370, 70, 570, 270)  # Опущена наполовину
+    last_page.insert_image(image_rect2, filename=stamp_path, overlay=True)
+
+    doc.save(output_pdf)
+    doc.close()
+    
+    # Удаляем временный PDF файл без печати
+    os.remove(pdf_path)
+    
+    # Переименовываем файл с печатью в окончательное имя
+    final_pdf = pdf_path
+    os.rename(output_pdf, final_pdf)
+    
+    return final_pdf  # Просто возвращаем путь, не печатаем его
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

@@ -15,6 +15,9 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+var jwtkey string
+var secretKey = []byte(jwtkey)
+
 func init() {
 	if err := godotenv.Load(); err != nil {
 		panic("No .env file found")
@@ -25,9 +28,6 @@ func init() {
 		panic("JWTKEY not found in .env file")
 	}
 }
-
-var jwtkey string
-var secretKey = []byte(jwtkey)
 
 func checkIfPhoneAllowed(inputPhone string) bool {
 	var allowedPhone db.AllowedPhone

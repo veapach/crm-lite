@@ -136,6 +136,7 @@ func CreateReport(c *gin.Context) {
 		)
 		return
 	}
+
 	tempFile.Close()
 
 	scriptPath := filepath.Join("scripts", "document_generator.py")
@@ -147,12 +148,36 @@ func CreateReport(c *gin.Context) {
 		return
 	}
 
-	venvPython := filepath.Join("scripts", "venv", "bin", "python3")
-
+	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
-		venvPython = filepath.Join("scripts", "venv", "Scripts", "python.exe")
+		pythonPath := filepath.Join("scripts", "venv", "Scripts", "python.exe")
+		cmd = exec.Command(pythonPath, scriptPath, tempFile.Name())
+	} else {
+		pythonPaths := []string{
+			filepath.Join("scripts", "venv", "bin", "python3"),
+			filepath.Join("scripts", "venv", "bin", "python"),
+			"python3",
+			"python",
+		}
+
+		var pythonPath string
+		for _, path := range pythonPaths {
+			if _, err := exec.LookPath(path); err == nil {
+				pythonPath = path
+				break
+			}
+		}
+
+		if pythonPath == "" {
+			c.JSON(
+				http.StatusInternalServerError,
+				gin.H{"error": "Python интерпретатор не найден"},
+			)
+			return
+		}
+
+		cmd = exec.Command(pythonPath, scriptPath, tempFile.Name())
 	}
-	cmd := exec.Command(venvPython, scriptPath, tempFile.Name())
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -166,12 +191,29 @@ func CreateReport(c *gin.Context) {
 		return
 	}
 
-	displayName := strings.TrimSpace(string(output))
+	lines := strings.Split(string(output), "\n")
+	var displayName string
+	for i := len(lines) - 1; i >= 0; i-- {
+		line := strings.TrimSpace(lines[i])
+		if line != "" && !strings.Contains(line, "%") && strings.HasSuffix(line, ".pdf") {
+			displayName = line
+			break
+		}
+	}
+
+	if displayName == "" {
+		c.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": "Не удалось получить имя сгенерированного файла"},
+		)
+		return
+	}
+
+	displayName = strings.TrimSpace(displayName)
 	displayName = strings.ReplaceAll(displayName, "\r", "")
-	displayName = strings.ReplaceAll(displayName, "\n", "")
 	displayName = strings.TrimPrefix(displayName, "\ufeff")
 
-	filePath := "uploads/reports/" + strings.TrimSpace(displayName)
+	filePath := "uploads/reports/" + displayName
 	filePath = filepath.Clean(filePath)
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
