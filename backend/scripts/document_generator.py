@@ -197,27 +197,27 @@ def add_stamp_to_pdf(pdf_path):
 
     doc = fitz.open(pdf_path)
     
-    # Первая печать на первой странице (немного опущена и сдвинута левее)
+    page_count = len(doc)
+    
     first_page = doc[0]
-    image_rect1 = fitz.Rect(100, 10, 300, 210)  # Опущена наполовину и сдвинута левее
+    image_rect1 = fitz.Rect(100, 10, 300, 210)
     first_page.insert_image(image_rect1, filename=stamp_path, overlay=True)
 
-    # Вторая печать на последней странице (немного опущена)
-    last_page = doc[-1]
-    image_rect2 = fitz.Rect(370, 70, 570, 270)  # Опущена наполовину
-    last_page.insert_image(image_rect2, filename=stamp_path, overlay=True)
-
+    image_rect2 = fitz.Rect(370, 70, 570, 270)
+    if page_count == 1:       
+        first_page.insert_image(image_rect2, filename=stamp_path, overlay=True)
+    else:
+        last_page = doc[-1]
+        last_page.insert_image(image_rect2, filename=stamp_path, overlay=True)
+    
     doc.save(output_pdf)
     doc.close()
     
-    # Удаляем временный PDF файл без печати
     os.remove(pdf_path)
-    
-    # Переименовываем файл с печатью в окончательное имя
     final_pdf = pdf_path
     os.rename(output_pdf, final_pdf)
     
-    return final_pdf  # Просто возвращаем путь, не печатаем его
+    return final_pdf
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
