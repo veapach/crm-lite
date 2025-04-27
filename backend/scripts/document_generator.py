@@ -160,20 +160,15 @@ def convert_to_pdf(docx_path):
             return None
     elif system == "Linux":
         try:
-            # Получаем директорию, где находится docx файл
-            output_dir = os.path.dirname(docx_path)
-            
-            # Запускаем конвертацию, указывая выходную директорию
             subprocess.run(
-                ["libreoffice", "--headless", "--convert-to", "pdf", 
-                 "--outdir", output_dir, docx_path],
+                ["unoconv", "-f", "pdf", docx_path],
                 check=True,
-                stderr=subprocess.PIPE  # Перенаправляем вывод в stderr
+                stderr=subprocess.PIPE
             )
-            os.remove(docx_path)  # Удаляем временный DOCX файл
+            os.remove(docx_path)
         except subprocess.CalledProcessError as e:
-            print(f"Ошибка при конвертации через LibreOffice: {e}", file=sys.stderr)
-            return None
+            print(f"Ошибка при конвертации через unoconv: {e}", file=sys.stderr)
+        return None
     else:
         print("Неподдерживаемая ОС", file=sys.stderr)
         return None
