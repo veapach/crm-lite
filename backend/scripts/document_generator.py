@@ -131,14 +131,19 @@ def generate_document(json_file):
     doc.save(output_path)
     
     pdf_path = convert_to_pdf(output_path)
-    if pdf_path:
-        final_pdf = add_stamp_to_pdf(pdf_path)
-        if final_pdf:
-            # Выводим только имя файла
-            filename = os.path.basename(final_pdf)
-            sys.stderr.write("Generated PDF successfully\n")  # Отладочная информация идет в stderr
-            sys.stdout.write(filename + "\n")  # Только имя файла идет в stdout
-            sys.stdout.flush()
+    if not pdf_path:
+        print("Ошибка при конвертации в PDF", file=sys.stderr)
+        sys.exit(1)
+
+    final_pdf = add_stamp_to_pdf(pdf_path)
+    if not final_pdf:
+        print("Ошибка при добавлении печати", file=sys.stderr)
+        sys.exit(1)
+
+    filename = os.path.basename(final_pdf)
+    sys.stderr.write("Generated PDF successfully\n")
+    sys.stdout.write(filename + "\n")
+    sys.stdout.flush()
 
 def convert_to_pdf(docx_path):
     pdf_path = docx_path.replace(".docx", ".pdf")
