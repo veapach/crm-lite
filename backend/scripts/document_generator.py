@@ -152,14 +152,16 @@ def convert_to_pdf(docx_path):
     if system == "Windows":
         try:
             from docx2pdf import convert
-            # Перенаправляем весь вывод docx2pdf в stderr
-            import sys
             original_stdout = sys.stdout
             sys.stdout = sys.stderr
             convert(docx_path, pdf_path)
             sys.stdout = original_stdout
-            
-            os.remove(docx_path)  # Удаляем временный DOCX файл
+            os.remove(docx_path)
+            if os.path.exists(pdf_path):
+                return pdf_path
+            else:
+                print("Файл PDF не создан", file=sys.stderr)
+                return None
         except Exception as e:
             print("Ошибка конвертации docx2pdf:", e, file=sys.stderr)
             return None
@@ -171,14 +173,18 @@ def convert_to_pdf(docx_path):
                 stderr=subprocess.PIPE
             )
             os.remove(docx_path)
+            if os.path.exists(pdf_path):
+                return pdf_path
+            else:
+                print("Файл PDF не создан", file=sys.stderr)
+                return None
         except subprocess.CalledProcessError as e:
             print(f"Ошибка при конвертации через unoconv: {e}", file=sys.stderr)
-        return None
+            return None
     else:
         print("Неподдерживаемая ОС", file=sys.stderr)
         return None
 
-    return pdf_path if os.path.exists(pdf_path) else None
 
 def add_stamp_to_pdf(pdf_path):
     script_dir = os.path.dirname(os.path.abspath(__file__))
