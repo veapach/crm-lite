@@ -129,7 +129,7 @@ def generate_document(json_file):
         counter += 1
 
     doc.save(output_path)
-    
+
     pdf_path = convert_to_pdf(output_path)
     if not pdf_path:
         print("Ошибка при конвертации в PDF", file=sys.stderr)
@@ -143,7 +143,7 @@ def generate_document(json_file):
             f"Акт выполненных работ {user_info['date'].replace(':', '.')} {user_info['address']} ({counter_pdf}).pdf",
         )
         counter_pdf += 1
-    
+
     final_pdf = add_stamp_to_pdf(pdf_path)
     if not final_pdf:
         print("Ошибка при добавлении печати", file=sys.stderr)
@@ -153,6 +153,7 @@ def generate_document(json_file):
     sys.stderr.write("Generated PDF successfully\n")
     sys.stdout.write(filename + "\n")
     sys.stdout.flush()
+
 
 def convert_to_pdf(docx_path):
     pdf_path = docx_path.replace(".docx", ".pdf")
