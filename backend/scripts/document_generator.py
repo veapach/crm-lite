@@ -117,33 +117,26 @@ def generate_document(json_file):
                     cell.text = ""
                     for photo in user_info.get("photos", []):
                         add_photo_to_document(doc, photo, cell)
-    base_filename = f"Акт выполненных работ {user_info['date'].replace(':', '.')} {user_info['address']}.docx"
-    output_path = os.path.join(uploads_dir, base_filename)
-
-    counter = 1
-    while os.path.exists(output_path):
-        output_path = os.path.join(
-            uploads_dir,
-            f"Акт выполненных работ {user_info['date'].replace(':', '.')} {user_info['address']} ({counter}).docx",
-        )
+    base = f"Акт выполненных работ {user_info['date'].replace(':', '.')} {user_info['address']}"
+    counter = 0
+    while True:
+        suffix = f" ({counter})" if counter else ""
+        name = base + suffix
+        docx_path = os.path.join(uploads_dir, name + ".docx")
+        pdf_path = os.path.join(uploads_dir, name + ".pdf")
+        if not os.path.exists(docx_path) and not os.path.exists(pdf_path):
+            break
         counter += 1
 
-    doc.save(output_path)
+    doc.save(docx_path)
 
-    pdf_path = convert_to_pdf(output_path)
-    if not pdf_path:
+    pdf_converted = convert_to_pdf(docx_path)
+    if not pdf_converted:
         print("Ошибка при конвертации в PDF", file=sys.stderr)
         sys.exit(1)
-
-    counter_pdf = 1
-    final_pdf = pdf_path
-    while os.path.exists(final_pdf):
-        final_pdf = os.path.join(
-            uploads_dir,
-            f"Акт выполненных работ {user_info['date'].replace(':', '.')} {user_info['address']} ({counter_pdf}).pdf",
-        )
-        counter_pdf += 1
-
+    
+    os.replace(pdf_converted, pdf_path)
+        
     final_pdf = add_stamp_to_pdf(pdf_path)
     if not final_pdf:
         print("Ошибка при добавлении печати", file=sys.stderr)
