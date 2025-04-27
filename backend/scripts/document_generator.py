@@ -136,7 +136,7 @@ def generate_document(json_file):
         sys.exit(1)
 
     counter_pdf = 1
-    final_pdf
+    final_pdf = pdf_path
     while os.path.exists(final_pdf):
         final_pdf = os.path.join(
             uploads_dir,
