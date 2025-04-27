@@ -135,6 +135,15 @@ def generate_document(json_file):
         print("Ошибка при конвертации в PDF", file=sys.stderr)
         sys.exit(1)
 
+    counter_pdf = 1
+    final_pdf
+    while os.path.exists(final_pdf):
+        final_pdf = os.path.join(
+            uploads_dir,
+            f"Акт выполненных работ {user_info['date'].replace(':', '.')} {user_info['address']} ({counter_pdf}).pdf",
+        )
+        counter_pdf += 1
+    
     final_pdf = add_stamp_to_pdf(pdf_path)
     if not final_pdf:
         print("Ошибка при добавлении печати", file=sys.stderr)
