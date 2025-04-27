@@ -208,6 +208,7 @@ def add_stamp_to_pdf(pdf_path):
 
     image_rect2 = fitz.Rect(370, 70, 570, 270)
     if page_count == 1:       
+        image_rect2 = fitz.Rect(370, first_page.rect.height - 270, 570, first_page.rect.height - 70)
         first_page.insert_image(image_rect2, filename=stamp_path, overlay=True)
     else:
         last_page = doc[-1]
