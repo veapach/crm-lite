@@ -1,6 +1,7 @@
 package report
 
 import (
+	"archive/zip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -386,4 +387,144 @@ func UploadReport(c *gin.Context) {
 		"message": "Отчет успешно загружен",
 		"report":  report,
 	})
+}
+
+func DownloadMonthlyReports(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
+		return
+	}
+
+	now := time.Now()
+	startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	endOfMonth := startOfMonth.AddDate(0, 1, 0).Add(-time.Second)
+
+	var reports []db.Report
+	if err := db.DB.Where("user_id = ? AND date BETWEEN ? AND ?", userID, startOfMonth.Format("2006-01-02"), endOfMonth.Format("2006-01-02")).Find(&reports).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении отчетов"})
+		return
+	}
+
+	if len(reports) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Нет отчетов за текущий месяц"})
+		return
+	}
+
+	tempDir, err := os.MkdirTemp("", "monthly_reports_*")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при создании временной директории"})
+		return
+	}
+	defer os.RemoveAll(tempDir)
+
+	zipFilePath := filepath.Join(tempDir, "reports.zip")
+	zipFile, err := os.Create(zipFilePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при создании ZIP файла"})
+		return
+	}
+	defer zipFile.Close()
+
+	zipWriter := zip.NewWriter(zipFile)
+	defer zipWriter.Close()
+
+	for _, report := range reports {
+		reportPath := filepath.Join("uploads", "reports", report.Filename)
+		file, err := os.Open(reportPath)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при открытии файла отчета"})
+			return
+		}
+		defer file.Close()
+
+		zipEntry, err := zipWriter.Create(report.Filename)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при добавлении файла в ZIP архив"})
+			return
+		}
+
+		if _, err := io.Copy(zipEntry, file); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при записи файла в ZIP архив"})
+			return
+		}
+	}
+
+	zipWriter.Close()
+
+	c.Header("Content-Type", "application/zip")
+	c.Header("Content-Disposition", "attachment; filename=reports.zip")
+	c.File(zipFilePath)
+}
+
+func DownloadReportsByPeriod(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
+		return
+	}
+
+	startDate := c.Query("startDate")
+	endDate := c.Query("endDate")
+
+	if startDate == "" || endDate == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Не указан интервал дат"})
+		return
+	}
+
+	var reports []db.Report
+	if err := db.DB.Where("user_id = ? AND date BETWEEN ? AND ?", userID, startDate, endDate).Find(&reports).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении отчетов"})
+		return
+	}
+
+	if len(reports) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Нет отчетов за указанный период"})
+		return
+	}
+
+	tempDir, err := os.MkdirTemp("", "reports_by_period_*")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при создании временной директории"})
+		return
+	}
+	defer os.RemoveAll(tempDir)
+
+	zipFilePath := filepath.Join(tempDir, "reports_by_period.zip")
+	zipFile, err := os.Create(zipFilePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при создании ZIP файла"})
+		return
+	}
+	defer zipFile.Close()
+
+	zipWriter := zip.NewWriter(zipFile)
+	defer zipWriter.Close()
+
+	for _, report := range reports {
+		reportPath := filepath.Join("uploads", "reports", report.Filename)
+		file, err := os.Open(reportPath)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при открытии файла отчета"})
+			return
+		}
+		defer file.Close()
+
+		zipEntry, err := zipWriter.Create(report.Filename)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при добавлении файла в ZIP архив"})
+			return
+		}
+
+		if _, err := io.Copy(zipEntry, file); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при записи файла в ZIP архив"})
+			return
+		}
+	}
+
+	zipWriter.Close()
+
+	c.Header("Content-Type", "application/zip")
+	c.Header("Content-Disposition", "attachment; filename=reports_by_period.zip")
+	c.File(zipFilePath)
 }

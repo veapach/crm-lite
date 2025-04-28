@@ -168,6 +168,49 @@ function Reports() {
     }
   };
 
+  const handleDownloadMonthlyReports = async () => {
+    try {
+      const response = await axios.get('/api/reports/monthly-zip', {
+        responseType: 'blob',
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'monthly_reports.zip');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      setError('Ошибка при скачивании архива отчетов');
+      console.error('Ошибка при скачивании архива отчетов:', error);
+    }
+  };
+
+  const handleDownloadReportsByPeriod = async () => {
+    try {
+      const response = await axios.get(
+        `/api/reports/period-zip?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
+        {
+          responseType: 'blob',
+        }
+      );
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'reports_by_period.zip');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      setError('Ошибка при скачивании архива отчетов за период');
+      console.error('Ошибка при скачивании архива отчетов за период:', error);
+    }
+  };
+
   const filteredReports = reports
     .filter(
       (report) => report.address.toLowerCase().includes(searchTerm.toLowerCase()) || report.date.includes(searchTerm)
@@ -204,6 +247,15 @@ function Reports() {
       <div className="d-flex gap-4 mb-3">
         <h3>За текущий месяц: {reportsStats.month}</h3>
         <h3>Всего отчетов: {reportsStats.total}</h3>
+        {isDateFiltered ? (
+          <button className="btn btn-primary" onClick={handleDownloadReportsByPeriod}>
+            Скачать за этот период
+          </button>
+        ) : (
+          <button className="btn btn-primary" onClick={handleDownloadMonthlyReports}>
+            Скачать за месяц
+          </button>
+        )}
       </div>
       {error && <p className="text-danger">{error}</p>}
 
