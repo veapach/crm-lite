@@ -181,6 +181,15 @@ function NewReport() {
       dataToSend.classification = dataToSend.customClass;
     }
   
+    // Map specific classifications to their database values
+    if (dataToSend.classification === 'ТО Китчен' || dataToSend.classification === 'ТО Пекарня') {
+      dataToSend.classification = 'ТО';
+    } else if (dataToSend.classification === 'Аварийный вызов') {
+      dataToSend.classification = 'АВ';
+    } else if (dataToSend.classification === 'ПНР') {
+      dataToSend.classification = 'пнр';
+    }
+  
     // Показываем индикатор загрузки и скрываем форму
     setIsLoading(true);
   
@@ -331,7 +340,6 @@ function NewReport() {
         <div className="mb-3">
           <label className="form-label fw-bold">Классификация</label>
           <select className="form-select" name="classification" value={formData.classification} onChange={handleChange}>
-            <option value="ТО">ТО</option>
             <option value="ТО Китчен">ТО Китчен</option>
             <option value="ТО Пекарня">ТО Пекарня</option>
             <option value="ПНР">ПНР</option>

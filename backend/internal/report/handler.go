@@ -108,6 +108,15 @@ func CreateReport(c *gin.Context) {
 		}
 	}
 
+	// Map specific classifications to their database values
+	if reportData.Classification == "ТО Китчен" || reportData.Classification == "ТО Пекарня" {
+		reportData.Classification = "ТО"
+	} else if reportData.Classification == "Аварийный вызов" {
+		reportData.Classification = "АВ"
+	} else if reportData.Classification == "ПНР" {
+		reportData.Classification = "пнр"
+	}
+
 	reportData.FirstName = user.FirstName
 	reportData.LastName = user.LastName
 
@@ -226,10 +235,11 @@ func CreateReport(c *gin.Context) {
 	}
 
 	report := db.Report{
-		Filename: displayName,
-		Date:     reportData.Date,
-		Address:  reportData.Address,
-		UserID:   userID.(uint),
+		Filename:       displayName,
+		Date:           reportData.Date,
+		Address:        reportData.Address,
+		UserID:         userID.(uint),
+		Classification: reportData.Classification,
 	}
 
 	if result := db.DB.Create(&report); result.Error != nil {
@@ -259,7 +269,7 @@ func GetReportsCount(c *gin.Context) {
 	startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
 	endOfMonth := startOfMonth.AddDate(0, 1, 0).Add(-time.Second)
 
-	var totalCount, monthCount int64
+	var totalCount, monthCount, toCount, avCount, pnrCount int64
 
 	if err := db.DB.Model(&db.Report{}).Where("user_id = ?", userID).Count(&totalCount).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении общего кол-ва отчетов"})
@@ -273,9 +283,33 @@ func GetReportsCount(c *gin.Context) {
 		return
 	}
 
+	if err := db.DB.Model(&db.Report{}).
+		Where("user_id = ? AND classification = ?", userID, "ТО").
+		Count(&toCount).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении кол-ва отчетов с классификацией ТО"})
+		return
+	}
+
+	if err := db.DB.Model(&db.Report{}).
+		Where("user_id = ? AND classification = ?", userID, "АВ").
+		Count(&avCount).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении кол-ва отчетов с классификацией АВ"})
+		return
+	}
+
+	if err := db.DB.Model(&db.Report{}).
+		Where("user_id = ? AND classification = ?", userID, "пнр").
+		Count(&pnrCount).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении кол-ва отчетов с классификацией ПНР"})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"total": totalCount,
 		"month": monthCount,
+		"to":    toCount,
+		"av":    avCount,
+		"pnr":   pnrCount,
 	})
 }
 

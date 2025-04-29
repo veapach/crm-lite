@@ -23,6 +23,7 @@ function Reports() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
   const [isDateFiltered, setIsDateFiltered] = useState(false);
+  const [classificationStats, setClassificationStats] = useState({ to: 0, av: 0, pnr: 0 });
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('ru-RU');
@@ -45,6 +46,7 @@ function Reports() {
     try {
       const response = await axios.get("/api/reportscount");
       setReportsStats(response.data);
+      setClassificationStats({ to: response.data.to, av: response.data.av, pnr: response.data.pnr });
     } catch (error) {
       console.error('Ошибка при загрузке статистики отчетов', error);
     }
@@ -184,7 +186,7 @@ function Reports() {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       setError('Ошибка при скачивании архива отчетов');
-      console.error('Ошибка при скачивании архива отчетов:', error);
+      console.error('Ошибка при скачивании архива отчетов', error);
     }
   };
 
@@ -244,19 +246,25 @@ function Reports() {
   return (
     <div className="container mt-5">
       <h1>Отчеты</h1>
-      <div className="d-flex gap-4 mb-3">
-        <h3>За текущий месяц: {reportsStats.month}</h3>
-        <h3>Всего отчетов: {reportsStats.total}</h3>
+      <div className="d-flex gap-4 mb-3 align-items-center">
+        <h3>За текущий месяц: {isDateFiltered ? reportsStats.filteredMonth : reportsStats.month}</h3>
+        <h3>Всего отчетов: {isDateFiltered ? reportsStats.filteredTotal : reportsStats.total}</h3>
         {isDateFiltered ? (
-          <button className="btn btn-primary" onClick={handleDownloadReportsByPeriod}>
-            Скачать за этот период
-          </button>
-        ) : (
-          <button className="btn btn-primary" onClick={handleDownloadMonthlyReports}>
-            Скачать за месяц
-          </button>
-        )}
+        <button className="btn btn-primary" onClick={handleDownloadReportsByPeriod}>
+          Скачать за этот период
+        </button>
+      ) : (
+        <button className="btn btn-primary" onClick={handleDownloadMonthlyReports}>
+          Скачать за месяц
+        </button>
+      )}
       </div>
+      <div style={{ fontSize: '0.9em', marginBottom: '1rem' }}>
+        <span>ТО: {isDateFiltered ? classificationStats.filteredTo || 0 : classificationStats.to || 0} </span>
+        <span>АВ: {isDateFiltered ? classificationStats.filteredAv || 0 : classificationStats.av || 0} </span>
+        <span>ПНР: {isDateFiltered ? classificationStats.filteredPnr || 0 : classificationStats.pnr || 0}</span>
+      </div>
+      
       {error && <p className="text-danger">{error}</p>}
 
       <div className="row">
