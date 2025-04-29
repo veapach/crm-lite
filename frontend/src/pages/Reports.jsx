@@ -44,13 +44,29 @@ function Reports() {
 
   const fetchReportsCount = useCallback(async () => {
     try {
-      const response = await axios.get("/api/reportscount");
-      setReportsStats(response.data);
-      setClassificationStats({ to: response.data.to, av: response.data.av, pnr: response.data.pnr });
+      let url = "/api/reportscount";
+      if (isDateFiltered && dateRange.startDate && dateRange.endDate) {
+        url += `?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`;
+      }
+      const response = await axios.get(url);
+      setReportsStats({
+        total: response.data.total,
+        month: response.data.month,
+        filteredTotal: response.data.filteredTotal || 0,
+        filteredMonth: response.data.filteredMonth || 0,
+      });
+      setClassificationStats({
+        to: response.data.to,
+        av: response.data.av,
+        pnr: response.data.pnr,
+        filteredTo: response.data.filteredTo || 0,
+        filteredAv: response.data.filteredAv || 0,
+        filteredPnr: response.data.filteredPnr || 0,
+      });
     } catch (error) {
       console.error('Ошибка при загрузке статистики отчетов', error);
     }
-  }, []);
+  }, [isDateFiltered, dateRange.startDate, dateRange.endDate]);
 
   const fetchReports = useCallback(async () => {
     try {
@@ -247,17 +263,23 @@ function Reports() {
     <div className="container mt-5">
       <h1>Отчеты</h1>
       <div className="d-flex gap-4 mb-3 align-items-center">
-        <h3>За текущий месяц: {isDateFiltered ? reportsStats.filteredMonth : reportsStats.month}</h3>
-        <h3>Всего отчетов: {isDateFiltered ? reportsStats.filteredTotal : reportsStats.total}</h3>
         {isDateFiltered ? (
-        <button className="btn btn-primary" onClick={handleDownloadReportsByPeriod}>
-          Скачать за этот период
-        </button>
-      ) : (
-        <button className="btn btn-primary" onClick={handleDownloadMonthlyReports}>
-          Скачать за месяц
-        </button>
-      )}
+          <h3>Всего за этот период: {reportsStats.filteredTotal}</h3>
+        ) : (
+          <>
+            <h3>За текущий месяц: {reportsStats.month}</h3>
+            <h3>Всего отчетов: {reportsStats.total}</h3>
+          </>
+        )}
+        {isDateFiltered ? (
+          <button className="btn btn-primary" onClick={handleDownloadReportsByPeriod}>
+            Скачать за этот период
+          </button>
+        ) : (
+          <button className="btn btn-primary" onClick={handleDownloadMonthlyReports}>
+            Скачать за месяц
+          </button>
+        )}
       </div>
       <div style={{ fontSize: '0.9em', marginBottom: '1rem' }}>
         <span>ТО: {isDateFiltered ? classificationStats.filteredTo || 0 : classificationStats.to || 0} </span>

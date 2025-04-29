@@ -269,7 +269,11 @@ func GetReportsCount(c *gin.Context) {
 	startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
 	endOfMonth := startOfMonth.AddDate(0, 1, 0).Add(-time.Second)
 
+	startDate := c.Query("startDate")
+	endDate := c.Query("endDate")
+
 	var totalCount, monthCount, toCount, avCount, pnrCount int64
+	var filteredTotal, filteredTo, filteredAv, filteredPnr int64
 
 	if err := db.DB.Model(&db.Report{}).Where("user_id = ?", userID).Count(&totalCount).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении общего кол-ва отчетов"})
@@ -304,12 +308,46 @@ func GetReportsCount(c *gin.Context) {
 		return
 	}
 
+	if startDate != "" && endDate != "" {
+		if err := db.DB.Model(&db.Report{}).
+			Where("user_id = ? AND date BETWEEN ? AND ?", userID, startDate, endDate).
+			Count(&filteredTotal).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении общего кол-ва отфильтрованных отчетов"})
+			return
+		}
+
+		if err := db.DB.Model(&db.Report{}).
+			Where("user_id = ? AND classification = ? AND date BETWEEN ? AND ?", userID, "ТО", startDate, endDate).
+			Count(&filteredTo).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении кол-ва отфильтрованных отчетов с классификацией ТО"})
+			return
+		}
+
+		if err := db.DB.Model(&db.Report{}).
+			Where("user_id = ? AND classification = ? AND date BETWEEN ? AND ?", userID, "АВ", startDate, endDate).
+			Count(&filteredAv).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении кол-ва отфильтрованных отчетов с классификацией АВ"})
+			return
+		}
+
+		if err := db.DB.Model(&db.Report{}).
+			Where("user_id = ? AND classification = ? AND date BETWEEN ? AND ?", userID, "пнр", startDate, endDate).
+			Count(&filteredPnr).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении кол-ва отфильтрованных отчетов с классификацией ПНР"})
+			return
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"total": totalCount,
-		"month": monthCount,
-		"to":    toCount,
-		"av":    avCount,
-		"pnr":   pnrCount,
+		"total":         totalCount,
+		"month":         monthCount,
+		"to":            toCount,
+		"av":            avCount,
+		"pnr":           pnrCount,
+		"filteredTotal": filteredTotal,
+		"filteredTo":    filteredTo,
+		"filteredAv":    filteredAv,
+		"filteredPnr":   filteredPnr,
 	})
 }
 
