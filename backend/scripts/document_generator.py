@@ -24,16 +24,17 @@ def add_photo_to_document(doc, photo_data, cell):
     image_stream = BytesIO(image_binary)
     image = Image.open(image_stream)
 
-    width_cm, height_cm, dpi = 18, 13.5, 96
-    width_px, height_px = int((width_cm / 2.54) * dpi), int((height_cm / 2.54) * dpi)
+    max_width_cm, max_height_cm, dpi = 18, 13.5, 96
+    max_width_px, max_height_px = int((max_width_cm / 2.54) * dpi), int((max_height_cm / 2.54) * dpi)
 
-    is_vertical = image.height > image.width
-    
-    if is_vertical:
-        ratio = image.height / image.width
-        height_cm = width_cm * ratio
-        height_px = int((height_cm / 2.54) * dpi)
-    
+    aspect_ratio = image.width / image.height
+    if aspect_ratio > 1: 
+        width_px = max_width_px
+        height_px = int(width_px / aspect_ratio)
+    else:
+        height_px = max_height_px
+        width_px = int(height_px * aspect_ratio)
+
     image.thumbnail((width_px, height_px))
 
     temp_image_path = f"temp_{os.getpid()}.jpg"
@@ -42,10 +43,7 @@ def add_photo_to_document(doc, photo_data, cell):
     paragraph = cell.add_paragraph()
     paragraph.alignment = 1
     run = paragraph.add_run()
-    if is_vertical:
-        run.add_picture(temp_image_path, width=Cm(width_cm))
-    else:
-        run.add_picture(temp_image_path, width=Cm(width_cm), height=Cm(height_cm))
+    run.add_picture(temp_image_path, width=Cm(width_px * 2.54 / dpi), height=Cm(height_px * 2.54 / dpi))
 
     os.remove(temp_image_path)
 
