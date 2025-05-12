@@ -121,6 +121,7 @@ func main() {
 	r.GET("/api/reports", users.AuthMiddleware(), report.GetReportsHandler)
 	r.GET("/api/reports/monthly-zip", users.AuthMiddleware(), report.DownloadMonthlyReports)
 	r.GET("/api/reports/period-zip", users.AuthMiddleware(), report.DownloadReportsByPeriod)
+	r.POST("/api/reports/download-selected", users.AuthMiddleware(), report.DownloadSelectedReports)
 	r.DELETE("/api/reports/:reportname", users.AuthMiddleware(), report.DeleteReport)
 	r.POST(
 		"/api/reports/upload",

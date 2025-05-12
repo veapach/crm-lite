@@ -24,6 +24,7 @@ function Reports() {
   const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
   const [isDateFiltered, setIsDateFiltered] = useState(false);
   const [classificationStats, setClassificationStats] = useState({ to: 0, av: 0, pnr: 0 });
+  const [selectedReports, setSelectedReports] = useState([]);
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('ru-RU');
@@ -229,9 +230,54 @@ function Reports() {
     }
   };
 
+  const toggleReportSelection = (reportId) => {
+    setSelectedReports((prev) =>
+      prev.includes(reportId)
+        ? prev.filter((id) => id !== reportId)
+        : [...prev, reportId]
+    );
+  };
+
+  const handleDownloadSelectedReports = async () => {
+    if (selectedReports.length === 0) {
+      alert('Выберите хотя бы один отчет для скачивания.');
+      return;
+    }
+
+    try {
+      const response = await axios.post('/api/reports/download-selected', {
+        reportIds: selectedReports,
+      }, {
+        responseType: 'blob',
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'selected_reports.zip');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Ошибка при скачивании выбранных отчетов:', error);
+    }
+  };
+
   const filteredReports = reports
+    .filter((report) => {
+      if (isDateFiltered && dateRange.startDate && dateRange.endDate) {
+        const reportDate = new Date(report.date);
+        const startDate = new Date(dateRange.startDate);
+        const endDate = new Date(dateRange.endDate);
+        return reportDate >= startDate && reportDate <= endDate;
+      }
+      return true;
+    })
     .filter(
-      (report) => report.address.toLowerCase().includes(searchTerm.toLowerCase()) || report.date.includes(searchTerm)
+      (report) =>
+        report.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        report.date.includes(searchTerm)
     )
     .sort((a, b) => {
       const dateA = new Date(a.date);
@@ -331,15 +377,19 @@ function Reports() {
             </div>
           )}
         </div>
-        <div className="col-md-12 mt-3">
-          {!isDateFiltered && (
-            <button 
-              className="btn btn-primary" 
-              onClick={() => setShowDatePicker(true)}
-            >
-              Выбрать интервал
-            </button>
-          )}
+        <div className="col-md-12 mt-3 d-flex align-items-center">
+          <button
+            className="btn btn-primary me-3"
+            onClick={() => setShowDatePicker(true)}
+          >
+            Выбрать интервал
+          </button>
+          <button
+            className="btn btn-success"
+            onClick={handleDownloadSelectedReports}
+          >
+            Скачать выбранное
+          </button>
         </div>
       </div>
 
@@ -350,20 +400,34 @@ function Reports() {
           <div 
             key={report.id} 
             id={`report-${report.id}`}
-            className={`col-md-4 mb-4 ${report.id === highlightedReportId ? 'highlight-card' : ''}`}
+            className={`col-md-4 mb-4 ${report.id === highlightedReportId ? 'highlight-card' : ''} ${selectedReports.includes(report.id) ? 'selected' : ''}`}
           >
-            <div className="card shadow-sm">
-              <div className="card-body">
+            <div 
+              className={`card shadow-sm ${selectedReports.includes(report.id) ? 'border-primary' : ''}`}
+              onClick={(e) => {
+                if (!['BUTTON', 'INPUT'].includes(e.target.tagName)) {
+                  toggleReportSelection(report.id);
+                }
+              }}
+            >
+              <div className="card-body position-relative">
+                <input
+                  type="checkbox"
+                  className="form-check-input position-absolute top-0 end-0 m-2"
+                  style={{ transform: 'scale(1.5)' }}
+                  checked={selectedReports.includes(report.id)}
+                  onChange={() => toggleReportSelection(report.id)}
+                />
                 <h5 className="card-title">Объект: {report.address}</h5>
                 <p className="card-text">Дата: {formatDate(report.date)}</p>
                 <p className="card-text" style={{ fontSize: '0.9em', color: 'gray' }}>
                   {getUserFullName(report.userId || report.user_id)}
                 </p>
-                <div className="d-flex justify-content между">
-                  <button className="btn btn-primary" onClick={() => handlePreviewClick(report)}>
+                <div className="d-flex justify-content-between mt-3">
+                  <button className="btn btn-primary me-2" onClick={() => handlePreviewClick(report)}>
                     Предпросмотр
                   </button>
-                  <button className="btn btn-success" onClick={() => handleDownload(report.filename)}>
+                  <button className="btn btn-success me-2" onClick={() => handleDownload(report.filename)}>
                     Скачать
                   </button>
                   <button className="btn btn-danger" onClick={() => handleDelete(report.filename)}>

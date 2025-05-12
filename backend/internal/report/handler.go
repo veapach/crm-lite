@@ -600,3 +600,75 @@ func DownloadReportsByPeriod(c *gin.Context) {
 	c.Header("Content-Disposition", "attachment; filename=reports_by_period.zip")
 	c.File(zipFilePath)
 }
+
+func DownloadSelectedReports(c *gin.Context) {
+	var request struct {
+		ReportIDs []int `json:"reportIds"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+		return
+	}
+
+	if len(request.ReportIDs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No reports selected"})
+		return
+	}
+
+	var reports []db.Report
+	if err := db.DB.Where("id IN ?", request.ReportIDs).Find(&reports).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch reports"})
+		return
+	}
+
+	if len(reports) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "No reports found for the selected IDs"})
+		return
+	}
+
+	tempDir, err := os.MkdirTemp("", "selected_reports_*")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create temporary directory"})
+		return
+	}
+	defer os.RemoveAll(tempDir)
+
+	zipFilePath := filepath.Join(tempDir, "selected_reports.zip")
+	zipFile, err := os.Create(zipFilePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create ZIP file"})
+		return
+	}
+	defer zipFile.Close()
+
+	zipWriter := zip.NewWriter(zipFile)
+	defer zipWriter.Close()
+
+	for _, report := range reports {
+		reportPath := filepath.Join("uploads", "reports", report.Filename)
+		file, err := os.Open(reportPath)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open report file"})
+			return
+		}
+		defer file.Close()
+
+		zipEntry, err := zipWriter.Create(report.Filename)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add file to ZIP archive"})
+			return
+		}
+
+		if _, err := io.Copy(zipEntry, file); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to write file to ZIP archive"})
+			return
+		}
+	}
+
+	zipWriter.Close()
+
+	c.Header("Content-Type", "application/zip")
+	c.Header("Content-Disposition", "attachment; filename=selected_reports.zip")
+	c.File(zipFilePath)
+}
