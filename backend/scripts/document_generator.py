@@ -76,9 +76,10 @@ def generate_document(json_file):
                 if "[инв_номер]" in cell.text:
                     cell.text = cell.text.replace("[инв_номер]", user_info["inventory_number"])
                 if "[классификация]" in cell.text:
-                    cell.text = cell.text.replace(
-                        "[классификация]", user_info["classification"]
-                    )
+                    classification = user_info["classification"]
+                    if classification == "АВ":
+                        classification = "Аварийный вызов"
+                    cell.text = cell.text.replace("[классификация]", classification)
                 if "[материалы]" in cell.text:
                     cell.text = cell.text.replace(
                         "[материалы]", user_info.get("material", "")
