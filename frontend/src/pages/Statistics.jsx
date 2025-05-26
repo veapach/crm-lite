@@ -8,7 +8,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 const Statistics = () => {
-  const [stats, setStats] = useState({ month: 0, to: 0, av: 0, pnr: 0, total: 0 });
+  const [stats, setStats] = useState({ month: 0, toKitchen: 0, toBakery: 0, to: 0, av: 0, pnr: 0, total: 0 });
   const [filteredReports, setFilteredReports] = useState([]);
   const [activeClass, setActiveClass] = useState('');
   const [reportsLoading, setReportsLoading] = useState(false);
@@ -96,6 +96,8 @@ const Statistics = () => {
         const response = await axios.get('/api/reportscount');
         setStats({
           month: response.data.month,
+          toKitchen: response.data.toKitchen,
+          toBakery: response.data.toBakery,
           to: response.data.to,
           av: response.data.av,
           pnr: response.data.pnr,
@@ -125,17 +127,19 @@ const Statistics = () => {
       const end = new Date(year, month + 1, 0).toISOString().slice(0, 10);
       let classValue = classification;
       if (classification === 'АВ') classValue = 'АВ';
+      if (classification === 'ТО Китчен') classValue = 'ТО Китчен';
+      if (classification === 'ТО Пекарня') classValue = 'ТО Пекарня';
       if (classification === 'ТО') classValue = 'ТО';
       if (classification === 'ПНР') classValue = 'пнр';
       // Для "Другие" фильтруем на клиенте
       const response = await axios.get(`/api/reports?startDate=${start}&endDate=${end}`);
       let reports = response.data;
-      if (classification !== 'Другие') {
+      if (["ТО Китчен", "ТО Пекарня", "ТО", "АВ", "ПНР"].includes(classification)) {
         reports = reports.filter(r => (r.classification || '').toLowerCase() === classValue.toLowerCase());
-      } else {
+      } else if (classification === 'Другие') {
         reports = reports.filter(r => {
           const c = (r.classification || '').toLowerCase();
-          return c !== 'то' && c !== 'ав' && c !== 'пнр';
+          return c !== 'то китчен' && c !== 'то пекарня' && c !== 'то' && c !== 'ав' && c !== 'пнр';
         });
       }
       setFilteredReports(reports);
@@ -167,6 +171,20 @@ const Statistics = () => {
               АВ: {stats.av}
             </button>
             <button
+              className={`btn btn-outline-primary${activeClass === 'ТО Китчен' ? ' active' : ''}`}
+              style={{ fontWeight: 600, fontSize: '1em', borderWidth: 2, minWidth: 110, marginBottom: 8 }}
+              onClick={() => handleClassClick('ТО Китчен')}
+            >
+              ТО Китчен: {stats.toKitchen}
+            </button>
+            <button
+              className={`btn btn-outline-primary${activeClass === 'ТО Пекарня' ? ' active' : ''}`}
+              style={{ fontWeight: 600, fontSize: '1em', borderWidth: 2, minWidth: 120, marginBottom: 8 }}
+              onClick={() => handleClassClick('ТО Пекарня')}
+            >
+              ТО Пекарня: {stats.toBakery}
+            </button>
+            <button
               className={`btn btn-outline-primary${activeClass === 'ТО' ? ' active' : ''}`}
               style={{ fontWeight: 600, fontSize: '1em', borderWidth: 2, minWidth: 70, marginBottom: 8 }}
               onClick={() => handleClassClick('ТО')}
@@ -185,7 +203,7 @@ const Statistics = () => {
               style={{ fontWeight: 600, fontSize: '1em', borderWidth: 2, minWidth: 90, marginBottom: 8 }}
               onClick={() => handleClassClick('Другие')}
             >
-              Другие: {stats.month - stats.av - stats.to - stats.pnr}
+              Другие: {stats.month - stats.av - stats.toKitchen - stats.toBakery - stats.to - stats.pnr}
             </button>
           </div>
           <div className="statistics-total-count" style={{ fontSize: '1.1rem', color: '#888', marginBottom: 18 }}>

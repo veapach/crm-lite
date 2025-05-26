@@ -11,7 +11,7 @@ function NewReport() {
     machine_name: '',
     machine_number: '',
     inventory_number: '',
-    classification: 'ТО',
+    classification: 'ТО Китчен',
     customClass: '',
     material: '',
     recommendations: '',
@@ -179,16 +179,9 @@ function NewReport() {
     let dataToSend = { ...formData };
     if (dataToSend.classification === 'Другое') {
       dataToSend.classification = dataToSend.customClass;
-    }
-  
-    // Map specific classifications to their database values
-    if (dataToSend.classification === 'ТО Китчен' || dataToSend.classification === 'ТО Пекарня') {
-      dataToSend.classification = 'ТО';
     } else if (dataToSend.classification === 'Аварийный вызов') {
       dataToSend.classification = 'АВ';
-    } else if (dataToSend.classification === 'ПНР') {
-      dataToSend.classification = 'пнр';
-    }
+    } 
   
     // Показываем индикатор загрузки и скрываем форму
     setIsLoading(true);

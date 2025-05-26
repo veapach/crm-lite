@@ -108,12 +108,8 @@ func CreateReport(c *gin.Context) {
 		}
 	}
 
-	if reportData.Classification == "ТО Китчен" || reportData.Classification == "ТО Пекарня" {
-		reportData.Classification = "ТО"
-	} else if reportData.Classification == "Аварийный вызов" {
+	if reportData.Classification == "Аварийный вызов" {
 		reportData.Classification = "АВ"
-	} else if reportData.Classification == "ПНР" {
-		reportData.Classification = "пнр"
 	}
 
 	reportData.FirstName = user.FirstName
@@ -271,8 +267,9 @@ func GetReportsCount(c *gin.Context) {
 	startDate := c.Query("startDate")
 	endDate := c.Query("endDate")
 
-	var totalCount, monthCount, toCount, avCount, pnrCount int64
-	var filteredTotal, filteredTo, filteredAv, filteredPnr int64
+	var totalCount, monthCount int64
+	var toKitchenCount, toBakeryCount, toCount, avCount, pnrCount int64
+	var filteredTotal, filteredToKitchen, filteredToBakery, filteredTo, filteredAv, filteredPnr int64
 
 	if err := db.DB.Model(&db.Report{}).Where("user_id = ?", userID).Count(&totalCount).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении общего кол-ва отчетов"})
@@ -287,19 +284,29 @@ func GetReportsCount(c *gin.Context) {
 	}
 
 	if err := db.DB.Model(&db.Report{}).
+		Where("user_id = ? AND classification = ?", userID, "ТО Китчен").
+		Count(&toKitchenCount).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении кол-ва отчетов с классификацией ТО Китчен"})
+		return
+	}
+	if err := db.DB.Model(&db.Report{}).
+		Where("user_id = ? AND classification = ?", userID, "ТО Пекарня").
+		Count(&toBakeryCount).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении кол-ва отчетов с классификацией ТО Пекарня"})
+		return
+	}
+	if err := db.DB.Model(&db.Report{}).
 		Where("user_id = ? AND classification = ?", userID, "ТО").
 		Count(&toCount).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении кол-ва отчетов с классификацией ТО"})
 		return
 	}
-
 	if err := db.DB.Model(&db.Report{}).
 		Where("user_id = ? AND classification = ?", userID, "АВ").
 		Count(&avCount).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении кол-ва отчетов с классификацией АВ"})
 		return
 	}
-
 	if err := db.DB.Model(&db.Report{}).
 		Where("user_id = ? AND classification = ?", userID, "пнр").
 		Count(&pnrCount).Error; err != nil {
@@ -314,21 +321,30 @@ func GetReportsCount(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении общего кол-ва отфильтрованных отчетов"})
 			return
 		}
-
+		if err := db.DB.Model(&db.Report{}).
+			Where("user_id = ? AND classification = ? AND date BETWEEN ? AND ?", userID, "ТО Китчен", startDate, endDate).
+			Count(&filteredToKitchen).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении кол-ва отфильтрованных отчетов с классификацией ТО Китчен"})
+			return
+		}
+		if err := db.DB.Model(&db.Report{}).
+			Where("user_id = ? AND classification = ? AND date BETWEEN ? AND ?", userID, "ТО Пекарня", startDate, endDate).
+			Count(&filteredToBakery).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении кол-ва отфильтрованных отчетов с классификацией ТО Пекарня"})
+			return
+		}
 		if err := db.DB.Model(&db.Report{}).
 			Where("user_id = ? AND classification = ? AND date BETWEEN ? AND ?", userID, "ТО", startDate, endDate).
 			Count(&filteredTo).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении кол-ва отфильтрованных отчетов с классификацией ТО"})
 			return
 		}
-
 		if err := db.DB.Model(&db.Report{}).
 			Where("user_id = ? AND classification = ? AND date BETWEEN ? AND ?", userID, "АВ", startDate, endDate).
 			Count(&filteredAv).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении кол-ва отфильтрованных отчетов с классификацией АВ"})
 			return
 		}
-
 		if err := db.DB.Model(&db.Report{}).
 			Where("user_id = ? AND classification = ? AND date BETWEEN ? AND ?", userID, "пнр", startDate, endDate).
 			Count(&filteredPnr).Error; err != nil {
@@ -338,15 +354,19 @@ func GetReportsCount(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"total":         totalCount,
-		"month":         monthCount,
-		"to":            toCount,
-		"av":            avCount,
-		"pnr":           pnrCount,
-		"filteredTotal": filteredTotal,
-		"filteredTo":    filteredTo,
-		"filteredAv":    filteredAv,
-		"filteredPnr":   filteredPnr,
+		"total":             totalCount,
+		"month":             monthCount,
+		"toKitchen":         toKitchenCount,
+		"toBakery":          toBakeryCount,
+		"to":                toCount,
+		"av":                avCount,
+		"pnr":               pnrCount,
+		"filteredTotal":     filteredTotal,
+		"filteredToKitchen": filteredToKitchen,
+		"filteredToBakery":  filteredToBakery,
+		"filteredTo":        filteredTo,
+		"filteredAv":        filteredAv,
+		"filteredPnr":       filteredPnr,
 	})
 }
 

@@ -23,7 +23,7 @@ function Reports() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
   const [isDateFiltered, setIsDateFiltered] = useState(false);
-  const [classificationStats, setClassificationStats] = useState({ to: 0, av: 0, pnr: 0 });
+  const [classificationStats, setClassificationStats] = useState({ toKitchen: 0, toBakery: 0, to: 0, av: 0, pnr: 0 });
   const [selectedReports, setSelectedReports] = useState([]);
 
   const formatDate = (dateString) => {
@@ -57,9 +57,13 @@ function Reports() {
         filteredMonth: response.data.filteredMonth || 0,
       });
       setClassificationStats({
+        toKitchen: response.data.toKitchen,
+        toBakery: response.data.toBakery,
         to: response.data.to,
         av: response.data.av,
         pnr: response.data.pnr,
+        filteredToKitchen: response.data.filteredToKitchen || 0,
+        filteredToBakery: response.data.filteredToBakery || 0,
         filteredTo: response.data.filteredTo || 0,
         filteredAv: response.data.filteredAv || 0,
         filteredPnr: response.data.filteredPnr || 0,
@@ -328,9 +332,11 @@ function Reports() {
         )}
       </div>
       <div style={{ fontSize: '0.9em', marginBottom: '1rem' }}>
-        <span>ТО: {isDateFiltered ? classificationStats.filteredTo || 0 : classificationStats.to || 0} </span>
-        <span>АВ: {isDateFiltered ? classificationStats.filteredAv || 0 : classificationStats.av || 0} </span>
-        <span>ПНР: {isDateFiltered ? classificationStats.filteredPnr || 0 : classificationStats.pnr || 0}</span>
+        <span>ТО Китчен: {isDateFiltered ? classificationStats.filteredToKitchen || 0 : classificationStats.toKitchen || 0} | </span>
+        <span>ТО Пекарня: {isDateFiltered ? classificationStats.filteredToBakery || 0 : classificationStats.toBakery || 0} | </span>
+        <span>АВ: {isDateFiltered ? classificationStats.filteredAv || 0 : classificationStats.av || 0} | </span>
+        <span>ПНР: {isDateFiltered ? classificationStats.filteredPnr || 0 : classificationStats.pnr || 0} | </span>
+        <span>Прочие ТО: {isDateFiltered ? classificationStats.filteredTo || 0 : classificationStats.to || 0}</span>
       </div>
       
       {error && <p className="text-danger">{error}</p>}
