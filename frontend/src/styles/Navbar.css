@@ -106,11 +106,40 @@
       display: block;
       border-radius: 8px;
       transition: background-color 0.3s ease, color 0.3s ease;
+      word-break: break-word;
+      white-space: normal;
+      text-align: left;
   }
-  
   .navbar-menu ul li a:hover {
       background-color: #2dbe64;
       color: white;
+  }
+
+  /* Адаптация для Statistics и других страниц с длинными кнопками */
+  .navbar-menu {
+      min-width: 180px;
+      max-width: 95vw;
+  }
+  .navbar-menu ul li {
+      margin: 10px 0;
+  }
+  .menu-button {
+      font-size: 22px;
+      padding: 12px 16px;
+  }
+  /* Уменьшаем шрифт и кнопки для маленьких экранов */
+  @media (max-width: 480px) {
+    .navbar-menu ul li a {
+      font-size: 15px;
+      padding: 8px 8px;
+    }
+    .menu-button {
+      font-size: 22px;
+      padding: 10px 12px;
+    }
+    .navbar-menu {
+      padding: 10px;
+    }
   }
 }
 

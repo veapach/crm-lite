@@ -108,7 +108,6 @@ func CreateReport(c *gin.Context) {
 		}
 	}
 
-	// Map specific classifications to their database values
 	if reportData.Classification == "ТО Китчен" || reportData.Classification == "ТО Пекарня" {
 		reportData.Classification = "ТО"
 	} else if reportData.Classification == "Аварийный вызов" {

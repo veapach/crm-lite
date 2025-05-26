@@ -19,12 +19,42 @@
     font-style: normal;
 }
 
+
 body {
     overflow-x: hidden;
     font-family: 'OpenSans', 'Play', sans-serif;
     font-size: 20px;
     background-color: #e8e8e8;
     color: #333333;
+}
+
+@media (max-width: 768px) {
+  body {
+    font-size: 15px;
+  }
+  h1 {
+    font-size: 1.5rem;
+  }
+  h2 {
+    font-size: 1.2rem;
+  }
+  h3 {
+    font-size: 1.1rem;
+  }
+  .statistics-header-count {
+    font-size: 2rem !important;
+  }
+  .statistics-class-buttons button {
+    font-size: 0.95em !important;
+    min-width: 60px !important;
+    padding: 4px 6px !important;
+  }
+  .statistics-total-count {
+    font-size: 1em !important;
+  }
+  .statistics-page ul {
+    font-size: 1em !important;
+  }
 }
 
 .content-wrapper {

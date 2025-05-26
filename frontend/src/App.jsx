@@ -10,6 +10,7 @@ import Auth from './pages/Auth';
 import Requests from './pages/Requests';
 import Admin from './pages/Admin';
 import MaintenancePage from './pages/MaintenancePage';
+import Statistics from './pages/Statistics';
 import axios from "axios";
 import config from "./config";
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -64,6 +65,7 @@ function App() {
           <Route path="/files" element={isAuthenticated ? <Files /> : <Navigate to="/auth" replace />} />
           <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/auth" replace />} />
           <Route path="/requests" element={isAuthenticated ? <Requests /> : <Navigate to="/auth" replace />} />
+          <Route path="/statistics" element={isAuthenticated ? <Statistics /> : <Navigate to="/auth" replace />} />
           <Route path="/admin" element={isAuthenticated && isAdmin ? <Admin /> : <Navigate to="/" replace />} />
           <Route path="*" element={<Navigate to="/auth" replace />} />
         </Routes>
