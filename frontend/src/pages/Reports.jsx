@@ -425,7 +425,11 @@ function Reports() {
                   onChange={() => toggleReportSelection(report.id)}
                 />
                 <h5 className="card-title">Объект: {report.address}</h5>
-                <p className="card-text">Дата: {formatDate(report.date)}</p>
+                <div className="card-text d-flex justify-content-between align-items-center">
+                  <span>Дата: {formatDate(report.date)}</span>
+                  <span style={{ color: '#666', fontSize: '0.95em', textAlign: 'right', minWidth: '90px' }}>{report.classification}</span>
+                </div>
+                
                 <p className="card-text" style={{ fontSize: '0.9em', color: 'gray' }}>
                   {getUserFullName(report.userId || report.user_id)}
                 </p>
