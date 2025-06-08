@@ -8,7 +8,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 const Statistics = () => {
-  const [stats, setStats] = useState({ month: 0, toKitchen: 0, toBakery: 0, to: 0, av: 0, pnr: 0, total: 0 });
+  const [stats, setStats] = useState({ month: 0, toKitchen: 0, toBakery: 0, to: 0, av: 0, pnr: 0, total: 0, filteredToKitchen: 0, filteredToBakery: 0, filteredTo: 0, filteredAv: 0, filteredPnr: 0 });
   const [filteredReports, setFilteredReports] = useState([]);
   const [activeClass, setActiveClass] = useState('');
   const [reportsLoading, setReportsLoading] = useState(false);
@@ -93,15 +93,26 @@ const Statistics = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await axios.get('/api/reportscount');
+        // Получаем статистику за месяц (filtered*)
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth();
+        const start = new Date(year, month, 1).toISOString().slice(0, 10);
+        const end = new Date(year, month + 1, 0).toISOString().slice(0, 10);
+        const response = await axios.get(`/api/reportscount?startDate=${start}&endDate=${end}`);
         setStats({
-          month: response.data.month,
-          toKitchen: response.data.toKitchen,
-          toBakery: response.data.toBakery,
-          to: response.data.to,
-          av: response.data.av,
-          pnr: response.data.pnr,
-          total: response.data.total,
+          month: response.data.filteredTotal || 0,
+          toKitchen: response.data.filteredToKitchen || 0,
+          toBakery: response.data.filteredToBakery || 0,
+          to: response.data.filteredTo || 0,
+          av: response.data.filteredAv || 0,
+          pnr: response.data.filteredPnr || 0,
+          total: response.data.total || 0,
+          filteredToKitchen: response.data.filteredToKitchen || 0,
+          filteredToBakery: response.data.filteredToBakery || 0,
+          filteredTo: response.data.filteredTo || 0,
+          filteredAv: response.data.filteredAv || 0,
+          filteredPnr: response.data.filteredPnr || 0,
         });
       } catch (err) {
         setError('Ошибка при загрузке статистики');
@@ -168,42 +179,42 @@ const Statistics = () => {
               style={{ fontWeight: 600, fontSize: '1em', borderWidth: 2, minWidth: 70, marginBottom: 8 }}
               onClick={() => handleClassClick('АВ')}
             >
-              АВ: {stats.av}
+              АВ: {stats.filteredAv}
             </button>
             <button
               className={`btn btn-outline-primary${activeClass === 'ТО Китчен' ? ' active' : ''}`}
               style={{ fontWeight: 600, fontSize: '1em', borderWidth: 2, minWidth: 110, marginBottom: 8 }}
               onClick={() => handleClassClick('ТО Китчен')}
             >
-              ТО Китчен: {stats.toKitchen}
+              ТО Китчен: {stats.filteredToKitchen}
             </button>
             <button
               className={`btn btn-outline-primary${activeClass === 'ТО Пекарня' ? ' active' : ''}`}
               style={{ fontWeight: 600, fontSize: '1em', borderWidth: 2, minWidth: 120, marginBottom: 8 }}
               onClick={() => handleClassClick('ТО Пекарня')}
             >
-              ТО Пекарня: {stats.toBakery}
+              ТО Пекарня: {stats.filteredToBakery}
             </button>
             <button
               className={`btn btn-outline-primary${activeClass === 'ТО' ? ' active' : ''}`}
               style={{ fontWeight: 600, fontSize: '1em', borderWidth: 2, minWidth: 70, marginBottom: 8 }}
               onClick={() => handleClassClick('ТО')}
             >
-              ТО: {stats.to}
+              ТО: {stats.filteredTo}
             </button>
             <button
               className={`btn btn-outline-primary${activeClass === 'ПНР' ? ' active' : ''}`}
               style={{ fontWeight: 600, fontSize: '1em', borderWidth: 2, minWidth: 70, marginBottom: 8 }}
               onClick={() => handleClassClick('ПНР')}
             >
-              ПНР: {stats.pnr}
+              ПНР: {stats.filteredPnr}
             </button>
             <button
               className={`btn btn-outline-primary${activeClass === 'Другие' ? ' active' : ''}`}
               style={{ fontWeight: 600, fontSize: '1em', borderWidth: 2, minWidth: 90, marginBottom: 8 }}
               onClick={() => handleClassClick('Другие')}
             >
-              Другие: {stats.month - stats.av - stats.toKitchen - stats.toBakery - stats.to - stats.pnr}
+              Другие: {stats.month - stats.filteredAv - stats.filteredToKitchen - stats.filteredToBakery - stats.filteredTo - stats.filteredPnr}
             </button>
           </div>
           <div className="statistics-total-count" style={{ fontSize: '1.1rem', color: '#888', marginBottom: 18 }}>

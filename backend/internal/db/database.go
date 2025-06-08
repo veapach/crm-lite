@@ -35,6 +35,7 @@ type Report struct {
 type Request struct {
 	ID          uint    `gorm:"primaryKey"                                        json:"id"`
 	Date        string  `gorm:"not null"                                          json:"date"`
+	DepartTime  string  `gorm:"default:null"                                      json:"departTime"`
 	Address     string  `gorm:"not null"                                          json:"address"`
 	Status      string  `gorm:"not null;default:'В работе'"                       json:"status"`
 	EngineerID  uint    `gorm:"not null"                                          json:"engineerId"`

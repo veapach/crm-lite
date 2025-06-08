@@ -18,6 +18,13 @@ function Dashboard() {
         <div className="row">
           <div className="col-md-4 mb-4">
             <div className="dashboard-card">
+              <h3>График</h3>
+              <p>Планирование и завершение выездов</p>
+              <Link to="/schedule" className="btn btn-primary">Перейти к графику</Link>
+            </div>
+          </div>
+          <div className="col-md-4 mb-4">
+            <div className="dashboard-card">
               <h3>Новый отчет</h3>
               <p>Создайте новый отчет о выполненных работах</p>
               <Link to="/new-report" className="btn btn-primary">Создать отчет</Link>

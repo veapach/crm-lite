@@ -5,39 +5,49 @@ import { FaChevronDown } from 'react-icons/fa';
 
 function NewReport() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    date: '',
-    address: '',
-    machine_name: '',
-    machine_number: '',
-    inventory_number: '',
-    classification: 'ТО Китчен',
-    customClass: '',
-    material: '',
-    recommendations: '',
-    defects: '',
-    additionalWorks: '',
-    comments: '',
-    photos: [],
-    checklistItems: [
-      { task: 'Ежемесячный технический осмотр оборудования на предмет его работоспособности', done: false },
-      { task: 'Технический осмотр оборудования на предмет его работоспособности', done: false },
-      { task: 'Диагностика неисправного оборудования на предмет проведения его ремонта', done: false },
-      { task: 'Диагностика оборудования', done: false },
-      { task: 'Проверка крепления термостатов, сигнальной арматуры, дверей и облицовки', done: false },
-      { task: 'Проверка надежности крепления заземления и отсутствия механических повреждений проводов', done: false },
-      { task: 'Проверка работы программных устройств', done: false },
-      { task: 'Проверка нагревательных элементов', done: false },
-      { task: 'Проверка соленоидных клапанов', done: false },
-      {
-        task: 'Проверка состояния электроаппаратуры, при необходимости затяжка электроконтактных соединений, замена сгоревших плавких вставок',
-        done: false,
-      },
-      { task: 'Контроль силы тока в каждой из фаз и межфазных напряжений', done: false },
-      { task: 'Проверка настройки микропроцессоров', done: false },
-      { task: 'Контрольная проверка агрегата в рабочем режиме', done: false },
-    ],
-  });
+  // Prefill from query params if present
+  const getInitialFormData = () => {
+    const params = new URLSearchParams(window.location.search);
+    const date = params.get('date') || '';
+    const address = params.get('address') || '';
+    const classification = params.get('classification') || 'ТО Китчен';
+    const customClass = params.get('customClass') || '';
+    return {
+      date,
+      address,
+      machine_name: '',
+      machine_number: '',
+      inventory_number: '',
+      classification,
+      customClass,
+      material: '',
+      recommendations: '',
+      defects: '',
+      additionalWorks: '',
+      comments: '',
+      photos: [],
+      checklistItems: [
+        { task: 'Ежемесячный технический осмотр оборудования на предмет его работоспособности', done: false },
+        { task: 'Технический осмотр оборудования на предмет его работоспособности', done: false },
+        { task: 'Диагностика неисправного оборудования на предмет проведения его ремонта', done: false },
+        { task: 'Диагностика оборудования', done: false },
+        { task: 'Проверка крепления термостатов, сигнальной арматуры, дверей и облицовки', done: false },
+        { task: 'Проверка надежности крепления заземления и отсутствия механических повреждений проводов', done: false },
+        { task: 'Проверка работы программных устройств', done: false },
+        { task: 'Проверка нагревательных элементов', done: false },
+        { task: 'Проверка соленоидных клапанов', done: false },
+        {
+          task: 'Проверка состояния электроаппаратуры, при необходимости затяжка электроконтактных соединений, замена сгоревших плавких вставок',
+          done: false,
+        },
+        { task: 'Контроль силы тока в каждой из фаз и межфазных напряжений', done: false },
+        { task: 'Проверка настройки микропроцессоров', done: false },
+        { task: 'Контрольная проверка агрегата в рабочем режиме', done: false },
+      ],
+    };
+  };
+
+  const [formData, setFormData] = useState(getInitialFormData());
 
   const [previewImages, setPreviewImages] = useState([]);
   const [error, setError] = useState('');
