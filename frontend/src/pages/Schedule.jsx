@@ -215,6 +215,16 @@ useEffect(() => {
     }
   };
 
+  // Вернуть завершённый выезд обратно в "В работе"
+  const handleReturn = async (row) => {
+    try {
+      await axios.put(`/api/requests/${row.id}`, { ...row, status: 'В работе' });
+      await fetchSchedules();
+    } catch (e) {
+      alert('Ошибка при возврате выезда');
+    }
+  };
+
   // Render
 
   return (
@@ -279,6 +289,7 @@ useEffect(() => {
                   <td>{row.classification || row.type}</td>
                   <td>{row.user ? `${row.user.lastName} ${row.user.firstName ? row.user.firstName[0] + '.' : ''}` : ''}</td>
                   <td>
+                    <button className="btn btn-success btn-sm me-2" onClick={e => { e.stopPropagation(); handleReturn(row); }}>вернуть</button>
                     <button className="btn btn-danger btn-sm" onClick={e => { e.stopPropagation(); handleDelete(row); }}>удалить</button>
                   </td>
                 </tr>
