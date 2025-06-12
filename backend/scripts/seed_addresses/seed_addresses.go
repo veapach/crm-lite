@@ -96,16 +96,13 @@ var addresses = []string{
 }
 
 func main() {
-	// Инициализируем базу данных
 	db.InitDB()
 
-	// Добавляем адреса
 	for _, addr := range addresses {
 		address := db.Address{
 			Address: strings.TrimSpace(addr),
 		}
 
-		// Проверяем, существует ли уже такой адрес
 		var existingAddress db.Address
 		if err := db.DB.Where("address = ?", address.Address).First(&existingAddress).Error; err == nil {
 			fmt.Printf("Адрес '%s' уже существует\n", address.Address)

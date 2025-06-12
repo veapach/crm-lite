@@ -13,6 +13,7 @@ import (
 
 	"backend/internal/address"
 	"backend/internal/db"
+	"backend/internal/equipment"
 	"backend/internal/files"
 	"backend/internal/report"
 	"backend/internal/requests"
@@ -142,6 +143,11 @@ func main() {
 	r.GET("/api/addresses", address.GetAddresses)
 	r.POST("/api/addresses", users.AuthMiddleware(), address.AddAddress)
 	r.DELETE("/api/addresses/:id", users.AuthMiddleware(), address.DeleteAddress)
+
+	// Список оборудования
+	r.GET("/api/equipment", equipment.GetEquipment)
+	r.POST("/api/equipment", users.AuthMiddleware(), equipment.AddEquipment)
+	r.DELETE("/api/equipment/:id", users.AuthMiddleware(), equipment.DeleteEquipment)
 
 	// Статические файлы
 	r.Static("/uploads/reports", "./uploads/reports")

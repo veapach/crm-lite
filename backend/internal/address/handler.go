@@ -8,7 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GetAddresses возвращает список адресов, опционально фильтруя по поисковому запросу
 func GetAddresses(c *gin.Context) {
 	query := c.Query("query")
 
@@ -27,7 +26,6 @@ func GetAddresses(c *gin.Context) {
 	c.JSON(http.StatusOK, addresses)
 }
 
-// AddAddress добавляет новый адрес в базу данных
 func AddAddress(c *gin.Context) {
 	var input struct {
 		Address string `json:"address" binding:"required"`
@@ -38,7 +36,6 @@ func AddAddress(c *gin.Context) {
 		return
 	}
 
-	// Проверяем, существует ли уже такой адрес
 	var existingAddress db.Address
 	if err := db.DB.Where("address = ?", strings.TrimSpace(input.Address)).First(&existingAddress).Error; err == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Такой адрес уже существует"})
@@ -57,7 +54,6 @@ func AddAddress(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Адрес успешно добавлен", "address": address})
 }
 
-// DeleteAddress удаляет адрес из базы данных
 func DeleteAddress(c *gin.Context) {
 	id := c.Param("id")
 

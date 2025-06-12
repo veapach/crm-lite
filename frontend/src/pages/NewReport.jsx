@@ -58,9 +58,27 @@ function NewReport() {
   const [filteredAddresses, setFilteredAddresses] = useState([]);
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
 
+  // Equipment dropdown states
+  const [equipmentList, setEquipmentList] = useState([]); // [{id, equipment}]
+  const [filteredEquipment, setFilteredEquipment] = useState([]); // array of strings
+  const [showEquipmentSuggestions, setShowEquipmentSuggestions] = useState(false);
+
   const fileInputRef = useRef(null);
   const addressInputRef = useRef(null);
+  const equipmentInputRef = useRef(null);
   const [uploadedFiles, setUploadedFiles] = useState([]);
+  // Загружаем список оборудования при монтировании компонента
+  // Получаем список оборудования с правильным полем (equipment)
+  const fetchEquipment = async () => {
+    try {
+      const response = await axios.get('/api/equipment');
+      // Приводим к формату [{id, equipment}]
+      setEquipmentList(Array.isArray(response.data) ? response.data : []);
+    } catch (error) {
+      console.error('Ошибка при загрузке оборудования:', error);
+      setEquipmentList([]);
+    }
+  };
 
   // Загружаем список адресов при монтировании компонента
   const fetchAddresses = async () => {
@@ -75,7 +93,25 @@ function NewReport() {
   // Используем эту функцию при монтировании компонента
   useEffect(() => {
     fetchAddresses();
+    fetchEquipment();
   }, []);
+  // Выпадающий список для оборудования
+
+  // Открыть/закрыть выпадающий список оборудования
+  const toggleEquipmentList = () => {
+    if (showEquipmentSuggestions) {
+      setShowEquipmentSuggestions(false);
+    } else {
+      setFilteredEquipment(equipmentList.map(eq => eq.equipment));
+      setShowEquipmentSuggestions(true);
+    }
+  };
+
+  // Выбор оборудования из выпадающего списка
+  const handleEquipmentSelect = (equipmentName) => {
+    setFormData(prev => ({ ...prev, machine_name: equipmentName }));
+    setShowEquipmentSuggestions(false);
+  };
 
   const toggleAddressList = () => {
     if (showAddressSuggestions) {
@@ -93,7 +129,7 @@ function NewReport() {
       ...prev,
       [name]: value,
     }));
-    
+
     // Обновляем состояние валидации при изменении поля
     if (name === 'date' || name === 'address') {
       setValidationErrors(prev => ({
@@ -109,10 +145,24 @@ function NewReport() {
         setShowAddressSuggestions(false);
       } else {
         const filtered = addresses
-          .filter(addr => addr.address.toLowerCase().includes(value.toLowerCase()))
+          .filter(addr => (addr.address || '').toLowerCase().includes(value.toLowerCase()))
           .map(addr => addr.address);
         setFilteredAddresses(filtered);
         setShowAddressSuggestions(filtered.length > 0);
+      }
+    }
+
+    // Если изменяется поле оборудования, фильтруем подсказки
+    if (name === 'machine_name') {
+      if (value.trim() === '') {
+        setFilteredEquipment([]);
+        setShowEquipmentSuggestions(false);
+      } else {
+        const filtered = equipmentList
+          .filter(eq => (eq.equipment || '').toLowerCase().includes(value.toLowerCase()))
+          .map(eq => eq.equipment);
+        setFilteredEquipment(filtered);
+        setShowEquipmentSuggestions(filtered.length > 0);
       }
     }
   };
@@ -200,13 +250,28 @@ function NewReport() {
       const response = await axios.post('/api/report', dataToSend, {
         headers: { 'Content-Type': 'application/json' },
       });
-  
+
       const newReportId = response.data.id;
       setSuccess('Отчет успешно создан');
-  
+
       // Обновляем список адресов, чтобы включить новый адрес
       fetchAddresses();
-  
+
+    // Если оборудование не найдено в списке, добавляем его
+    const machineName = dataToSend.machine_name?.trim();
+    if (
+      machineName &&
+      !equipmentList.some(eq => (eq.equipment || '').toLowerCase() === machineName.toLowerCase())
+    ) {
+      try {
+        await axios.post('/api/equipment', { equipment: machineName });
+        fetchEquipment();
+      } catch (err) {
+        // Не критично, просто логируем
+        console.error('Ошибка при добавлении оборудования:', err);
+      }
+    }
+
       // Перенаправляем на страницу отчетов после успешного создания
       setTimeout(() => navigate(`/reports?highlight=${newReportId}`), 2000);
     } catch (err) {
@@ -307,15 +372,47 @@ function NewReport() {
           )}
         </div>
 
-        <div className="mb-3">
+        <div className="mb-3 position-relative">
           <label className="form-label fw-bold">Название оборудования</label>
-          <textarea
-            className="form-control"
-            name="machine_name"
-            value={formData.machine_name}
-            onChange={handleChange}
-            rows="1"
-          />
+          <div className="input-group">
+            <input
+              type="text"
+              className="form-control"
+              name="machine_name"
+              value={formData.machine_name}
+              onChange={handleChange}
+              ref={equipmentInputRef}
+              autoComplete="off"
+            />
+            <button
+              type="button"
+              className="btn btn-outline-secondary"
+              onClick={toggleEquipmentList}
+              title="Показать все оборудование"
+            >
+              <FaChevronDown />
+            </button>
+          </div>
+          {showEquipmentSuggestions && (
+            <div className="position-absolute w-100 mt-1 bg-white border rounded shadow-sm" style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}>
+              {filteredEquipment.length > 0 ? (
+                filteredEquipment.map((name, index) => (
+                  <div
+                    key={index}
+                    className="p-2 border-bottom cursor-pointer hover-bg-light"
+                    onClick={() => handleEquipmentSelect(name)}
+                    style={{ cursor: 'pointer' }}
+                    onMouseOver={e => e.target.style.backgroundColor = '#f8f9fa'}
+                    onMouseOut={e => e.target.style.backgroundColor = ''}
+                  >
+                    {name}
+                  </div>
+                ))
+              ) : (
+                <div className="p-2 text-muted">Нет подходящего оборудования</div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="mb-3">

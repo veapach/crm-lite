@@ -21,11 +21,52 @@ const Admin = () => {
   const [newPhone, setNewPhone] = useState('');
   const [allowedPhones, setAllowedPhones] = useState([]);
   
+  // Состояния для раздела оборудования
+  const [equipment, setEquipment] = useState([]);
+  const [newEquipment, setNewEquipment] = useState('');
+  const [equipmentSearchQuery, setEquipmentSearchQuery] = useState('');
+
   // Состояния для раздела загрузки отчетов
   const [reportFile, setReportFile] = useState(null);
   const [reportDate, setReportDate] = useState('');
   const [reportAddress, setReportAddress] = useState('');
   const [reportUser, setReportUser] = useState('');
+  // Функции для работы с оборудованием
+  const fetchEquipment = useCallback(async () => {
+    try {
+      const response = await axios.get('/api/equipment', {
+        params: { query: equipmentSearchQuery }
+      });
+      setEquipment(response.data);
+    } catch (error) {
+      toast.error('Ошибка при загрузке оборудования');
+    }
+  }, [equipmentSearchQuery]);
+
+  const addEquipment = async () => {
+    if (!newEquipment.trim()) {
+      toast.warning('Введите название оборудования');
+      return;
+    }
+    try {
+      await axios.post('/api/equipment', { name: newEquipment });
+      toast.success('Оборудование успешно добавлено');
+      setNewEquipment('');
+      fetchEquipment();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Ошибка при добавлении оборудования');
+    }
+  };
+
+  const deleteEquipment = async (id) => {
+    try {
+      await axios.delete(`/api/equipment/${id}`);
+      toast.success('Оборудование успешно удалено');
+      fetchEquipment();
+    } catch (error) {
+      toast.error('Ошибка при удалении оборудования');
+    }
+  };
   
   // Функции для работы с адресами
   const fetchAddresses = useCallback(async () => {
@@ -65,12 +106,12 @@ const Admin = () => {
       navigate('/');
       return;
     }
-    
     // Загрузка данных при монтировании компонента
     fetchAddresses();
     fetchUsers();
     fetchAllowedPhones();
-  }, [user, navigate, fetchAddresses, fetchUsers, fetchAllowedPhones]);
+    fetchEquipment();
+  }, [user, navigate, fetchAddresses, fetchUsers, fetchAllowedPhones, fetchEquipment]);
   
   const addAddress = async () => {
     if (!newAddress.trim()) {
@@ -217,6 +258,12 @@ const Admin = () => {
           Адреса
         </button>
         <button 
+          className={activeTab === 'equipment' ? 'active' : ''} 
+          onClick={() => setActiveTab('equipment')}
+        >
+          Оборудование
+        </button>
+        <button 
           className={activeTab === 'users' ? 'active' : ''} 
           onClick={() => setActiveTab('users')}
         >
@@ -229,6 +276,59 @@ const Admin = () => {
           Загрузка отчетов
         </button>
       </div>
+        {/* Раздел управления оборудованием */}
+        {activeTab === 'equipment' && (
+          <div className="equipment-section">
+            <h2>Управление оборудованием</h2>
+            <div className="equipment-controls">
+              <div className="equipment-add">
+                <input
+                  type="text"
+                  value={newEquipment}
+                  onChange={e => setNewEquipment(e.target.value)}
+                  placeholder="Новое оборудование"
+                />
+                <button onClick={addEquipment}>Добавить</button>
+              </div>
+              <div className="equipment-search">
+                <input
+                  type="text"
+                  value={equipmentSearchQuery}
+                  onChange={e => setEquipmentSearchQuery(e.target.value)}
+                  placeholder="Поиск оборудования"
+                />
+                <button onClick={fetchEquipment}>Найти</button>
+              </div>
+            </div>
+            <div className="equipment-list">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Название</th>
+                    <th>Действия</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {equipment.map(eq => (
+                    <tr key={eq.id}>
+                      <td>{eq.id}</td>
+                      <td>{eq.name}</td>
+                      <td>
+                        <button
+                          className="delete-btn"
+                          onClick={() => deleteEquipment(eq.id)}
+                        >
+                          Удалить
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       
       <div className="admin-content">
         {/* Раздел управления адресами */}
