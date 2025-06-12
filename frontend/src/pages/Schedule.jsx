@@ -13,7 +13,12 @@ function Schedule() {
   const [schedules, setSchedules] = useState([]);
   const [addresses, setAddresses] = useState([]);
   const [users, setUsers] = useState([]);
-  const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'asc' });
+  // Сортировка: сегодня — по времени, остальные — по дате
+  const [sortConfig, setSortConfig] = useState({
+    key: 'departTime',
+    direction: 'asc',
+    context: 'today', // today | other
+  });
   // Чекбокс для завершенных
   const [showFinished, setShowFinished] = useState(false);
   const [filteredAddresses, setFilteredAddresses] = useState([]);
@@ -142,10 +147,11 @@ useEffect(() => {
   };
 
   // Sorting
-  const handleSort = (key) => {
+  // Универсальная сортировка, с поддержкой "контекста" (сегодня/остальные)
+  const handleSort = (key, context = null) => {
     setSortConfig(cfg => {
       const direction = cfg.key === key && cfg.direction === 'asc' ? 'desc' : 'asc';
-      return { key, direction };
+      return { key, direction, context: context || cfg.context };
     });
   };
 
@@ -163,24 +169,29 @@ useEffect(() => {
   const todaySchedules = activeSchedules.filter(r => r.date === todayStr);
   const otherSchedules = activeSchedules.filter(r => r.date !== todayStr);
 
+  // Сортировка для "сегодняшних" — по времени, для остальных — по дате
   const sortedTodaySchedules = [...todaySchedules].sort((a, b) => {
-    let v1 = a[sortConfig.key], v2 = b[sortConfig.key];
-    if (sortConfig.key === 'user') {
+    let key = sortConfig.context === 'today' ? sortConfig.key : 'departTime';
+    let direction = sortConfig.context === 'today' ? sortConfig.direction : 'asc';
+    let v1 = a[key], v2 = b[key];
+    if (key === 'user') {
       v1 = a.user?.lastName || '';
       v2 = b.user?.lastName || '';
     }
-    if (v1 < v2) return sortConfig.direction === 'asc' ? -1 : 1;
-    if (v1 > v2) return sortConfig.direction === 'asc' ? 1 : -1;
+    if (v1 < v2) return direction === 'asc' ? -1 : 1;
+    if (v1 > v2) return direction === 'asc' ? 1 : -1;
     return 0;
   });
   const sortedSchedules = [...otherSchedules].sort((a, b) => {
-    let v1 = a[sortConfig.key], v2 = b[sortConfig.key];
-    if (sortConfig.key === 'user') {
+    let key = sortConfig.context === 'other' ? sortConfig.key : 'date';
+    let direction = sortConfig.context === 'other' ? sortConfig.direction : 'asc';
+    let v1 = a[key], v2 = b[key];
+    if (key === 'user') {
       v1 = a.user?.lastName || '';
       v2 = b.user?.lastName || '';
     }
-    if (v1 < v2) return sortConfig.direction === 'asc' ? -1 : 1;
-    if (v1 > v2) return sortConfig.direction === 'asc' ? 1 : -1;
+    if (v1 < v2) return direction === 'asc' ? -1 : 1;
+    if (v1 > v2) return direction === 'asc' ? 1 : -1;
     return 0;
   });
   // Завершенные
@@ -268,11 +279,11 @@ useEffect(() => {
             <thead>
               <tr>
                 <th style={{ width: 40 }}>№</th>
-                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('date')}>дата {sortConfig.key === 'date' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
-                <th style={{ cursor: 'pointer' }}>время выезда</th>
-                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('address')}>объект {sortConfig.key === 'address' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
-                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('classification')}>классификация {sortConfig.key === 'classification' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
-                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('user')}>исполнитель {sortConfig.key === 'user' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('date', 'other')}>дата {sortConfig.key === 'date' && sortConfig.context === 'other' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('departTime', 'other')}>время выезда {sortConfig.key === 'departTime' && sortConfig.context === 'other' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('address', 'other')}>объект {sortConfig.key === 'address' && sortConfig.context === 'other' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('classification', 'other')}>классификация {sortConfig.key === 'classification' && sortConfig.context === 'other' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('user', 'other')}>исполнитель {sortConfig.key === 'user' && sortConfig.context === 'other' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
                 <th></th>
               </tr>
             </thead>
@@ -374,11 +385,11 @@ useEffect(() => {
             <thead>
               <tr>
                 <th style={{ width: 40 }}>№</th>
-                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('date')}>дата {sortConfig.key === 'date' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
-                <th style={{ cursor: 'pointer' }}>время выезда</th>
-                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('address')}>объект {sortConfig.key === 'address' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
-                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('classification')}>классификация {sortConfig.key === 'classification' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
-                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('user')}>исполнитель {sortConfig.key === 'user' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('date', 'today')}>дата {sortConfig.key === 'date' && sortConfig.context === 'today' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('departTime', 'today')}>время выезда {sortConfig.key === 'departTime' && sortConfig.context === 'today' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('address', 'today')}>объект {sortConfig.key === 'address' && sortConfig.context === 'today' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('classification', 'today')}>классификация {sortConfig.key === 'classification' && sortConfig.context === 'today' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('user', 'today')}>исполнитель {sortConfig.key === 'user' && sortConfig.context === 'today' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
                 <th></th>
               </tr>
             </thead>
@@ -420,11 +431,11 @@ useEffect(() => {
         <thead>
           <tr>
             <th style={{ width: 40 }}>№</th>
-            <th style={{ cursor: 'pointer' }} onClick={() => handleSort('date')}>дата {sortConfig.key === 'date' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
-            <th style={{ cursor: 'pointer' }}>время выезда</th>
-            <th style={{ cursor: 'pointer' }} onClick={() => handleSort('address')}>объект {sortConfig.key === 'address' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
-            <th style={{ cursor: 'pointer' }} onClick={() => handleSort('classification')}>классификация {sortConfig.key === 'classification' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
-            <th style={{ cursor: 'pointer' }} onClick={() => handleSort('user')}>исполнитель {sortConfig.key === 'user' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+            <th style={{ cursor: 'pointer' }} onClick={() => handleSort('date', 'other')}>дата {sortConfig.key === 'date' && sortConfig.context === 'other' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+            <th style={{ cursor: 'pointer' }} onClick={() => handleSort('departTime', 'other')}>время выезда {sortConfig.key === 'departTime' && sortConfig.context === 'other' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+            <th style={{ cursor: 'pointer' }} onClick={() => handleSort('address', 'other')}>объект {sortConfig.key === 'address' && sortConfig.context === 'other' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+            <th style={{ cursor: 'pointer' }} onClick={() => handleSort('classification', 'other')}>классификация {sortConfig.key === 'classification' && sortConfig.context === 'other' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+            <th style={{ cursor: 'pointer' }} onClick={() => handleSort('user', 'other')}>исполнитель {sortConfig.key === 'user' && sortConfig.context === 'other' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
             <th></th>
           </tr>
         </thead>
