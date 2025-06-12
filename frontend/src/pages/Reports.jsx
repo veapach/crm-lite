@@ -248,6 +248,18 @@ function Reports() {
       return;
     }
 
+    if (selectedReports.length < 10) {
+      // Скачиваем каждый файл отдельно
+      // Найдем объекты отчетов по id
+      const selectedReportObjs = reports.filter(r => selectedReports.includes(r.id));
+      for (const report of selectedReportObjs) {
+        // eslint-disable-next-line no-await-in-loop
+        await handleDownload(report.filename);
+      }
+      return;
+    }
+
+    // Если 10 и более — скачиваем архивом
     try {
       const response = await axios.post('/api/reports/download-selected', {
         reportIds: selectedReports,
