@@ -160,9 +160,28 @@ useEffect(() => {
     ? schedules.filter(r => String(r.engineerId) === String(user.id))
     : schedules;
 
-  // Разделение на завершенные и незавершенные
+
+  // --- Месячный фильтр для завершённых выездов ---
+  // Получить список месяцев, в которых есть завершённые выезды
   const finishedSchedules = filteredSchedules.filter(r => r.status === 'Завершено');
   const activeSchedules = filteredSchedules.filter(r => r.status !== 'Завершено');
+
+  // Получить уникальные месяцы (YYYY-MM) из завершённых выездов
+  const finishedMonths = Array.from(
+    new Set(finishedSchedules.map(r => r.date?.slice(0, 7)).filter(Boolean))
+  ).sort((a, b) => b.localeCompare(a)); // по убыванию (сначала новые)
+
+  // Текущий месяц по умолчанию
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  // Селектор месяца для завершённых выездов
+  const [selectedFinishedMonth, setSelectedFinishedMonth] = useState(currentMonth);
+
+  // Если выбран "все выезды", показываем все, иначе только за выбранный месяц
+  const filteredFinishedSchedules = selectedFinishedMonth === 'all'
+    ? finishedSchedules
+    : finishedSchedules.filter(r => r.date && r.date.startsWith(selectedFinishedMonth));
 
   // Разделение на сегодняшние и остальные (только для активных)
   const todayStr = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
@@ -274,7 +293,29 @@ useEffect(() => {
       {/* Завершённые выезды */}
       {showFinished && (
         <div className="mb-4 p-2" style={{ border: '2px solid #19875422', borderRadius: '12px', background: '#f8fff8' }}>
-          <div className="mb-2" style={{ fontWeight: 'bold', color: '#198754' }}>Завершённые выезды</div>
+          <div className="mb-2 d-flex align-items-center" style={{ fontWeight: 'bold', color: '#198754' }}>
+            <span className="me-3">Завершённые выезды</span>
+            <div className="d-flex align-items-center">
+              <span className="me-2" style={{ fontWeight: 'normal', color: '#333', fontSize: 15 }}>Месяц:</span>
+              <select
+                className="form-select form-select-sm"
+                style={{ width: 180, display: 'inline-block' }}
+                value={selectedFinishedMonth}
+                onChange={e => setSelectedFinishedMonth(e.target.value)}
+              >
+                <option value={currentMonth}>Текущий месяц</option>
+                {finishedMonths.filter(m => m !== currentMonth).map(m => {
+                  const [y, mo] = m.split('-');
+                  return (
+                    <option key={m} value={m}>
+                      {`${mo}.${y}`}
+                    </option>
+                  );
+                })}
+                <option value="all">Все выезды</option>
+              </select>
+            </div>
+          </div>
           <table className="table table-bordered align-middle mb-0">
             <thead>
               <tr>
@@ -288,10 +329,12 @@ useEffect(() => {
               </tr>
             </thead>
             <tbody>
-              {sortedFinishedSchedules.length === 0 && (
+              {filteredFinishedSchedules.length === 0 && (
                 <tr><td colSpan="7" className="text-center text-muted">Нет завершённых выездов</td></tr>
               )}
-              {sortedFinishedSchedules.map((row, idx) => (
+              {sortedFinishedSchedules
+                .filter(row => filteredFinishedSchedules.includes(row))
+                .map((row, idx) => (
                 <tr key={row.id} style={{ background: '#f0fff0' }}>
                   <td>{idx + 1}</td>
                   <td>{row.date && row.date.split('-').reverse().join('.')}</td>
