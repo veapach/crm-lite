@@ -62,12 +62,13 @@ type Equipment struct {
 }
 
 type Inventory struct {
-	ID         uint   `gorm:"primaryKey" json:"id"`
-	Item       string `gorm:"not null" json:"item"`
-	Status     string `gorm:"not null;default:'Купить'" json:"status"`
-	Quantity   int    `gorm:"not null;default:1" json:"quantity"`
-	EngineerID uint   `gorm:"not null" json:"engineerId"`
-	Engineer   User   `gorm:"foreignKey:EngineerID;constraint:OnDelete:CASCADE" json:"-"`
+	ID           uint   `gorm:"primaryKey" json:"id"`
+	ObjectNumber string `gorm:"not null" json:"objectNumber"`                // Номер объекта (адрес)
+	ZipName      string `gorm:"not null" json:"zipName"`                     // Наименование ЗИП
+	Status       string `gorm:"not null;default:'не куплено'" json:"status"` // заказан/установлен
+	Quantity     int    `gorm:"not null;default:1" json:"quantity"`
+	EngineerID   uint   `gorm:"not null" json:"engineerId"`
+	Engineer     User   `gorm:"foreignKey:EngineerID;constraint:OnDelete:CASCADE" json:"-"`
 }
 
 func InitDB() {

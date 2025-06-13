@@ -16,7 +16,7 @@ func GetInventory(c *gin.Context) {
 
 	var inventory []db.Inventory
 	if err := db.DB.Preload("Engineer").Where("engineer_id = ?", userID).Find(&inventory).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении списка покупок"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении списка ЗИП"})
 		return
 	}
 
@@ -47,8 +47,9 @@ func AddInventoryItem(c *gin.Context) {
 	}
 
 	var input struct {
-		Item     string `json:"item" binding:"required"`
-		Quantity *int   `json:"quantity"`
+		ObjectNumber string `json:"objectNumber" binding:"required"`
+		ZipName      string `json:"zipName" binding:"required"`
+		Quantity     *int   `json:"quantity"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректные данные"})
@@ -56,7 +57,7 @@ func AddInventoryItem(c *gin.Context) {
 	}
 
 	var existing db.Inventory
-	err := db.DB.Where("item = ? AND engineer_id = ? AND status != ?", input.Item, userID, "Куплено").First(&existing).Error
+	err := db.DB.Where("object_number = ? AND zip_name = ? AND engineer_id = ? AND status != ?", input.ObjectNumber, input.ZipName, userID, "установлен").First(&existing).Error
 	if err == nil {
 		addQty := 1
 		if input.Quantity != nil && *input.Quantity > 0 {
@@ -76,10 +77,11 @@ func AddInventoryItem(c *gin.Context) {
 		qty = *input.Quantity
 	}
 	inventory := db.Inventory{
-		Item:       input.Item,
-		Status:     "Купить",
-		Quantity:   qty,
-		EngineerID: userID.(uint),
+		ObjectNumber: input.ObjectNumber,
+		ZipName:      input.ZipName,
+		Status:       "не куплено",
+		Quantity:     qty,
+		EngineerID:   userID.(uint),
 	}
 	if err := db.DB.Create(&inventory).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при добавлении"})
@@ -98,21 +100,25 @@ func UpdateInventoryItem(c *gin.Context) {
 
 	var item db.Inventory
 	if err := db.DB.Where("id = ? AND engineer_id = ?", id, userID).First(&item).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Предмет не найден"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "ЗИП не найден"})
 		return
 	}
 
 	var input struct {
-		Item     *string `json:"item"`
-		Status   *string `json:"status"`
-		Quantity *int    `json:"quantity"`
+		ObjectNumber *string `json:"objectNumber"`
+		ZipName      *string `json:"zipName"`
+		Status       *string `json:"status"`
+		Quantity     *int    `json:"quantity"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректные данные"})
 		return
 	}
-	if input.Item != nil {
-		item.Item = *input.Item
+	if input.ObjectNumber != nil {
+		item.ObjectNumber = *input.ObjectNumber
+	}
+	if input.ZipName != nil {
+		item.ZipName = *input.ZipName
 	}
 	if input.Status != nil {
 		item.Status = *input.Status
