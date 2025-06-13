@@ -15,6 +15,7 @@ import (
 	"backend/internal/db"
 	"backend/internal/equipment"
 	"backend/internal/files"
+	"backend/internal/inventory"
 	"backend/internal/report"
 	"backend/internal/requests"
 	"backend/internal/users"
@@ -148,6 +149,13 @@ func main() {
 	r.GET("/api/equipment", equipment.GetEquipment)
 	r.POST("/api/equipment", users.AuthMiddleware(), equipment.AddEquipment)
 	r.DELETE("/api/equipment/:id", users.AuthMiddleware(), equipment.DeleteEquipment)
+
+	// Список покупок (инвентарь)
+	r.GET("/api/inventory", users.AuthMiddleware(), inventory.GetInventory)
+	r.POST("/api/inventory", users.AuthMiddleware(), inventory.AddInventoryItem)
+	r.GET("/api/inventory/:id", users.AuthMiddleware(), inventory.GetItemById)
+	r.PUT("/api/inventory/:id", users.AuthMiddleware(), inventory.UpdateInventoryItem)
+	r.DELETE("/api/inventory/:id", users.AuthMiddleware(), inventory.DeleteInventoryItem)
 
 	// Статические файлы
 	r.Static("/uploads/reports", "./uploads/reports")

@@ -84,6 +84,9 @@ function Navbar() {
                     <Link className={`nav-link rounded-pill ${location.pathname === '/files' ? 'active' : ''}`} to="/files">Файлы</Link>
                   </li>
                   <li className="nav-item mx-1">
+                    <Link className={`nav-link rounded-pill ${location.pathname === '/inventory' ? 'active' : ''}`} to="/inventory">Покупки</Link>
+                  </li>
+                  <li className="nav-item mx-1">
                     <Link className={`nav-link rounded-pill ${location.pathname === '/profile' ? 'active' : ''}`} to="/profile">Профиль</Link>
                   </li>
                   {isAdmin && (
@@ -116,6 +119,7 @@ function Navbar() {
                 <li><Link to="/reports" onClick={closeMenu}>Отчеты</Link></li>
                 <li><Link to="/statistics" onClick={closeMenu}>Статистика</Link></li>
                 <li><Link to="/files" onClick={closeMenu}>Файлы</Link></li>
+                <li><Link to="/inventory" onClick={closeMenu}>Покупки</Link></li>
                 <li><Link to="/profile" onClick={closeMenu}>Профиль</Link></li>
                 {isAdmin && (
                   <li><Link to="/admin" onClick={closeMenu}>Администрирование</Link></li>

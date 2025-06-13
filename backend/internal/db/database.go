@@ -61,6 +61,15 @@ type Equipment struct {
 	Equipment string `gorm:"uniqueIndex;not null" json:"equipment"`
 }
 
+type Inventory struct {
+	ID         uint   `gorm:"primaryKey" json:"id"`
+	Item       string `gorm:"not null" json:"item"`
+	Status     string `gorm:"not null;default:'Купить'" json:"status"`
+	Quantity   int    `gorm:"not null;default:1" json:"quantity"`
+	EngineerID uint   `gorm:"not null" json:"engineerId"`
+	Engineer   User   `gorm:"foreignKey:EngineerID;constraint:OnDelete:CASCADE" json:"-"`
+}
+
 func InitDB() {
 	var err error
 	DB, err = gorm.Open(sqlite.Open("database.db"), &gorm.Config{})
@@ -68,7 +77,7 @@ func InitDB() {
 		log.Fatal("Ошибка при подключении к БД:", err)
 	}
 
-	DB.AutoMigrate(&File{}, &User{}, &Report{}, &Request{}, &Address{}, &AllowedPhone{}, &Equipment{})
+	DB.AutoMigrate(&File{}, &User{}, &Report{}, &Request{}, &Address{}, &AllowedPhone{}, &Equipment{}, &Inventory{})
 
 	var count int64
 	DB.Model(&AllowedPhone{}).Count(&count)

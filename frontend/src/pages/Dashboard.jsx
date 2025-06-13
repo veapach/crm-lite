@@ -41,6 +41,14 @@ function Dashboard() {
 
           <div className="col-md-4 mb-4">
             <div className="dashboard-card">
+              <h3>Список покупок</h3>
+              <p>Просмотр и управление вашим списком покупок</p>
+              <Link to="/inventory" className="btn btn-primary">Перейти к покупкам</Link>
+            </div>
+          </div>
+
+          <div className="col-md-4 mb-4">
+            <div className="dashboard-card">
               <h3>Статистика</h3>
               <p>Просмотр статистики отчетов за месяц</p>
               <Link to="/statistics" className="btn btn-primary">Перейти к статистике</Link>
