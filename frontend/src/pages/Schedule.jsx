@@ -31,7 +31,7 @@ function Schedule() {
     date: '',
     departTime: '', // добавить это поле
     address: '',
-    classification: 'ТО Китчен',
+    classification: '', // по умолчанию не выбрано
     customClass: '',
     userId: '',
   });
@@ -85,7 +85,7 @@ useEffect(() => {
 
   // Modal open/close
   const openModal = () => { setShowModal(true); };
-  const closeModal = () => { setShowModal(false); setForm({ date: '', departTime: '', address: '', classification: 'ТО Китчен', customClass: '', userId: '' }); setValidation({}); setFilteredAddresses([]); setShowAddressSuggestions(false); };
+  const closeModal = () => { setShowModal(false); setForm({ date: '', departTime: '', address: '', classification: '', customClass: '', userId: '' }); setValidation({}); setFilteredAddresses([]); setShowAddressSuggestions(false); };
 
   // Address autocomplete logic
   const handleAddressChange = (e) => {
@@ -118,6 +118,7 @@ useEffect(() => {
       date: !form.date,
       address: !form.address,
       userId: !form.userId,
+      classification: !form.classification || (form.classification === 'Другое' && !form.customClass),
     };
     setValidation(errors);
     if (Object.values(errors).some(Boolean)) return;
@@ -387,8 +388,9 @@ useEffect(() => {
                     )}
                   </div>
                   <div className="mb-3">
-                    <label className="form-label">Классификация</label>
-                    <select className="form-select" value={form.classification} onChange={handleClassChange}>
+                    <label className="form-label">Классификация *</label>
+                    <select className="form-select" value={form.classification} onChange={handleClassChange} style={validation.classification ? { borderColor: '#dc3545', borderWidth: 2 } : {}} required>
+                      <option value="" disabled>Не выбрано</option>
                       <option value="ТО Китчен">ТО Китчен</option>
                       <option value="ТО Пекарня">ТО Пекарня</option>
                       <option value="ПНР">ПНР</option>
@@ -396,7 +398,7 @@ useEffect(() => {
                       <option value="Другое">Другое</option>
                     </select>
                     {form.classification === 'Другое' && (
-                      <input type="text" className="form-control mt-2" value={form.customClass} onChange={e => setForm(f => ({ ...f, customClass: e.target.value }))} placeholder="Укажите свой вариант" />
+                      <input type="text" className="form-control mt-2" value={form.customClass} onChange={e => setForm(f => ({ ...f, customClass: e.target.value }))} placeholder="Укажите свой вариант" required />
                     )}
                   </div>
                   <div className="mb-3">
