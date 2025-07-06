@@ -151,6 +151,10 @@ func main() {
 	r.POST("/api/equipment", users.AuthMiddleware(), equipment.AddEquipment)
 	r.DELETE("/api/equipment/:id", users.AuthMiddleware(), equipment.DeleteEquipment)
 
+	// Запоминание оборудования по объектам
+	r.GET("/api/equipment/memory", users.AuthMiddleware(), equipment.GetEquipmentMemory)
+	r.POST("/api/equipment/memory", users.AuthMiddleware(), equipment.SaveEquipmentMemory)
+
 	// Список покупок (инвентарь)
 	r.GET("/api/inventory", users.AuthMiddleware(), inventory.GetInventory)
 	r.POST("/api/inventory", users.AuthMiddleware(), inventory.AddInventoryItem)

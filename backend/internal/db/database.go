@@ -81,6 +81,15 @@ type TravelRecord struct {
 	User       User    `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"    json:"-"`
 }
 
+type EquipmentMemory struct {
+	ID             uint   `gorm:"primaryKey" json:"id"`
+	Address        string `gorm:"not null" json:"address"`
+	Classification string `gorm:"not null" json:"classification"`
+	MachineName    string `gorm:"not null" json:"machineName"`
+	MachineNumber  string `gorm:"not null" json:"machineNumber"`
+	Count          int    `gorm:"not null;default:1" json:"count"`
+}
+
 func InitDB() {
 	var err error
 	DB, err = gorm.Open(sqlite.Open("database.db"), &gorm.Config{})
@@ -88,7 +97,7 @@ func InitDB() {
 		log.Fatal("Ошибка при подключении к БД:", err)
 	}
 
-	DB.AutoMigrate(&File{}, &User{}, &Report{}, &Request{}, &Address{}, &AllowedPhone{}, &Equipment{}, &Inventory{}, &TravelRecord{})
+	DB.AutoMigrate(&File{}, &User{}, &Report{}, &Request{}, &Address{}, &AllowedPhone{}, &Equipment{}, &Inventory{}, &TravelRecord{}, &EquipmentMemory{})
 
 	var count int64
 	DB.Model(&AllowedPhone{}).Count(&count)

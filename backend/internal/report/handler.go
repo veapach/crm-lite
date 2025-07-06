@@ -108,6 +108,29 @@ func CreateReport(c *gin.Context) {
 		}
 	}
 
+	if reportData.Address != "" && reportData.Classification != "" && reportData.Machine_name != "" {
+		var existingMemory db.EquipmentMemory
+		if err := db.DB.Where("address = ? AND classification = ?", reportData.Address, reportData.Classification).First(&existingMemory).Error; err == nil {
+			existingMemory.MachineName = reportData.Machine_name
+			existingMemory.MachineNumber = reportData.Machine_number
+			existingMemory.Count++
+			if err := db.DB.Save(&existingMemory).Error; err != nil {
+				log.Printf("Ошибка при обновлении памяти оборудования: %v", err)
+			}
+		} else {
+			newMemory := db.EquipmentMemory{
+				Address:        reportData.Address,
+				Classification: reportData.Classification,
+				MachineName:    reportData.Machine_name,
+				MachineNumber:  reportData.Machine_number,
+				Count:          1,
+			}
+			if err := db.DB.Create(&newMemory).Error; err != nil {
+				log.Printf("Ошибка при создании памяти оборудования: %v", err)
+			}
+		}
+	}
+
 	if reportData.Classification == "Аварийный вызов" {
 		reportData.Classification = "АВ"
 	}

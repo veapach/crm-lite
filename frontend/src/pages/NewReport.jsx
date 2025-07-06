@@ -10,7 +10,7 @@ function NewReport() {
     const params = new URLSearchParams(window.location.search);
     const date = params.get('date') || '';
     const address = params.get('address') || '';
-    const classification = params.get('classification') || 'ТО Китчен';
+    const classification = params.get('classification') || 'не выбрано';
     const customClass = params.get('customClass') || '';
     return {
       date,
@@ -80,6 +80,27 @@ function NewReport() {
     }
   };
 
+  const fetchEquipmentMemory = async (address, classification) => {
+    try {
+      const response = await axios.get(`/api/equipment/memory?address=${encodeURIComponent(address)}&classification=${encodeURIComponent(classification)}`);
+      setFormData(prev => ({
+        ...prev,
+        machine_name: response.data.machineName || '',
+        machine_number: response.data.machineNumber || ''
+      }));
+    } catch (error) {
+      if (error.response?.status === 404) {
+        setFormData(prev => ({
+          ...prev,
+          machine_name: '',
+          machine_number: ''
+        }));
+      } else {
+        console.error('Ошибка при загрузке запомненного оборудования:', error);
+      }
+    }
+  };
+
   // Загружаем список адресов при монтировании компонента
   const fetchAddresses = async () => {
     try {
@@ -143,12 +164,23 @@ function NewReport() {
       if (value.trim() === '') {
         setFilteredAddresses([]);
         setShowAddressSuggestions(false);
+        // Если адрес очищен, очищаем поля оборудования
+        setFormData(prev => ({
+          ...prev,
+          machine_name: '',
+          machine_number: ''
+        }));
       } else {
         const filtered = addresses
           .filter(addr => (addr.address || '').toLowerCase().includes(value.toLowerCase()))
           .map(addr => addr.address);
         setFilteredAddresses(filtered);
         setShowAddressSuggestions(filtered.length > 0);
+        
+        // Если есть классификация, загружаем запомненное оборудование для нового адреса
+        if (formData.classification) {
+          fetchEquipmentMemory(value, formData.classification);
+        }
       }
     }
 
@@ -163,6 +195,27 @@ function NewReport() {
           .map(eq => eq.equipment);
         setFilteredEquipment(filtered);
         setShowEquipmentSuggestions(filtered.length > 0);
+      }
+    }
+
+    // Если изменяется классификация и есть адрес, загружаем запомненное оборудование
+    if (name === 'classification') {
+      if (value === 'не выбрано') {
+        // Если выбрано "не выбрано", очищаем поля оборудования
+        setFormData(prev => ({
+          ...prev,
+          machine_name: '',
+          machine_number: ''
+        }));
+      } else if (formData.address) {
+        fetchEquipmentMemory(formData.address, value);
+      } else {
+        // Если адреса нет, очищаем поля оборудования
+        setFormData(prev => ({
+          ...prev,
+          machine_name: '',
+          machine_number: ''
+        }));
       }
     }
   };
@@ -397,6 +450,29 @@ function NewReport() {
           )}
         </div>
 
+        <div className="mb-3">
+          <label className="form-label fw-bold">Классификация</label>
+          <select className="form-select" name="classification" value={formData.classification} onChange={handleChange}>
+            <option value="не выбрано">Не выбрано</option>
+            <option value="ТО Китчен">ТО Китчен</option>
+            <option value="ТО Пекарня">ТО Пекарня</option>
+            <option value="ПНР">ПНР</option>
+            <option value="Аварийный вызов">Аварийный вызов</option>
+            <option value="Другое">Другое</option>
+          </select>
+
+          {formData.classification === 'Другое' && (
+            <input
+              type="text"
+              className="form-control mt-2"
+              name="customClass"
+              value={formData.customClass}
+              onChange={handleChange}
+              placeholder="Укажите свой вариант"
+            />
+          )}
+        </div>
+
         <div className="mb-3 position-relative">
           <label className="form-label fw-bold">Название оборудования</label>
           <div className="input-group">
@@ -460,28 +536,6 @@ function NewReport() {
             onChange={handleChange}
             rows="1"
           />
-        </div>
-
-        <div className="mb-3">
-          <label className="form-label fw-bold">Классификация</label>
-          <select className="form-select" name="classification" value={formData.classification} onChange={handleChange}>
-            <option value="ТО Китчен">ТО Китчен</option>
-            <option value="ТО Пекарня">ТО Пекарня</option>
-            <option value="ПНР">ПНР</option>
-            <option value="Аварийный вызов">Аварийный вызов</option>
-            <option value="Другое">Другое</option>
-          </select>
-
-          {formData.classification === 'Другое' && (
-            <input
-              type="text"
-              className="form-control mt-2"
-              name="customClass"
-              value={formData.customClass}
-              onChange={handleChange}
-              placeholder="Укажите свой вариант"
-            />
-          )}
         </div>
 
         <div className="mb-3">
