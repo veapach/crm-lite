@@ -79,6 +79,14 @@ function Dashboard() {
             </div>
           </div>
           
+          <div className="col-md-4 mb-4">
+            <div className="dashboard-card">
+              <h3>Путевой лист</h3>
+              <p>Просмотр и добавление поездок</p>
+              <Link to="/travelsheet" className="btn btn-primary">Перейти к путевому листу</Link>
+            </div>
+          </div>
+          
           {isAdmin && (
             <div className="col-md-4 mb-4">
               <div className="dashboard-card admin-card">
