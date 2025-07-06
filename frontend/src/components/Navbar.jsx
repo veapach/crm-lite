@@ -84,7 +84,10 @@ function Navbar() {
                     <Link className={`nav-link rounded-pill ${location.pathname === '/files' ? 'active' : ''}`} to="/files">Файлы</Link>
                   </li>
                   <li className="nav-item mx-1">
-                    <Link className={`nav-link rounded-pill ${location.pathname === '/inventory' ? 'active' : ''}`} to="/inventory">Покупки</Link>
+                    <Link className={`nav-link rounded-pill ${location.pathname === '/inventory' ? 'active' : ''}`} to="/inventory">ЗИП</Link>
+                  </li>
+                  <li className="nav-item mx-1">
+                    <Link className={`nav-link rounded-pill ${location.pathname === '/travel-sheet' ? 'active' : ''}`} to="/travel-sheet">Путевой лист</Link>
                   </li>
                   <li className="nav-item mx-1">
                     <Link className={`nav-link rounded-pill ${location.pathname === '/profile' ? 'active' : ''}`} to="/profile">Профиль</Link>
@@ -119,7 +122,8 @@ function Navbar() {
                 <li><Link to="/reports" onClick={closeMenu}>Отчеты</Link></li>
                 <li><Link to="/statistics" onClick={closeMenu}>Статистика</Link></li>
                 <li><Link to="/files" onClick={closeMenu}>Файлы</Link></li>
-                <li><Link to="/inventory" onClick={closeMenu}>Покупки</Link></li>
+                <li><Link to="/inventory" onClick={closeMenu}>ЗИП</Link></li>
+                <li><Link to="/travel-sheet" onClick={closeMenu}>Путевой лист</Link></li>
                 <li><Link to="/profile" onClick={closeMenu}>Профиль</Link></li>
                 {isAdmin && (
                   <li><Link to="/admin" onClick={closeMenu}>Администрирование</Link></li>

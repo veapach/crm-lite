@@ -297,8 +297,8 @@ function NewReport() {
         }
       }
   
-      // Перенаправляем на страницу отчетов после успешного создания
-      setTimeout(() => navigate(`/reports?highlight=${newReportId}`), 2000);
+      // Перенаправляем на страницу путевого листа после успешного создания
+      setTimeout(() => navigate('/travel-sheet'), 2000);
     } catch (err) {
       setError(err.response?.data?.error || 'Ошибка при создании отчета');
       setIsLoading(false);

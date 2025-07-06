@@ -18,6 +18,7 @@ import (
 	"backend/internal/inventory"
 	"backend/internal/report"
 	"backend/internal/requests"
+	"backend/internal/travelsheet"
 	"backend/internal/users"
 )
 
@@ -156,6 +157,13 @@ func main() {
 	r.GET("/api/inventory/:id", users.AuthMiddleware(), inventory.GetItemById)
 	r.PUT("/api/inventory/:id", users.AuthMiddleware(), inventory.UpdateInventoryItem)
 	r.DELETE("/api/inventory/:id", users.AuthMiddleware(), inventory.DeleteInventoryItem)
+
+	// Путевой лист
+	r.GET("/api/travel-sheet", users.AuthMiddleware(), travelsheet.GetTravelRecords)
+	r.POST("/api/travel-sheet", users.AuthMiddleware(), travelsheet.CreateTravelRecord)
+	r.DELETE("/api/travel-sheet/:id", users.AuthMiddleware(), travelsheet.DeleteTravelRecord)
+	r.GET("/api/travel-sheet/stats/daily", users.AuthMiddleware(), travelsheet.GetDailyStats)
+	r.GET("/api/travel-sheet/stats/monthly", users.AuthMiddleware(), travelsheet.GetMonthlyStats)
 
 	// Статические файлы
 	r.Static("/uploads/reports", "./uploads/reports")

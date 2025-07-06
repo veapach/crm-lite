@@ -13,6 +13,7 @@ import MaintenancePage from './pages/MaintenancePage';
 import Statistics from './pages/Statistics';
 import Schedule from './pages/Schedule';
 import Inventory from './pages/Inventory';
+import TravelSheet from './pages/TravelSheet';
 import axios from "axios";
 import config from "./config";
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -67,6 +68,7 @@ function App() {
           <Route path="/reports" element={isAuthenticated ? <Reports /> : <Navigate to="/auth" replace />} />
           <Route path="/files" element={isAuthenticated ? <Files /> : <Navigate to="/auth" replace />} />
           <Route path="/inventory" element={isAuthenticated ? <Inventory /> : <Navigate to="/auth" replace />} />
+          <Route path="/travel-sheet" element={isAuthenticated ? <TravelSheet /> : <Navigate to="/auth" replace />} />
           <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/auth" replace />} />
           <Route path="/requests" element={isAuthenticated ? <Requests /> : <Navigate to="/auth" replace />} />
           <Route path="/statistics" element={isAuthenticated ? <Statistics /> : <Navigate to="/auth" replace />} />
