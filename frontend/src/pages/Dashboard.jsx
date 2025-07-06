@@ -83,7 +83,7 @@ function Dashboard() {
             <div className="dashboard-card">
               <h3>Путевой лист</h3>
               <p>Просмотр и добавление поездок</p>
-              <Link to="/travelsheet" className="btn btn-primary">Перейти к путевому листу</Link>
+              <Link to="/travel-sheet" className="btn btn-primary">Перейти к путевому листу</Link>
             </div>
           </div>
           
