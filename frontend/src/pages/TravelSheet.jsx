@@ -286,22 +286,7 @@ function TravelSheet() {
                   required
                 />
               </div>
-              <div className="form-group">
-                <label>Километраж:</label>
-                <input
-                  type="number"
-                  name="distance"
-                  value={formData.distance}
-                  onChange={handleChange}
-                  className="form-control"
-                  placeholder="0.0"
-                  step="0.1"
-                  min="0"
-                  required
-                />
-              </div>
             </div>
-            
             <div className="form-row">
               <div className="form-group address-group">
                 <label>Начальная точка:</label>
@@ -337,7 +322,6 @@ function TravelSheet() {
                   </div>
                 )}
               </div>
-              
               <div className="form-group address-group">
                 <label>Конечная точка:</label>
                 <div className="address-input-container">
@@ -372,8 +356,21 @@ function TravelSheet() {
                   </div>
                 )}
               </div>
+              <div className="form-group">
+                <label>Километраж:</label>
+                <input
+                  type="number"
+                  name="distance"
+                  value={formData.distance}
+                  onChange={handleChange}
+                  className="form-control"
+                  placeholder="0.0"
+                  step="0.1"
+                  min="0"
+                  required
+                />
+              </div>
             </div>
-
             <div className="form-actions">
               <button type="submit" className="btn btn-success" disabled={isLoading}>
                 {isLoading ? 'Добавление...' : 'Добавить'}
