@@ -231,14 +231,20 @@ useEffect(() => {
   const handleFinish = async (row) => {
     try {
       await axios.put(`/api/requests/${row.id}`, { ...row, status: 'Завершено' });
+      
+      // Получаем актуальные данные из БД после обновления
+      const updatedResponse = await axios.get(`/api/requests/${row.id}`);
+      const updatedRow = updatedResponse.data;
+      
       await fetchSchedules();
+      
       // Redirect to new report with prefilled data
       // Передаем все нужные поля через query string
       const params = new URLSearchParams({
-        date: row.date || '',
-        address: row.address || '',
-        classification: row.classification || row.type || '',
-        customClass: !['ТО Китчен', 'ТО Пекарня', 'ПНР', 'Аварийный вызов'].includes(row.classification || row.type) ? (row.classification || row.type || '') : ''
+        date: updatedRow.date || '',
+        address: updatedRow.address || '',
+        classification: updatedRow.type || '',
+        customClass: !['ТО Китчен', 'ТО Пекарня', 'ПНР', 'Аварийный вызов'].includes(updatedRow.type) ? (updatedRow.type || '') : ''
       });
       navigate(`/new-report?${params.toString()}`);
     } catch (e) {
@@ -341,7 +347,7 @@ useEffect(() => {
                   <td>{row.date && row.date.split('-').reverse().join('.')}</td>
                   <td>{row.departTime}</td>
                   <td>{row.address}</td>
-                  <td>{row.classification || row.type}</td>
+                  <td>{row.type}</td>
                   <td>{row.user ? `${row.user.lastName} ${row.user.firstName ? row.user.firstName[0] + '.' : ''}` : ''}</td>
                   <td>
                     <button className="btn btn-success btn-sm me-2" onClick={e => { e.stopPropagation(); handleReturn(row); }}>вернуть</button>
@@ -447,8 +453,8 @@ useEffect(() => {
                       date: row.date,
                       departTime: row.departTime || '',
                       address: row.address,
-                      classification: row.classification || row.type || '',
-                      customClass: !['ТО Китчен', 'ТО Пекарня', 'ПНР', 'Аварийный вызов'].includes(row.classification || row.type) ? (row.classification || row.type) : '',
+                      classification: row.type === 'АВ' ? 'Аварийный вызов' : (['ТО Китчен', 'ТО Пекарня', 'ПНР', 'Аварийный вызов'].includes(row.type) ? row.type : 'Другое'),
+                      customClass: !['ТО Китчен', 'ТО Пекарня', 'ПНР', 'Аварийный вызов'].includes(row.type) ? row.type : '',
                       userId: row.engineerId ? String(row.engineerId) : (users.find(u => u.lastName === row.user?.lastName && u.firstName[0] === row.user?.firstName[0])?.id || ''),
                     });
                     setShowModal(true);
@@ -458,7 +464,7 @@ useEffect(() => {
                   <td>{row.date && row.date.split('-').reverse().join('.')}</td>
                   <td>{row.departTime}</td>
                   <td>{row.address}</td>
-                  <td>{row.classification || row.type}</td>
+                  <td>{row.type}</td>
                   <td>{row.user ? `${row.user.lastName} ${row.user.firstName ? row.user.firstName[0] + '.' : ''}` : ''}</td>
                   <td>
                     <button className="btn btn-primary btn-sm me-2" onClick={e => { e.stopPropagation(); handleFinish(row); }}>завершить</button>
@@ -493,8 +499,8 @@ useEffect(() => {
                   date: row.date,
                   departTime: row.departTime || '',
                   address: row.address,
-                  classification: row.classification || row.type || '',
-                  customClass: !['ТО Китчен', 'ТО Пекарня', 'ПНР', 'Аварийный вызов'].includes(row.classification || row.type) ? (row.classification || row.type) : '',
+                  classification: row.type === 'АВ' ? 'Аварийный вызов' : (['ТО Китчен', 'ТО Пекарня', 'ПНР', 'Аварийный вызов'].includes(row.type) ? row.type : 'Другое'),
+                  customClass: !['ТО Китчен', 'ТО Пекарня', 'ПНР', 'Аварийный вызов'].includes(row.type) ? row.type : '',
                   userId: row.engineerId ? String(row.engineerId) : (users.find(u => u.lastName === row.user?.lastName && u.firstName[0] === row.user?.firstName[0])?.id || ''),
                 });
                 setShowModal(true);
@@ -504,7 +510,7 @@ useEffect(() => {
               <td>{row.date && row.date.split('-').reverse().join('.')}</td>
               <td>{row.departTime}</td>
               <td>{row.address}</td>
-              <td>{row.classification || row.type}</td>
+              <td>{row.type}</td>
               <td>{row.user ? `${row.user.lastName} ${row.user.firstName ? row.user.firstName[0] + '.' : ''}` : ''}</td>
               <td>
                 <button className="btn btn-primary btn-sm me-2" onClick={e => { e.stopPropagation(); handleFinish(row); }}>завершить</button>
