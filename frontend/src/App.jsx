@@ -14,6 +14,7 @@ import Statistics from './pages/Statistics';
 import Schedule from './pages/Schedule';
 import Inventory from './pages/Inventory';
 import TravelSheet from './pages/TravelSheet';
+import Tickets from './pages/clients/Tickets';
 import axios from "axios";
 import config from "./config";
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -58,11 +59,13 @@ function App() {
 
   return (
     <Router>
-      <Navbar />
-      <div className="container content-wrapper">
+      {/* Убираем Navbar на странице /tickets для неавторизованных и клиентов */}
+      {!(window.location.pathname === '/tickets' && (!isAuthenticated || (user && user.department === 'Клиент'))) ? <Navbar /> : null}
+      <div className={window.location.pathname === '/tickets' ? undefined : "container content-wrapper"}>
         <Routes>
           <Route path="/auth" element={isAuthenticated ? <Navigate to="/" replace /> : <Auth />} />
-          <Route path="/" element={isAuthenticated ? <Dashboard /> : <Navigate to="/auth" replace />} />
+          <Route path="/tickets" element={<Tickets />} />
+          <Route path="/" element={isAuthenticated ? <Dashboard /> : <Navigate to="/tickets" replace />} />
           <Route path="/schedule" element={isAuthenticated ? <Schedule /> : <Navigate to="/auth" replace />} />
           <Route path="/new-report" element={isAuthenticated ? <NewReport /> : <Navigate to="/auth" replace />} />
           <Route path="/reports" element={isAuthenticated ? <Reports /> : <Navigate to="/auth" replace />} />
@@ -73,7 +76,7 @@ function App() {
           <Route path="/requests" element={isAuthenticated ? <Requests /> : <Navigate to="/auth" replace />} />
           <Route path="/statistics" element={isAuthenticated ? <Statistics /> : <Navigate to="/auth" replace />} />
           <Route path="/admin" element={isAuthenticated && isAdmin ? <Admin /> : <Navigate to="/" replace />} />
-          <Route path="*" element={<Navigate to="/auth" replace />} />
+          <Route path="*" element={<Navigate to="/tickets" replace />} />
         </Routes>
       </div>
       <ToastContainer position="top-right" autoClose={3000} />

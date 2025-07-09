@@ -28,6 +28,11 @@ body {
     color: #333333;
 }
 
+/* Глобально запретить горизонтальный скролл на всех страницах, кроме Tickets */
+html, body {
+  overflow-x: hidden !important;
+}
+
 @media (max-width: 768px) {
   body {
     font-size: 15px;

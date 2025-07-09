@@ -1,0 +1,229 @@
+/* Tickets.module.css — стилизация для страницы заявок клиентов (ВкусВилл, mobile first)
+   Цвета: #2dbe64 (зеленый), #d7144b (ягодный), #333 (графит)
+   Шрифты: Villula, Euclide Circular B, fallback: sans-serif */
+
+
+:root {
+  --vv-green: #2dbe64;
+  --vv-berry: #d7144b;
+  --vv-graphite: #333333;
+  --vv-radius: 18px;
+  --vv-shadow: 0 2px 12px rgba(45,190,100,0.08);
+}
+
+body.tickets-no-scroll {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+
+.tickets-bg-gradient {
+  min-height: 100vh;
+  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
+  width: 100vw;
+  background: linear-gradient(135deg, #2dbe64 0%, #e8e8e8 100%);
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+}
+
+.tickets-fullscreen-container {
+  width: 100vw;
+  max-width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: rgba(255,255,255,0.97);
+  border-radius: 0;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 0 0 24px 0;
+  overflow-y: auto;
+}
+
+.logo {
+  display: block;
+  margin: 0 auto 18px auto;
+  max-width: 180px;
+  height: auto;
+}
+
+.ticketsTitle {
+  text-align: center;
+  color: var(--vv-green);
+  font-family: 'Villula', 'Euclide Circular B', Arial, sans-serif;
+  font-size: 2rem;
+  margin-bottom: 12px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.input,
+.textarea {
+  border: 1.5px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 1rem;
+  font-family: inherit;
+  background: #fafafa;
+  transition: border 0.2s;
+}
+.input:focus,
+.textarea:focus {
+  border-color: var(--vv-green);
+  outline: none;
+}
+
+.label {
+  font-size: 1rem;
+  color: var(--vv-graphite);
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.addressDropdown {
+  position: relative;
+}
+.addressList {
+  position: absolute;
+  left: 0; right: 0;
+  top: 100%;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 2px 8px rgba(45,190,100,0.07);
+  z-index: 10;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.addressItem {
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.addressItem:hover {
+  background: #f2fff7;
+}
+
+.fileInput {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.filePreviewList {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.filePreview {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f2fff7;
+  border: 1px solid #e0e0e0;
+}
+.filePreview img,
+.filePreview video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.removeFileBtn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: var(--vv-berry);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.submitBtn {
+  background: var(--vv-green);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 0;
+  font-size: 1.1rem;
+  font-family: inherit;
+  font-weight: 600;
+  margin-top: 10px;
+  box-shadow: 0 2px 8px rgba(45,190,100,0.08);
+  transition: background 0.2s;
+}
+.submitBtn:active {
+  background: #249c50;
+}
+
+.successPopup {
+  position: fixed;
+  left: 50%;
+  top: 18%;
+  transform: translate(-50%, 0);
+  background: #fff;
+  border: 2px solid var(--vv-green);
+  color: var(--vv-green);
+  border-radius: 18px;
+  padding: 32px 24px;
+  font-size: 1.2rem;
+  font-family: 'Villula', 'Euclide Circular B', Arial, sans-serif;
+  box-shadow: 0 4px 24px rgba(45,190,100,0.13);
+  z-index: 1000;
+  animation: popupIn 0.5s cubic-bezier(.7,-0.2,.3,1.4);
+}
+@keyframes popupIn {
+  0% { opacity: 0; transform: translate(-50%, -30px) scale(0.95); }
+  100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+@media (max-width: 600px) {
+  .ticketsContainer {
+    max-width: 100vw;
+    border-radius: 0;
+    padding: 8px 0 32px 0;
+    box-shadow: none;
+  }
+  .logo {
+    max-width: 120px;
+  }
+  .ticketsTitle {
+    font-size: 1.4rem;
+  }
+  .form {
+    gap: 10px;
+  }
+
+  .tickets-fullscreen-container {
+    width: 100vw;
+    max-width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 100vh;
+    min-height: 100dvh;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0 0 24px 0;
+  }
+}
