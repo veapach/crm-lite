@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { FaChevronDown } from 'react-icons/fa';
 import '../styles/TravelSheet.css';
+import { useNavigate } from 'react-router-dom';
 
 function TravelSheet() {
   const [travelRecords, setTravelRecords] = useState([]);
@@ -20,6 +21,8 @@ function TravelSheet() {
   const [monthlyStats, setMonthlyStats] = useState({ total: 0, count: 0 });
   const [sortField, setSortField] = useState('date');
   const [sortDirection, setSortDirection] = useState('desc');
+  const [homeAddress, setHomeAddress] = useState('');
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
@@ -34,6 +37,7 @@ function TravelSheet() {
     fetchAddresses();
     fetchTravelRecords();
     fetchStats();
+    fetchUserHomeAddress();
   }, [selectedDate, selectedMonth]);
 
   const fetchAddresses = async () => {
@@ -65,6 +69,15 @@ function TravelSheet() {
       setMonthlyStats(monthlyResponse.data);
     } catch (error) {
       console.error('Ошибка при загрузке статистики:', error);
+    }
+  };
+
+  const fetchUserHomeAddress = async () => {
+    try {
+      const response = await axios.get('/api/check-auth', { withCredentials: true });
+      setHomeAddress(response.data.user.homeAddress || '');
+    } catch (error) {
+      setHomeAddress('');
     }
   };
 
@@ -125,6 +138,18 @@ function TravelSheet() {
       } else {
         setFilteredEndAddresses(addresses.map(addr => addr.address));
         setShowEndAddressSuggestions(true);
+      }
+    }
+  };
+
+  const handleSetHomeAddress = (field) => {
+    if (homeAddress && homeAddress.trim() !== '') {
+      setFormData(prev => ({ ...prev, [field]: homeAddress }));
+      if (field === 'startPoint') setShowStartAddressSuggestions(false);
+      if (field === 'endPoint') setShowEndAddressSuggestions(false);
+    } else {
+      if (window.confirm('У вас не заполнен домашний адрес. Перейти к редактированию профиля?')) {
+        navigate('/profile');
       }
     }
   };
@@ -307,6 +332,14 @@ function TravelSheet() {
                   >
                     <FaChevronDown />
                   </button>
+                  <button
+                    type="button"
+                    className="address-home-btn"
+                    onClick={() => handleSetHomeAddress('startPoint')}
+                    style={{ background: '#1976d2', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 12px', marginLeft: 8, cursor: 'pointer' }}
+                  >
+                    Дом
+                  </button>
                 </div>
                 {showStartAddressSuggestions && (
                   <div className="address-suggestions">
@@ -340,6 +373,14 @@ function TravelSheet() {
                     onClick={() => toggleAddressList('endPoint')}
                   >
                     <FaChevronDown />
+                  </button>
+                  <button
+                    type="button"
+                    className="address-home-btn"
+                    onClick={() => handleSetHomeAddress('endPoint')}
+                    style={{ background: '#1976d2', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 12px', marginLeft: 8, cursor: 'pointer' }}
+                  >
+                    Дом
                   </button>
                 </div>
                 {showEndAddressSuggestions && (

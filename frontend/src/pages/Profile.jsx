@@ -10,6 +10,7 @@ export default function Profile() {
     firstName: '',
     lastName: '',
     department: '',
+    homeAddress: '',
     password: '',
   });
   const [updateMessage, setUpdateMessage] = useState('');
@@ -23,7 +24,8 @@ export default function Profile() {
         setEditForm({
           firstName: data.user.firstName,
           lastName: data.user.lastName,
-          department: data.user.department,
+          department: data.user.department, 
+          homeAddress: data.user.homeAddress,
           password: '',
         });
       } catch (err) {
@@ -52,6 +54,7 @@ export default function Profile() {
       firstName: user.firstName,
       lastName: user.lastName,
       department: user.department,
+      homeAddress: user.homeAddress,
       password: '',
     });
     setUpdateMessage('');
@@ -73,16 +76,22 @@ export default function Profile() {
         firstName: editForm.firstName,
         lastName: editForm.lastName,
         department: editForm.department,
+        homeAddress: editForm.homeAddress,
         ...(editForm.password && { password: editForm.password }),
       };
 
-      await axios.put('/api/profile', updateData);
+      await axios.put('/api/profile', updateData, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
 
       setUser({
         ...user,
         firstName: editForm.firstName,
         lastName: editForm.lastName,
         department: editForm.department,
+        homeAddress: editForm.homeAddress,
       });
       setIsEditing(false);
       setUpdateMessage('Профиль успешно обновлен');
@@ -112,6 +121,9 @@ export default function Profile() {
           </p>
           <p>
             <strong>Телефон:</strong> {user.phone}
+          </p>
+          <p>
+            <strong>Домашний адрес:</strong> {user.homeAddress}
           </p>
           <div className="mt-3">
             <button onClick={handleEdit} className="btn btn-primary me-2">
@@ -143,6 +155,17 @@ export default function Profile() {
                 className="form-control"
                 name="lastName"
                 value={editForm.lastName}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="mb-3">
+              <label className="form-label">Домашний адрес:</label>
+              <input
+                type="text"
+                className="form-control"
+                name="homeAddress"
+                value={editForm.homeAddress}
                 onChange={handleChange}
                 required
               />

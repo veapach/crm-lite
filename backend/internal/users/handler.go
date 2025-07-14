@@ -233,11 +233,12 @@ func CheckAuth(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"user": gin.H{
-			"id":         user.ID,
-			"firstName":  user.FirstName,
-			"lastName":   user.LastName,
-			"department": user.Department,
-			"phone":      user.Phone,
+			"id":          user.ID,
+			"firstName":   user.FirstName,
+			"lastName":    user.LastName,
+			"homeAddress": user.HomeAddress,
+			"department":  user.Department,
+			"phone":       user.Phone,
 		},
 	})
 }
@@ -253,14 +254,17 @@ func GetUsers(c *gin.Context) {
 }
 
 func UpdateProfile(c *gin.Context) {
-	tokenString := c.GetHeader("Authorization")
-	if tokenString == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "токен отсутствует"})
-		return
-	}
+	tokenString, err := c.Cookie("token")
+	if err != nil {
+		tokenString = c.GetHeader("Authorization")
+		if tokenString == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "токен отсутствует"})
+			return
+		}
 
-	if strings.HasPrefix(tokenString, "Bearer") {
-		tokenString = strings.TrimPrefix(strings.TrimPrefix(tokenString, "Bearer"), " ")
+		if strings.HasPrefix(tokenString, "Bearer") {
+			tokenString = strings.TrimPrefix(strings.TrimPrefix(tokenString, "Bearer"), " ")
+		}
 	}
 
 	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
@@ -284,10 +288,11 @@ func UpdateProfile(c *gin.Context) {
 	userID := uint(claims["user_id"].(float64))
 
 	var input struct {
-		FirstName  string `json:"firstName"`
-		LastName   string `json:"lastName"`
-		Department string `json:"department"`
-		Password   string `json:"password,omitempty"`
+		FirstName   string `json:"firstName"`
+		LastName    string `json:"lastName"`
+		Department  string `json:"department"`
+		HomeAddress string `json:"homeAddress"`
+		Password    string `json:"password,omitempty"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -296,9 +301,10 @@ func UpdateProfile(c *gin.Context) {
 	}
 
 	updates := map[string]interface{}{
-		"first_name": input.FirstName,
-		"last_name":  input.LastName,
-		"department": input.Department,
+		"first_name":   input.FirstName,
+		"last_name":    input.LastName,
+		"department":   input.Department,
+		"home_address": input.HomeAddress,
 	}
 
 	if input.Password != "" {
@@ -402,9 +408,10 @@ func UpdateUser(c *gin.Context) {
 	}
 
 	var input struct {
-		FirstName  string `json:"firstName"`
-		LastName   string `json:"lastName"`
-		Department string `json:"department"`
+		FirstName   string `json:"firstName"`
+		LastName    string `json:"lastName"`
+		Department  string `json:"department"`
+		HomeAddress string `json:"homeAddress"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -413,9 +420,10 @@ func UpdateUser(c *gin.Context) {
 	}
 
 	updates := map[string]interface{}{
-		"first_name": input.FirstName,
-		"last_name":  input.LastName,
-		"department": input.Department,
+		"first_name":   input.FirstName,
+		"last_name":    input.LastName,
+		"department":   input.Department,
+		"home_address": input.HomeAddress,
 	}
 
 	if err := db.DB.Model(&db.User{}).Where("id = ?", targetUserID).Updates(updates).Error; err != nil {

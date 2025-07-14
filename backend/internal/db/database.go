@@ -16,12 +16,13 @@ type File struct {
 }
 
 type User struct {
-	ID         uint   `gorm:"primaryKey"           json:"id"`
-	FirstName  string `gorm:"not null"             json:"firstName"`
-	LastName   string `gorm:"not null"             json:"lastName"`
-	Department string `gorm:"not null"             json:"department"`
-	Phone      string `gorm:"uniqueIndex;not null" json:"phone"`
-	Password   string `gorm:"not null"             json:"password"`
+	ID          uint   `gorm:"primaryKey"           json:"id"`
+	FirstName   string `gorm:"not null"             json:"firstName"`
+	LastName    string `gorm:"not null"             json:"lastName"`
+	Department  string `gorm:"not null"             json:"department"`
+	HomeAddress string `gorm:"default:null"         json:"homeAddress"`
+	Phone       string `gorm:"uniqueIndex;not null" json:"phone"`
+	Password    string `gorm:"not null"             json:"password"`
 }
 
 type Report struct {
