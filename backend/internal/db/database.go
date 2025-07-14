@@ -2,8 +2,9 @@ package db
 
 import (
 	"log"
+	"os"
 
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
@@ -92,12 +93,21 @@ type EquipmentMemory struct {
 
 func InitDB() {
 	var err error
-	DB, err = gorm.Open(sqlite.Open("database.db"), &gorm.Config{})
+	// Получаем строку подключения из переменных окружения или задаем явно
+	dsn := os.Getenv("POSTGRES_DSN")
+	if dsn == "" {
+		// Пример: "host=localhost user=postgres password=postgres dbname=crm_lite port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+		dsn = "host=localhost user=postgres password=postgres dbname=crm_lite port=5432 sslmode=disable"
+	}
+	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatal("Ошибка при подключении к БД:", err)
+		log.Fatal("Ошибка при подключении к PostgreSQL:", err)
 	}
 
-	DB.AutoMigrate(&File{}, &User{}, &Report{}, &Request{}, &Address{}, &AllowedPhone{}, &Equipment{}, &Inventory{}, &TravelRecord{}, &EquipmentMemory{})
+	// Миграция схемы
+	if err := DB.AutoMigrate(&File{}, &User{}, &Report{}, &Request{}, &Address{}, &AllowedPhone{}, &Equipment{}, &Inventory{}, &TravelRecord{}, &EquipmentMemory{}); err != nil {
+		log.Fatal("Ошибка миграции схемы:", err)
+	}
 
 	var count int64
 	DB.Model(&AllowedPhone{}).Count(&count)
