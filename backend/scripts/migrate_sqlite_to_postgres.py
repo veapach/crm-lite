@@ -27,11 +27,31 @@ def migrate():
     # Подключение к Postgres
     pg_engine = create_engine(POSTGRES_DSN)
 
+    # Очистка всех таблиц в Postgres перед переносом
+    with pg_engine.connect() as conn:
+        trans = conn.begin()
+        from sqlalchemy import text
+        try:
+            for table in tables:
+                print(f"TRUNCATE TABLE {table} CASCADE ...")
+                conn.execute(text(f'TRUNCATE TABLE {table} RESTART IDENTITY CASCADE;'))
+            trans.commit()
+            print("Все таблицы очищены.")
+        except Exception as e:
+            trans.rollback()
+            print(f"Ошибка при очистке таблиц: {e}")
+            return
+
     for table in tables:
         print(f"Переносим таблицу: {table}")
         df = pd.read_sql_query(f'SELECT * FROM {table}', sqlite_conn)
         if not df.empty:
-            df.to_sql(table, pg_engine, if_exists='append', index=False)
+            try:
+                df.to_sql(table, pg_engine, if_exists='append', index=False)
+                print(f"Перенесено {len(df)} строк в Postgres.")
+            except Exception as e:
+                print(f"Ошибка при переносе таблицы {table}: {e}")
+                print(df.head())
         else:
             print(f"Таблица {table} пуста, пропускаем.")
 

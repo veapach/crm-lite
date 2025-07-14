@@ -94,10 +94,8 @@ type EquipmentMemory struct {
 
 func InitDB() {
 	var err error
-	// Получаем строку подключения из переменных окружения или задаем явно
 	dsn := os.Getenv("POSTGRES_DSN")
 	if dsn == "" {
-		// Пример: "host=localhost user=postgres password=postgres dbname=crm_lite port=5432 sslmode=disable TimeZone=Asia/Shanghai"
 		dsn = "host=localhost user=postgres password=postgres dbname=crm_lite port=5432 sslmode=disable"
 	}
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
