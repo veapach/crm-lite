@@ -133,6 +133,7 @@ func main() {
 		report.UploadReport,
 	)
 	r.GET("/api/reportscount", users.AuthMiddleware(), report.GetReportsCount)
+	r.GET("/api/reports/preview/:filename", users.AuthMiddleware(), report.PreviewReport)
 
 	// Заявки
 	r.GET("/api/requests", users.AuthMiddleware(), requests.GetRequests)

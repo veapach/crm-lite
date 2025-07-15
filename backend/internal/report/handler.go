@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -403,24 +404,51 @@ func GetReportsHandler(c *gin.Context) {
 	showOnlyMine := c.DefaultQuery("onlyMine", "true")
 	startDate := c.Query("startDate")
 	endDate := c.Query("endDate")
+	search := c.Query("search")
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "12"))
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 12
+	}
 
 	var reports []db.Report
-	query := db.DB
+	query := db.DB.Model(&db.Report{})
 
 	if showOnlyMine == "true" {
 		query = query.Where("user_id = ?", userID)
 	}
-
 	if startDate != "" && endDate != "" {
 		query = query.Where("date BETWEEN ? AND ?", startDate, endDate)
 	}
+	if search != "" {
+		searchPattern := "%" + search + "%"
+		query = query.Where(
+			"(address ILIKE ? OR date ILIKE ? OR classification ILIKE ? OR filename ILIKE ?)",
+			searchPattern, searchPattern, searchPattern, searchPattern,
+		)
+	}
 
-	if err := query.Find(&reports).Error; err != nil {
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при подсчете отчетов"})
+		return
+	}
+
+	if err := query.Order("date desc").Offset((page - 1) * pageSize).Limit(pageSize).Find(&reports).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении отчетов"})
 		return
 	}
 
-	c.JSON(http.StatusOK, reports)
+	totalPages := int((total + int64(pageSize) - 1) / int64(pageSize))
+	c.JSON(http.StatusOK, gin.H{
+		"reports":    reports,
+		"total":      total,
+		"totalPages": totalPages,
+		"page":       page,
+	})
 }
 
 func UploadReport(c *gin.Context) {
@@ -713,4 +741,17 @@ func DownloadSelectedReports(c *gin.Context) {
 	c.Header("Content-Type", "application/zip")
 	c.Header("Content-Disposition", "attachment; filename=selected_reports.zip")
 	c.File(zipFilePath)
+}
+
+func PreviewReport(c *gin.Context) {
+	filename := c.Param("filename")
+	filePath := filepath.Join("uploads", "reports", filename)
+
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден"})
+		return
+	}
+
+	// Пока просто отдаём PDF, в будущем можно отдавать PNG превью
+	c.File(filePath)
 }

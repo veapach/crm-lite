@@ -25,6 +25,9 @@ function Reports() {
   const [isDateFiltered, setIsDateFiltered] = useState(false);
   const [classificationStats, setClassificationStats] = useState({ toKitchen: 0, toBakery: 0, to: 0, av: 0, pnr: 0 });
   const [selectedReports, setSelectedReports] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(12); // Можно изменить размер страницы
+  const [totalPages, setTotalPages] = useState(1);
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('ru-RU');
@@ -75,16 +78,20 @@ function Reports() {
 
   const fetchReports = useCallback(async () => {
     try {
-      let url = `/api/reports?onlyMine=${showOnlyMine}`;
+      let url = `/api/reports?onlyMine=${showOnlyMine}&page=${currentPage}&pageSize=${pageSize}`;
       if (isDateFiltered && dateRange.startDate && dateRange.endDate) {
         url += `&startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`;
       }
+      if (searchTerm) {
+        url += `&search=${encodeURIComponent(searchTerm)}`;
+      }
       const response = await axios.get(url);
-      setReports(response.data);
+      setReports(response.data.reports);
+      setTotalPages(response.data.totalPages);
     } catch (error) {
       console.error('Ошибка при загрузке отчетов', error);
     }
-  }, [showOnlyMine, isDateFiltered, dateRange.startDate, dateRange.endDate]);
+  }, [showOnlyMine, isDateFiltered, dateRange.startDate, dateRange.endDate, currentPage, pageSize, searchTerm]);
 
   const getUserFullName = (userId) => {
     if (!users[userId]) return 'Неизвестный пользователь';
@@ -95,49 +102,47 @@ function Reports() {
     setSelectedReport(report);
     setShowPreview(true);
     try {
-      const response = await axios.get(`uploads/reports/${report.filename}`, {
+      // Используем защищённый эндпоинт для предпросмотра
+      const response = await axios.get(`/api/reports/preview/${encodeURIComponent(report.filename)}`, {
         responseType: 'arraybuffer',
+        withCredentials: true, // если требуется авторизация по cookie/JWT
       });
       const arrayBuffer = response.data;
-      
+
       if (report.filename.toLowerCase().endsWith('.pdf')) {
         // Для PDF файлов
         const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
         const pdf = await loadingTask.promise;
-        
-        // Рендерим все страницы PDF вертикально
-        const container = viewerRef.current;
-        container.innerHTML = ''; // Очищаем контейнер
 
-        // Определяем масштаб в зависимости от устройства
+        const container = viewerRef.current;
+        container.innerHTML = '';
+
         const isMobile = window.innerWidth <= 768;
-        const scale = isMobile ? 1.2 : 1.5; // Увеличиваем масштаб для мобильных с 0.8 до 1.0
+        const scale = isMobile ? 1.2 : 1.5;
 
         for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
           const canvas = document.createElement('canvas');
           container.appendChild(canvas);
           const page = await pdf.getPage(pageNum);
-          
-          // Определяем правильный масштаб для устройства
+
           let currentScale = scale;
           if (isMobile) {
-            const containerWidth = container.clientWidth - 12; // Уменьшаем отступы с 32 до 20
+            const containerWidth = container.clientWidth - 12;
             const defaultViewport = page.getViewport({ scale });
             const ratio = containerWidth / defaultViewport.width;
             currentScale = scale * ratio;
           }
-          
+
           const viewport = page.getViewport({ scale: currentScale });
           canvas.height = viewport.height;
           canvas.width = viewport.width;
-          
+
           const context = canvas.getContext('2d');
           await page.render({
             canvasContext: context,
             viewport: viewport
           }).promise;
 
-          // Добавляем отступ между страницами
           if (pageNum < pdf.numPages) {
             const spacer = document.createElement('div');
             spacer.style.height = '20px';
@@ -145,7 +150,7 @@ function Reports() {
           }
         }
       } else {
-        // Для DOCX файлов используем существующий docx-preview
+        // Для DOCX файлов используем docx-preview
         setTimeout(() => {
           renderAsync(arrayBuffer, viewerRef.current).catch(() => {
             setError('Произошла ошибка при рендеринге документа');
@@ -268,27 +273,6 @@ function Reports() {
     }
   };
 
-  const filteredReports = reports
-    .filter((report) => {
-      if (isDateFiltered && dateRange.startDate && dateRange.endDate) {
-        const reportDate = new Date(report.date);
-        const startDate = new Date(dateRange.startDate);
-        const endDate = new Date(dateRange.endDate);
-        return reportDate >= startDate && reportDate <= endDate;
-      }
-      return true;
-    })
-    .filter(
-      (report) =>
-        report.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        report.date.includes(searchTerm)
-    )
-    .sort((a, b) => {
-      const dateA = new Date(a.date);
-      const dateB = new Date(b.date);
-      return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
-    });
-
   useEffect(() => {
     fetchReports();
     fetchUsers();
@@ -308,6 +292,11 @@ function Reports() {
       }, 100);
     }
   }, []);
+
+  // useEffect для сброса страницы при изменении фильтров/поиска
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [showOnlyMine, isDateFiltered, dateRange.startDate, dateRange.endDate, searchTerm]);
 
   return (
     <div className="container mt-5">
@@ -402,7 +391,7 @@ function Reports() {
       <hr className="my-4" style={{ backgroundColor: '#dee2e6', height: '2px' }} />
 
       <div className="row">
-        {filteredReports.map((report) => (
+        {reports.map((report) => (
           <div 
             key={report.id} 
             id={`report-${report.id}`}
@@ -448,6 +437,23 @@ function Reports() {
             </div>
           </div>
         ))}
+      </div>
+      <div className="d-flex justify-content-center align-items-center my-4">
+        <button
+          className="btn btn-outline-secondary me-2"
+          disabled={currentPage === 1}
+          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+        >
+          Назад
+        </button>
+        <span>Страница {currentPage} из {totalPages}</span>
+        <button
+          className="btn btn-outline-secondary ms-2"
+          disabled={currentPage === totalPages}
+          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+        >
+          Вперед
+        </button>
       </div>
 
       <Modal show={showPreview} onHide={() => setShowPreview(false)} size="lg" centered>
