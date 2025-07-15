@@ -1,6 +1,6 @@
 /* Общие стили для Navbar */
 .navbar {
-  position: fixed;
+  position: static;
   top: 0;
   bottom: auto;
   width: 100%;
