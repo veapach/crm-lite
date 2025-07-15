@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
+
 import Navbar from './components/Navbar';
 import Dashboard from './pages/Dashboard';
 import NewReport from './pages/NewReport';
@@ -29,6 +31,12 @@ function App() {
   const [serverAvailable, setServerAvailable] = useState(true);
   const [initialCheckDone, setInitialCheckDone] = useState(false);
   const { isAuthenticated, user, loading } = useAuth();
+  const location = useLocation();
+
+  const isClient = user?.department === 'Клиент';
+  const isAdmin = user && user.department === 'Админ';
+  const isTicketsPage = location.pathname === '/tickets';
+  const hideNavbar = isTicketsPage && (!isAuthenticated || isClient);
 
   useEffect(() => {
     const checkServerAvailability = async () => {
@@ -54,40 +62,64 @@ function App() {
     return <MaintenancePage />;
   }
 
-  // Проверка, является ли пользователь администратором
-  const isAdmin = user && user.department === 'Админ';
-
+//   return (
+//     <Router>
+//       {/* Убираем Navbar на странице /tickets для неавторизованных и клиентов */}
+//       {!(window.location.pathname === '/tickets' && (!isAuthenticated || (user && user.department === 'Клиент'))) ? <Navbar /> : null}
+//       <div className={window.location.pathname === '/tickets' ? undefined : "container content-wrapper"}>
+//         <Routes>
+          // <Route path="/auth" element={isAuthenticated ? <Navigate to="/" replace /> : <Auth />} />
+          // <Route path="/tickets" element={<Tickets />} />
+          // <Route path="/" element={isAuthenticated ? <Dashboard /> : <Navigate to="/tickets" replace />} />
+          // <Route path="/schedule" element={isAuthenticated ? <Schedule /> : <Navigate to="/auth" replace />} />
+          // <Route path="/new-report" element={isAuthenticated ? <NewReport /> : <Navigate to="/auth" replace />} />
+          // <Route path="/reports" element={isAuthenticated ? <Reports /> : <Navigate to="/auth" replace />} />
+          // <Route path="/files" element={isAuthenticated ? <Files /> : <Navigate to="/auth" replace />} />
+          // <Route path="/inventory" element={isAuthenticated ? <Inventory /> : <Navigate to="/auth" replace />} />
+          // <Route path="/travel-sheet" element={isAuthenticated ? <TravelSheet /> : <Navigate to="/auth" replace />} />
+          // <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/auth" replace />} />
+          // <Route path="/requests" element={isAuthenticated ? <Requests /> : <Navigate to="/auth" replace />} />
+          // <Route path="/statistics" element={isAuthenticated ? <Statistics /> : <Navigate to="/auth" replace />} />
+          // <Route path="/admin" element={isAuthenticated && isAdmin ? <Admin /> : <Navigate to="/" replace />} />
+          // <Route path="*" element={<Navigate to="/tickets" replace />} />
+//         </Routes>
+//       </div>
+//       <ToastContainer position="top-right" autoClose={3000} />
+//     </Router>
+//   );
+// }
   return (
-    <Router>
-      {/* Убираем Navbar на странице /tickets для неавторизованных и клиентов */}
-      {!(window.location.pathname === '/tickets' && (!isAuthenticated || (user && user.department === 'Клиент'))) ? <Navbar /> : null}
-      <div className={window.location.pathname === '/tickets' ? undefined : "container content-wrapper"}>
+    <>
+      {!hideNavbar && <Navbar />}  
+      <div> 
         <Routes>
-          <Route path="/auth" element={isAuthenticated ? <Navigate to="/" replace /> : <Auth />} />
-          <Route path="/tickets" element={<Tickets />} />
-          <Route path="/" element={isAuthenticated ? <Dashboard /> : <Navigate to="/tickets" replace />} />
-          <Route path="/schedule" element={isAuthenticated ? <Schedule /> : <Navigate to="/auth" replace />} />
-          <Route path="/new-report" element={isAuthenticated ? <NewReport /> : <Navigate to="/auth" replace />} />
-          <Route path="/reports" element={isAuthenticated ? <Reports /> : <Navigate to="/auth" replace />} />
-          <Route path="/files" element={isAuthenticated ? <Files /> : <Navigate to="/auth" replace />} />
-          <Route path="/inventory" element={isAuthenticated ? <Inventory /> : <Navigate to="/auth" replace />} />
-          <Route path="/travel-sheet" element={isAuthenticated ? <TravelSheet /> : <Navigate to="/auth" replace />} />
-          <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/auth" replace />} />
-          <Route path="/requests" element={isAuthenticated ? <Requests /> : <Navigate to="/auth" replace />} />
-          <Route path="/statistics" element={isAuthenticated ? <Statistics /> : <Navigate to="/auth" replace />} />
-          <Route path="/admin" element={isAuthenticated && isAdmin ? <Admin /> : <Navigate to="/" replace />} />
-          <Route path="*" element={<Navigate to="/tickets" replace />} />
+            <Route path="/auth" element={isAuthenticated ? <Navigate to="/" replace /> : <Auth />} />
+            <Route path="/tickets" element={<Tickets />} />
+            <Route path="/" element={isAuthenticated ? <Dashboard /> : <Navigate to="/tickets" replace />} />
+            <Route path="/schedule" element={isAuthenticated ? <Schedule /> : <Navigate to="/auth" replace />} />
+            <Route path="/new-report" element={isAuthenticated ? <NewReport /> : <Navigate to="/auth" replace />} />
+            <Route path="/reports" element={isAuthenticated ? <Reports /> : <Navigate to="/auth" replace />} />
+            <Route path="/files" element={isAuthenticated ? <Files /> : <Navigate to="/auth" replace />} />
+            <Route path="/inventory" element={isAuthenticated ? <Inventory /> : <Navigate to="/auth" replace />} />
+            <Route path="/travel-sheet" element={isAuthenticated ? <TravelSheet /> : <Navigate to="/auth" replace />} />
+            <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/auth" replace />} />
+            <Route path="/requests" element={isAuthenticated ? <Requests /> : <Navigate to="/auth" replace />} />
+            <Route path="/statistics" element={isAuthenticated ? <Statistics /> : <Navigate to="/auth" replace />} />
+            <Route path="/admin" element={isAuthenticated && isAdmin ? <Admin /> : <Navigate to="/" replace />} />
+            <Route path="*" element={<Navigate to="/tickets" replace />} />
         </Routes>
       </div>
       <ToastContainer position="top-right" autoClose={3000} />
-    </Router>
+    </>
   );
 }
 
 export default function WrappedApp() {
   return (
     <AuthProvider>
-      <App />
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
     </AuthProvider>
   );
 }

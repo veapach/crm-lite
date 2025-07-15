@@ -62,8 +62,10 @@ html, body {
   }
 }
 
+/* TODO: прописать в медиа запросе padding top 0 для телефонов */
 .content-wrapper {
   padding-top: 70px;
+  max-height: 100vh;
 }
 
 

@@ -109,10 +109,10 @@ export default function Tickets() {
   }
 
   return (
-    <div className="tickets-bg-gradient py-5 min-vh-100 d-flex align-items-center justify-content-center">
+    <div className="tickets-bg-gradient min-vh-100 d-flex align-items-center justify-content-center">
       <div className="container" style={{maxWidth: 600, background: 'rgba(255,255,255,0.97)', borderRadius: 18, boxShadow: '0 2px 16px 0 rgba(45,190,100,0.10)'}}>
         <div className="text-center mb-3">
-          <img src={LOGO_SRC} alt="ВкусВилл" style={{maxWidth: 180, height: 'auto'}} />
+          <img src={LOGO_SRC} alt="ВкусВилл" style={{maxWidth: 180, height: '150px'}} />
         </div>
         <h2 className="mb-4" style={{color:'#2dbe64', fontFamily:'Villula, Euclide Circular B, Arial', fontWeight:600}}>Заявка для клиентов</h2>
         {success && (
