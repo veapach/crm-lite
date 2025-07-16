@@ -78,6 +78,9 @@ function Navbar() {
                     <Link className={`nav-link rounded-pill ${location.pathname === '/reports' ? 'active' : ''}`} to="/reports">Отчеты</Link>
                   </li>
                   <li className="nav-item mx-1">
+                    <Link className={`nav-link rounded-pill ${location.pathname === '/inner-tickets' ? 'active' : ''}`} to="/inner-tickets">Заявки</Link>
+                  </li>
+                  <li className="nav-item mx-1">
                     <Link className={`nav-link rounded-pill ${location.pathname === '/statistics' ? 'active' : ''}`} to="/statistics">Статистика</Link>
                   </li>
                   <li className="nav-item mx-1">
@@ -120,6 +123,7 @@ function Navbar() {
                 <li><Link to="/schedule" onClick={closeMenu}>График</Link></li>
                 <li><Link to="/new-report" onClick={closeMenu}>Новый отчет</Link></li>
                 <li><Link to="/reports" onClick={closeMenu}>Отчеты</Link></li>
+                <li><Link to="/inner-tickets" onClick={closeMenu}>Заявки</Link></li>
                 <li><Link to="/statistics" onClick={closeMenu}>Статистика</Link></li>
                 <li><Link to="/files" onClick={closeMenu}>Файлы</Link></li>
                 <li><Link to="/inventory" onClick={closeMenu}>ЗИП</Link></li>

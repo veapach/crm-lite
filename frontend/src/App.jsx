@@ -17,6 +17,7 @@ import Schedule from './pages/Schedule';
 import Inventory from './pages/Inventory';
 import TravelSheet from './pages/TravelSheet';
 import Tickets from './pages/clients/Tickets';
+import InnerTickets from './pages/InnerTickets';
 import axios from "axios";
 import config from "./config";
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -62,32 +63,6 @@ function App() {
     return <MaintenancePage />;
   }
 
-//   return (
-//     <Router>
-//       {/* Убираем Navbar на странице /tickets для неавторизованных и клиентов */}
-//       {!(window.location.pathname === '/tickets' && (!isAuthenticated || (user && user.department === 'Клиент'))) ? <Navbar /> : null}
-//       <div className={window.location.pathname === '/tickets' ? undefined : "container content-wrapper"}>
-//         <Routes>
-          // <Route path="/auth" element={isAuthenticated ? <Navigate to="/" replace /> : <Auth />} />
-          // <Route path="/tickets" element={<Tickets />} />
-          // <Route path="/" element={isAuthenticated ? <Dashboard /> : <Navigate to="/tickets" replace />} />
-          // <Route path="/schedule" element={isAuthenticated ? <Schedule /> : <Navigate to="/auth" replace />} />
-          // <Route path="/new-report" element={isAuthenticated ? <NewReport /> : <Navigate to="/auth" replace />} />
-          // <Route path="/reports" element={isAuthenticated ? <Reports /> : <Navigate to="/auth" replace />} />
-          // <Route path="/files" element={isAuthenticated ? <Files /> : <Navigate to="/auth" replace />} />
-          // <Route path="/inventory" element={isAuthenticated ? <Inventory /> : <Navigate to="/auth" replace />} />
-          // <Route path="/travel-sheet" element={isAuthenticated ? <TravelSheet /> : <Navigate to="/auth" replace />} />
-          // <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/auth" replace />} />
-          // <Route path="/requests" element={isAuthenticated ? <Requests /> : <Navigate to="/auth" replace />} />
-          // <Route path="/statistics" element={isAuthenticated ? <Statistics /> : <Navigate to="/auth" replace />} />
-          // <Route path="/admin" element={isAuthenticated && isAdmin ? <Admin /> : <Navigate to="/" replace />} />
-          // <Route path="*" element={<Navigate to="/tickets" replace />} />
-//         </Routes>
-//       </div>
-//       <ToastContainer position="top-right" autoClose={3000} />
-//     </Router>
-//   );
-// }
   return (
     <>
       {!hideNavbar && <Navbar />}  
@@ -99,6 +74,7 @@ function App() {
             <Route path="/schedule" element={isAuthenticated ? <Schedule /> : <Navigate to="/auth" replace />} />
             <Route path="/new-report" element={isAuthenticated ? <NewReport /> : <Navigate to="/auth" replace />} />
             <Route path="/reports" element={isAuthenticated ? <Reports /> : <Navigate to="/auth" replace />} />
+            <Route path="/inner-tickets" element={isAuthenticated ? <InnerTickets /> : <Navigate to="/auth" replace />} />
             <Route path="/files" element={isAuthenticated ? <Files /> : <Navigate to="/auth" replace />} />
             <Route path="/inventory" element={isAuthenticated ? <Inventory /> : <Navigate to="/auth" replace />} />
             <Route path="/travel-sheet" element={isAuthenticated ? <TravelSheet /> : <Navigate to="/auth" replace />} />

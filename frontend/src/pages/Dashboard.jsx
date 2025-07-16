@@ -41,9 +41,9 @@ function Dashboard() {
 
           <div className="col-md-4 mb-4">
             <div className="dashboard-card">
-              <h3>Список покупок</h3>
-              <p>Просмотр и управление вашим списком покупок</p>
-              <Link to="/inventory" className="btn btn-primary">Перейти к покупкам</Link>
+              <h3>Заявки</h3>
+              <p>Входящие заявки от клиентов</p>
+              <Link to="/inner-reports" className="btn btn-primary">Перейти к заявкам</Link>
             </div>
           </div>
 
@@ -54,7 +54,7 @@ function Dashboard() {
               <Link to="/statistics" className="btn btn-primary">Перейти к статистике</Link>
             </div>
           </div>
-          
+
           <div className="col-md-4 mb-4">
             <div className="dashboard-card">
               <h3>Файлы</h3>
@@ -62,28 +62,28 @@ function Dashboard() {
               <Link to="/files" className="btn btn-primary">Перейти к файлам</Link>
             </div>
           </div>
-          
-          {/* <div className="col-md-4 mb-4">
-            <div className="dashboard-card">
-              <h3>Заявки</h3>
-              <p>Просмотр и управление заявками</p>
-              <Link to="/requests" className="btn btn-primary">Перейти к заявкам</Link>
-            </div>
-          </div> */}
-          
+
           <div className="col-md-4 mb-4">
             <div className="dashboard-card">
-              <h3>Профиль</h3>
-              <p>Управление вашим профилем и настройками</p>
-              <Link to="/profile" className="btn btn-primary">Перейти в профиль</Link>
+              <h3>ЗИП</h3>
+              <p>Просмотр и управление вашим списком ЗИП</p>
+              <Link to="/inventory" className="btn btn-primary">Перейти к покупкам</Link>
             </div>
-          </div>
-          
+          </div>      
+                
           <div className="col-md-4 mb-4">
             <div className="dashboard-card">
               <h3>Путевой лист</h3>
               <p>Просмотр и добавление поездок</p>
               <Link to="/travel-sheet" className="btn btn-primary">Перейти к путевому листу</Link>
+            </div>
+          </div>
+
+          <div className="col-md-4 mb-4">
+            <div className="dashboard-card">
+              <h3>Профиль</h3>
+              <p>Управление вашим профилем и настройками</p>
+              <Link to="/profile" className="btn btn-primary">Перейти в профиль</Link>
             </div>
           </div>
           
