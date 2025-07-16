@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { Modal } from 'react-bootstrap';
@@ -136,15 +135,22 @@ const Statistics = () => {
       const month = now.getMonth();
       const start = new Date(year, month, 1).toISOString().slice(0, 10);
       const end = new Date(year, month + 1, 0).toISOString().slice(0, 10);
+
       let classValue = classification;
       if (classification === 'АВ') classValue = 'АВ';
       if (classification === 'ТО Китчен') classValue = 'ТО Китчен';
       if (classification === 'ТО Пекарня') classValue = 'ТО Пекарня';
       if (classification === 'ТО') classValue = 'ТО';
       if (classification === 'ПНР') classValue = 'пнр';
-      // Для "Другие" фильтруем на клиенте
+
       const response = await axios.get(`/api/reports?startDate=${start}&endDate=${end}`);
-      let reports = response.data;
+      let reports = Array.isArray(response.data) ? response.data : response.data.reports;
+
+      if (!Array.isArray(reports)) {
+        setError('Некорректный формат данных от сервера');
+        return;
+      }
+
       if (["ТО Китчен", "ТО Пекарня", "ТО", "АВ", "ПНР"].includes(classification)) {
         reports = reports.filter(r => (r.classification || '').toLowerCase() === classValue.toLowerCase());
       } else if (classification === 'Другие') {
@@ -156,6 +162,7 @@ const Statistics = () => {
       setFilteredReports(reports);
     } catch (err) {
       setError('Ошибка при загрузке актов');
+      console.error('Ошибка при загрузке актов:', err);
     } finally {
       setReportsLoading(false);
     }
