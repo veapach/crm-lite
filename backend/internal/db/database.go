@@ -92,6 +92,20 @@ type EquipmentMemory struct {
 	Count          int    `gorm:"not null;default:1" json:"count"`
 }
 
+type ClientTicket struct {
+	ID          uint   `gorm:"primaryKey" json:"id"`
+	Date        string `gorm:"not null" json:"date"`
+	FullName    string `gorm:"not null" json:"fullName"`
+	Position    string `gorm:"not null" json:"position"`
+	Contact     string `gorm:"default:null" json:"contact"`
+	Address     string `gorm:"not null" json:"address"`
+	Description string `gorm:"not null" json:"description"`
+	Status      string `gorm:"not null;default:'Не назначено'" json:"status"` // Не назначено/В работе/Выполнено
+	EngineerID  *uint  `gorm:"default:null" json:"engineerId"`
+	Engineer    *User  `gorm:"foreignKey:EngineerID;constraint:OnDelete:SET NULL" json:"-"`
+	Files       string `gorm:"type:text" json:"files"`
+}
+
 func InitDB() {
 	var err error
 	dsn := os.Getenv("POSTGRES_DSN")
@@ -103,8 +117,7 @@ func InitDB() {
 		log.Fatal("Ошибка при подключении к PostgreSQL:", err)
 	}
 
-	// Миграция схемы
-	if err := DB.AutoMigrate(&File{}, &User{}, &Report{}, &Request{}, &Address{}, &AllowedPhone{}, &Equipment{}, &Inventory{}, &TravelRecord{}, &EquipmentMemory{}); err != nil {
+	if err := DB.AutoMigrate(&File{}, &User{}, &Report{}, &Request{}, &Address{}, &AllowedPhone{}, &Equipment{}, &Inventory{}, &TravelRecord{}, &EquipmentMemory{}, &ClientTicket{}); err != nil {
 		log.Fatal("Ошибка миграции схемы:", err)
 	}
 
