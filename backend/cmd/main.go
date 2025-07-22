@@ -10,6 +10,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/streadway/amqp"
 
 	"backend/internal/address"
 	"backend/internal/db"
@@ -17,7 +18,7 @@ import (
 	"backend/internal/files"
 	"backend/internal/inventory"
 	"backend/internal/report"
-	"backend/internal/requests"
+	"backend/internal/tickets"
 	"backend/internal/travelsheet"
 	"backend/internal/users"
 )
@@ -60,6 +61,17 @@ func main() {
 	db.InitDB()
 
 	r := gin.Default()
+
+	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+	if err != nil {
+		log.Fatalf("Ошибка подключения к RabbitMQ: %v", err)
+	}
+	ch, err := conn.Channel()
+	if err != nil {
+		log.Fatalf("Ошибка создания канала RabbitMQ: %v", err)
+	}
+	tickets.TicketQueue = ch
+	go tickets.StartTicketWorker("amqp://guest:guest@localhost:5672/")
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins: []string{
@@ -135,12 +147,11 @@ func main() {
 	r.GET("/api/reportscount", users.AuthMiddleware(), report.GetReportsCount)
 	r.GET("/api/reports/preview/:filename", users.AuthMiddleware(), report.PreviewReport)
 
-	// Заявки
-	r.GET("/api/requests", users.AuthMiddleware(), requests.GetRequests)
-	r.GET("/api/requests/:id", users.AuthMiddleware(), requests.GetRequestById)
-	r.POST("/api/requests", users.AuthMiddleware(), requests.CreateRequest)
-	r.PUT("/api/requests/:id", users.AuthMiddleware(), requests.UpdateRequest)
-	r.DELETE("/api/requests/:id", users.AuthMiddleware(), requests.DeleteReport)
+	// Заявки клиентов
+	r.POST("/api/client-tickets", tickets.CreateTicket)
+	r.GET("/api/client-tickets", users.AuthMiddleware(), tickets.GetClientTickets)
+	r.PUT("/api/client-tickets/:id", users.AuthMiddleware(), tickets.UpdateClientTicket)
+	r.DELETE("/api/client-tickets/:id", users.AuthMiddleware(), tickets.DeleteClientTicket)
 
 	// Адреса объектов
 	r.GET("/api/addresses", address.GetAddresses)
@@ -179,7 +190,8 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
-	if serverMode == "RELEASE" {
+	switch serverMode {
+	case "RELEASE":
 		fmt.Println("Сервер запущен в режиме " + serverMode)
 		log.Fatal(
 			r.RunTLS(
@@ -188,10 +200,10 @@ func main() {
 				"/etc/letsencrypt/live/crmlite-vv.ru/privkey.pem",
 			),
 		)
-	} else if serverMode == "DEBUG" {
+	case "DEBUG":
 		fmt.Println("Сервер запущен в режиме " + serverMode)
 		log.Fatal(r.Run(":8080"))
-	} else {
+	default:
 		panic("serverMode(gin) is not set")
 	}
 }

@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useAuth } from '../context/AuthContext'; // Импортируем хук авторизации
+
+//TODO: не отображаются фото, исправить кнопку посмотреть фото.
 
 function InnerTickets() {
   const [tickets, setTickets] = useState([]);
@@ -10,6 +13,8 @@ function InnerTickets() {
   const [search, setSearch] = useState('');
   const [sortOrder, setSortOrder] = useState('desc');
   const [loading, setLoading] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const { user } = useAuth(); // Получаем текущего пользователя из контекста
 
   // Получить заявки и пользователей
   useEffect(() => {
@@ -17,14 +22,20 @@ function InnerTickets() {
       setLoading(true);
       try {
         const params = {
-          status: showCompleted ? undefined : 'not-completed',
-          filterStatus,
-          filterMonth,
-          search,
+          // status: showCompleted ? undefined : 'not-completed', // Удалить эту строку!
+          filterStatus: filterStatus || undefined,
+          filterMonth: filterMonth || undefined,
+          search: search || undefined,
           sort: sortOrder,
         };
+        // Если выбран "Показать выполненные", добавляем статус
+        if (showCompleted) {
+          params.status = "Выполнено";
+        } else if (filterStatus) {
+          params.status = filterStatus;
+        }
         const res = await axios.get('/api/client-tickets', { params });
-        setTickets(res.data || []);
+        setTickets(Array.isArray(res.data.tickets) ? res.data.tickets : []);
       } catch {
         setTickets([]);
       } finally {
@@ -41,25 +52,68 @@ function InnerTickets() {
       }
     };
 
+    // Получить текущего пользователя
+    const fetchCurrentUser = async () => {
+      try {
+        const res = await axios.get('/api/me');
+        setCurrentUserId(res.data?.id || null);
+      } catch {
+        setCurrentUserId(null);
+      }
+    };
+
     fetchTickets();
     fetchUsers();
+    fetchCurrentUser();
   }, [showCompleted, filterStatus, filterMonth, search, sortOrder]);
 
+  // Исправленный handleAssign: теперь можно снять исполнителя (назначить "Не назначено")
   const handleAssign = async (ticketId, userId) => {
-    await axios.put(`/api/client-tickets/${ticketId}`, { engineerId: userId, status: 'В работе' });
-    // fetchTickets is now inline, so trigger reload by updating a filter state
-    setSearch(s => s); // triggers useEffect
+    try {
+      await axios.put(`/api/client-tickets/${ticketId}`, {
+        engineerId: userId === '' ? null : Number(userId),
+        status: 'В работе'
+      });
+      window.location.reload();
+    } catch (e) {
+      alert('Ошибка назначения исполнителя');
+    }
+  };
+
+  // Кнопка "Посмотреть фото" (открывает модальное окно с фото)
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const [photoFiles, setPhotoFiles] = useState([]);
+
+  const handleShowPhotos = (ticket) => {
+    // Гарантируем что photoFiles всегда массив
+    let files = ticket.files;
+    if (!Array.isArray(files)) {
+      if (files && typeof files === 'object') files = [files];
+      else files = [];
+    }
+    setPhotoFiles(files);
+    setShowPhotoModal(true);
+  };
+
+  const handleClosePhotoModal = () => {
+    setShowPhotoModal(false);
+    setPhotoFiles([]);
   };
 
   const handleStatusChange = async (ticketId, status) => {
-    await axios.put(`/api/client-tickets/${ticketId}`, { status });
-    setSearch(s => s);
+    try {
+      await axios.put(`/api/client-tickets/${ticketId}`, { status });
+      window.location.reload();
+    } catch (e) {
+      alert('Ошибка изменения статуса');
+    }
   };
 
   const handleDelete = async (ticketId) => {
     if (window.confirm('Удалить заявку?')) {
       await axios.delete(`/api/client-tickets/${ticketId}`);
-      setSearch(s => s);
+      // Обновить таблицу после удаления
+      setSearch(s => s + ' ');
     }
   };
 
@@ -76,10 +130,167 @@ function InnerTickets() {
   const filteredTickets = tickets.filter(t =>
     showCompleted ? t.status === 'Выполнено' : t.status !== 'Выполнено'
   );
+  const workingTickets = tickets.filter(t => t.status === 'В работе');
+
+  // Функция для сокращения описания
+  const getShortDescription = (desc, maxLen = 60) => {
+    if (!desc) return '';
+    if (desc.length <= maxLen) return desc;
+    return desc.slice(0, maxLen) + '...';
+  };
+
+  const [expandedDescId, setExpandedDescId] = useState(null);
 
   return (
     <div className="container mt-5 mb-5">
       <h2>Входящие заявки от клиентов</h2>
+
+      {/* Модальное окно для просмотра фото */}
+      {showPhotoModal && (
+        <div className="modal show d-block" tabIndex="-1" style={{ background: 'rgba(0,0,0,0.3)' }}>
+          <div className="modal-dialog modal-lg">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Фото заявки</h5>
+                <button type="button" className="btn-close" onClick={handleClosePhotoModal}></button>
+              </div>
+              <div className="modal-body">
+                {Array.isArray(photoFiles) && photoFiles.length === 0 ? (
+                  <div className="text-muted">Нет фото</div>
+                ) : (
+                  <div className="d-flex flex-wrap gap-3">
+                    {Array.isArray(photoFiles) && photoFiles.map((file, idx) => (
+                      <img
+                        key={idx}
+                        src={`/api/files/preview/${encodeURIComponent(file.filename || file)}`}
+                        alt="Фото заявки"
+                        style={{ maxWidth: 320, maxHeight: 220, borderRadius: 8, border: '2px solid #0d6efd' }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="modal-footer">
+                <button className="btn btn-secondary" onClick={handleClosePhotoModal}>Закрыть</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Таблица "В работе" */}
+      {workingTickets.length > 0 && (
+        <div className="mb-4 p-2" style={{ border: '2px solid #0d6efd22', borderRadius: '12px', background: '#f8faff' }}>
+          <h5 className="mb-2" style={{ fontWeight: 'bold', color: '#0d6efd' }}>Заявки в работе</h5>
+          <div className="table-responsive">
+            <table className="table table-bordered table-striped align-middle mb-0">
+              <thead className="table-primary">
+                <tr>
+                  <th>Дата</th>
+                  <th>Адрес</th>
+                  <th>ФИО</th>
+                  <th>Должность</th>
+                  <th>Контакт</th>
+                  <th>Описание</th>
+                  <th>Статус</th>
+                  <th>Исполнитель</th>
+                  <th>Фото</th>
+                  <th style={{ width: 220 }}>Действия</th>
+                </tr>
+              </thead>
+              <tbody>
+                {workingTickets.map(ticket => (
+                  <tr key={ticket.id}>
+                    <td>{ticket.date ? new Date(ticket.date).toLocaleDateString('ru-RU') : ''}</td>
+                    <td>{ticket.address}</td>
+                    <td>{ticket.fullName}</td>
+                    <td>{ticket.position}</td>
+                    <td>{ticket.contact}</td>
+                    <td>
+                      {expandedDescId === ticket.id ? (
+                        <>
+                          {ticket.description}
+                          <button
+                            className="btn btn-link btn-sm p-0 ms-2"
+                            onClick={() => setExpandedDescId(null)}
+                            style={{ fontSize: 13 }}
+                          >
+                            Свернуть
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          {getShortDescription(ticket.description)}
+                          {ticket.description && ticket.description.length > 60 && (
+                            <button
+                              className="btn btn-link btn-sm p-0 ms-2"
+                              onClick={() => setExpandedDescId(ticket.id)}
+                              style={{ fontSize: 13 }}
+                            >
+                              Подробнее
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </td>
+                    <td>
+                      <select
+                        className="form-select"
+                        style={{ minWidth: 130, maxWidth: 180 }}
+                        value={ticket.engineerId === null ? '' : ticket.status}
+                        onChange={e => handleStatusChange(ticket.id, e.target.value)}
+                        disabled={ticket.status === 'Выполнено'}
+                      >
+                        <option value="Не назначено">Не назначено</option>
+                        <option value="В работе">В работе</option>
+                        <option value="Выполнено">Выполнено</option>
+                      </select>
+                    </td>
+                    <td>
+                      <select
+                        className="form-select"
+                        style={{
+                          minWidth: 150,
+                          maxWidth: 220,
+                          border: ticket.engineerId === user?.id ? '2px solid #0d6efd' : undefined,
+                          background: ticket.engineerId === user?.id ? '#eaf4ff' : undefined,
+                          fontWeight: ticket.engineerId === user?.id ? 'bold' : undefined
+                        }}
+                        value={ticket.engineerId === null ? '' : ticket.engineerId}
+                        onChange={e => handleAssign(ticket.id, e.target.value)}
+                        disabled={ticket.status === 'Выполнено'}
+                      >
+                        <option value="">Не назначено</option>
+                        {users.map(u => (
+                          <option key={u.id} value={u.id}>{u.lastName} {u.firstName}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <button
+                        className="btn btn-warning btn-sm fw-bold"
+                        style={{ border: '2px solid #0d6efd', color: '#0d6efd', background: '#fffbe6' }}
+                        onClick={() => handleShowPhotos(ticket)}
+                      >
+                        Посмотреть фото
+                      </button>
+                    </td>
+                    <td>
+                      <button className="btn btn-primary btn-sm me-2" onClick={() => handleCreateReport(ticket)} disabled={ticket.status === 'Выполнено'}>
+                        Создать отчет
+                      </button>
+                      <button className="btn btn-danger btn-sm" onClick={() => handleDelete(ticket.id)}>
+                        Удалить
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       <div
         className="d-flex flex-wrap align-items-center justify-content-start gap-3 mb-3"
         style={{ background: "#ededed", borderRadius: 10, padding: "18px 18px 12px 18px" }}
@@ -163,6 +374,7 @@ function InnerTickets() {
                 <td>
                   <select
                     className="form-select"
+                    style={{ minWidth: 130, maxWidth: 180 }} // увеличено
                     value={ticket.status}
                     onChange={e => handleStatusChange(ticket.id, e.target.value)}
                     disabled={ticket.status === 'Выполнено'}
@@ -175,6 +387,13 @@ function InnerTickets() {
                 <td>
                   <select
                     className="form-select"
+                    style={{
+                      minWidth: 150,
+                      maxWidth: 220,
+                      border: ticket.engineerId === currentUserId ? '2px solid #0d6efd' : undefined,
+                      background: ticket.engineerId === currentUserId ? '#eaf4ff' : undefined,
+                      fontWeight: ticket.engineerId === currentUserId ? 'bold' : undefined
+                    }}
                     value={ticket.engineerId || ''}
                     onChange={e => handleAssign(ticket.id, e.target.value)}
                     disabled={ticket.status === 'Выполнено'}

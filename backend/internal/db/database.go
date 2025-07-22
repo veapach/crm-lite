@@ -34,20 +34,6 @@ type Report struct {
 	Classification string `gorm:"not null;default:'Не указано'" json:"classification"`
 }
 
-type Request struct {
-	ID          uint    `gorm:"primaryKey"                                        json:"id"`
-	Date        string  `gorm:"not null"                                          json:"date"`
-	DepartTime  string  `gorm:"default:null"                                      json:"departTime"`
-	Address     string  `gorm:"not null"                                          json:"address"`
-	Status      string  `gorm:"not null;default:'В работе'"                       json:"status"`
-	EngineerID  uint    `gorm:"not null"                                          json:"engineerId"`
-	Engineer    User    `gorm:"foreignKey:EngineerID;constraint:OnDelete:CASCADE" json:"-"`
-	Type        string  `gorm:"not null"                                          json:"type"`
-	Description string  `gorm:"not null"                                          json:"description"`
-	ReportID    *uint   `gorm:"default:null"                                      json:"reportId"`
-	Report      *Report `gorm:"foreignKey:ReportID;constraint:OnDelete:SET NULL"  json:"-"`
-}
-
 type Address struct {
 	ID      uint   `gorm:"primaryKey"           json:"id"`
 	Address string `gorm:"uniqueIndex;not null" json:"address"`
@@ -117,7 +103,7 @@ func InitDB() {
 		log.Fatal("Ошибка при подключении к PostgreSQL:", err)
 	}
 
-	if err := DB.AutoMigrate(&File{}, &User{}, &Report{}, &Request{}, &Address{}, &AllowedPhone{}, &Equipment{}, &Inventory{}, &TravelRecord{}, &EquipmentMemory{}, &ClientTicket{}); err != nil {
+	if err := DB.AutoMigrate(&File{}, &User{}, &Report{}, &Address{}, &AllowedPhone{}, &Equipment{}, &Inventory{}, &TravelRecord{}, &EquipmentMemory{}, &ClientTicket{}); err != nil {
 		log.Fatal("Ошибка миграции схемы:", err)
 	}
 

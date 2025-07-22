@@ -71,7 +71,8 @@ export default function Tickets() {
 
   // Файлы (до 5)
   const handleFileChange = e => {
-    let files = Array.from(e.target.files);
+    let files = Array.from(e.target.files)
+      .filter(f => f.type.startsWith('image')); // Только изображения
     if (form.files.length + files.length > 5) files = files.slice(0, 5 - form.files.length);
     setForm(f => ({ ...f, files: [...f.files, ...files] }));
     e.target.value = '';
@@ -110,18 +111,39 @@ export default function Tickets() {
 
   return (
     <div className="tickets-bg-gradient min-vh-100 d-flex align-items-center justify-content-center">
-      <div className="container" style={{maxWidth: 600, background: 'rgba(255,255,255,0.97)', borderRadius: 18, boxShadow: '0 2px 16px 0 rgba(45,190,100,0.10)'}}>
+      <div className="container" style={{maxWidth: 600, background: 'rgba(255,255,255,0.97)', borderRadius: 18, boxShadow: '0 2px 16px 0 rgba(45,190,100,0.10)', position: 'relative'}}>
         <div className="text-center mb-3">
           <img src={LOGO_SRC} alt="ВкусВилл" style={{maxWidth: 180, height: '150px'}} />
         </div>
         <h2 className="mb-4" style={{color:'#2dbe64', fontFamily:'Villula, Euclide Circular B, Arial', fontWeight:600}}>Заявка для клиентов</h2>
         {success && (
-          <div className={styles.successPopup}>
-            <b>Заявка отправлена!</b>
-            <div style={{marginTop:8}}>Спасибо, мы свяжемся с вами.</div>
-          </div>
+          <>
+            <div
+              style={{
+                position: 'fixed',
+                left: 0,
+                top: 0,
+                width: '100vw',
+                height: '100vh',
+                background: 'rgba(45,190,100,0.12)',
+                backdropFilter: 'blur(4px)',
+                zIndex: 999,
+              }}
+            />
+            <div className={styles.successPopup} style={{zIndex: 1000}}>
+              <b>Заявка отправлена!</b>
+              <div style={{marginTop:8}}>Спасибо, мы свяжемся с вами.</div>
+              <button
+                className="btn btn-success mt-3"
+                style={{background:'#2dbe64', borderColor:'#2dbe64'}}
+                onClick={() => setSuccess(false)}
+              >
+                Новая заявка
+              </button>
+            </div>
+          </>
         )}
-        <form className="row g-3" onSubmit={handleSubmit} autoComplete="off">
+        <form className="row g-3" onSubmit={handleSubmit} autoComplete="off" style={success ? {filter: 'blur(2px)', pointerEvents: 'none'} : {}}>
           <div className="col-12 col-md-6">
             <label className="form-label">ФИО *</label>
             <input className="form-control" name="fullName" value={form.fullName} onChange={handleChange} required maxLength={64} placeholder="Введите ФИО" />
@@ -176,10 +198,10 @@ export default function Tickets() {
             <textarea className="form-control" name="description" value={form.description} onChange={handleChange} required rows={3} maxLength={500} placeholder="Опишите проблему" />
           </div>
           <div className="col-12">
-            <input type="file" accept="image/*,video/*" multiple onChange={handleFileChange} style={{display:'none'}} id="file-upload" />
+            <input type="file" accept="image/*" multiple onChange={handleFileChange} style={{display:'none'}} id="file-upload" />
             <label htmlFor="file-upload" className="btn btn-success mb-2" style={{fontWeight:600, background:'#2dbe64', color:'#fff', borderColor:'#2dbe64', margin:0, cursor:'pointer', letterSpacing:'0.02em'}}>Загрузить файлы</label>
             <div style={{height:10}}></div>
-            <label className="form-label">Фото/видео (до 5 файлов)</label>
+            <label className="form-label">Фото (до 5 файлов)</label>
             <div className="d-flex gap-2 flex-wrap">
               {form.files.map((file, idx) => (
                 <div key={idx} className={styles.filePreview}>

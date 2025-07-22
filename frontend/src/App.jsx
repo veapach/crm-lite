@@ -9,7 +9,6 @@ import Reports from './pages/Reports';
 import Files from './pages/Files';
 import Profile from './pages/Profile';
 import Auth from './pages/Auth';
-import Requests from './pages/Requests';
 import Admin from './pages/Admin';
 import MaintenancePage from './pages/MaintenancePage';
 import Statistics from './pages/Statistics';
@@ -79,7 +78,6 @@ function App() {
             <Route path="/inventory" element={isAuthenticated ? <Inventory /> : <Navigate to="/auth" replace />} />
             <Route path="/travel-sheet" element={isAuthenticated ? <TravelSheet /> : <Navigate to="/auth" replace />} />
             <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/auth" replace />} />
-            <Route path="/requests" element={isAuthenticated ? <Requests /> : <Navigate to="/auth" replace />} />
             <Route path="/statistics" element={isAuthenticated ? <Statistics /> : <Navigate to="/auth" replace />} />
             <Route path="/admin" element={isAuthenticated && isAdmin ? <Admin /> : <Navigate to="/" replace />} />
             <Route path="*" element={<Navigate to="/tickets" replace />} />
