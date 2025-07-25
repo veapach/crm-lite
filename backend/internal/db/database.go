@@ -79,17 +79,18 @@ type EquipmentMemory struct {
 }
 
 type ClientTicket struct {
-	ID          uint   `gorm:"primaryKey" json:"id"`
-	Date        string `gorm:"not null" json:"date"`
-	FullName    string `gorm:"not null" json:"fullName"`
-	Position    string `gorm:"not null" json:"position"`
-	Contact     string `gorm:"default:null" json:"contact"`
-	Address     string `gorm:"not null" json:"address"`
-	Description string `gorm:"not null" json:"description"`
-	Status      string `gorm:"not null;default:'Не назначено'" json:"status"` // Не назначено/В работе/Выполнено
-	EngineerID  *uint  `gorm:"default:null" json:"engineerId"`
-	Engineer    *User  `gorm:"foreignKey:EngineerID;constraint:OnDelete:SET NULL" json:"-"`
-	Files       string `gorm:"type:text" json:"files"`
+	ID           uint   `gorm:"primaryKey" json:"id"`
+	Date         string `gorm:"not null" json:"date"`
+	FullName     string `gorm:"not null" json:"fullName"`
+	Position     string `gorm:"not null" json:"position"`
+	Contact      string `gorm:"default:null" json:"contact"`
+	Address      string `gorm:"not null" json:"address"`
+	Description  string `gorm:"not null" json:"description"`
+	Status       string `gorm:"not null;default:'Не назначено'" json:"status"`
+	EngineerID   *uint  `gorm:"default:null" json:"engineerId"`
+	Engineer     *User  `gorm:"foreignKey:EngineerID;constraint:OnDelete:SET NULL" json:"-"`
+	EngineerName string `gorm:"default:null" json:"engineerName"`
+	Files        string `gorm:"type:text" json:"files"`
 }
 
 func InitDB() {

@@ -124,8 +124,9 @@ func GetClientTickets(c *gin.Context) {
 func UpdateClientTicket(c *gin.Context) {
 	id := c.Param("id")
 	var input struct {
-		EngineerID *uint  `json:"engineerId"`
-		Status     string `json:"status"`
+		EngineerID   *uint   `json:"engineerId"`
+		EngineerName *string `json:"engineerName"`
+		Status       string  `json:"status"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат данных"})
@@ -141,7 +142,18 @@ func UpdateClientTicket(c *gin.Context) {
 	// Обновление
 	if input.EngineerID != nil {
 		ticket.EngineerID = input.EngineerID
+	} else if input.Status == "Не назначено" {
+		ticket.EngineerID = nil
+		ticket.EngineerName = ""
 	}
+
+	if input.EngineerName != nil {
+		ticket.EngineerName = *input.EngineerName
+	} else if input.Status == "Не назначено" {
+		ticket.EngineerID = nil
+		ticket.EngineerName = ""
+	}
+
 	if input.Status != "" {
 		// Если статус "Выполнено" — удалить фото
 		if input.Status == "Выполнено" && ticket.Files != "" {
