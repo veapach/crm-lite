@@ -143,23 +143,40 @@ const Statistics = () => {
       if (classification === 'ТО') classValue = 'ТО';
       if (classification === 'ПНР') classValue = 'пнр';
 
-      const response = await axios.get(`/api/reports?startDate=${start}&endDate=${end}`);
-      let reports = Array.isArray(response.data) ? response.data : response.data.reports;
+      // Загружаем все страницы отчетов
+      let allReports = [];
+      let page = 1;
+      let hasMorePages = true;
+      
+      while (hasMorePages) {
+        const response = await axios.get(`/api/reports?startDate=${start}&endDate=${end}&page=${page}&pageSize=100`);
+        const pageData = response.data;
+        const reports = Array.isArray(pageData) ? pageData : pageData.reports;
 
-      if (!Array.isArray(reports)) {
-        setError('Некорректный формат данных от сервера');
-        return;
+        if (!Array.isArray(reports)) {
+          setError('Некорректный формат данных от сервера');
+          return;
+        }
+
+        if (reports.length === 0) {
+          hasMorePages = false;
+        } else {
+          allReports = allReports.concat(reports);
+          page++;
+        }
       }
 
+      let filteredReports = allReports;
+      
       if (["ТО Китчен", "ТО Пекарня", "ТО", "АВ", "ПНР"].includes(classification)) {
-        reports = reports.filter(r => (r.classification || '').toLowerCase() === classValue.toLowerCase());
+        filteredReports = allReports.filter(r => (r.classification || '').toLowerCase() === classValue.toLowerCase());
       } else if (classification === 'Другие') {
-        reports = reports.filter(r => {
+        filteredReports = allReports.filter(r => {
           const c = (r.classification || '').toLowerCase();
           return c !== 'то китчен' && c !== 'то пекарня' && c !== 'то' && c !== 'ав' && c !== 'пнр';
         });
       }
-      setFilteredReports(reports);
+      setFilteredReports(filteredReports);
     } catch (err) {
       setError('Ошибка при загрузке актов');
       console.error('Ошибка при загрузке актов:', err);
