@@ -152,6 +152,7 @@ func main() {
 	r.GET("/api/client-tickets", users.AuthMiddleware(), tickets.GetClientTickets)
 	r.PUT("/api/client-tickets/:id", users.AuthMiddleware(), tickets.UpdateClientTicket)
 	r.DELETE("/api/client-tickets/:id", users.AuthMiddleware(), tickets.DeleteClientTicket)
+	r.GET("/api/tickets/files/:filename", tickets.ServeTicketFile)
 
 	// Адреса объектов
 	r.GET("/api/addresses", address.GetAddresses)
@@ -184,6 +185,7 @@ func main() {
 	// Статические файлы
 	r.Static("/uploads/reports", "./uploads/reports")
 	r.Static("/uploads/files", "./uploads/files")
+	r.Static("/uploads/tickets", "./uploads/tickets")
 
 	// Эндпоинт для проверки доступности сервера
 	r.GET("/api/check-health", func(c *gin.Context) {

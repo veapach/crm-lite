@@ -183,3 +183,15 @@ func DeleteClientTicket(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }
+
+func ServeTicketFile(c *gin.Context) {
+	filename := c.Param("filename")
+	filePath := filepath.Join("uploads/tickets", filename)
+
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден"})
+		return
+	}
+
+	c.File(filePath)
+}
