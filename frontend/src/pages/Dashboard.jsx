@@ -43,7 +43,7 @@ function Dashboard() {
             <div className="dashboard-card">
               <h3>Заявки</h3>
               <p>Входящие заявки от клиентов</p>
-              <Link to="/inner-reports" className="btn btn-primary">Перейти к заявкам</Link>
+              <Link to="/inner-tickets" className="btn btn-primary">Перейти к заявкам</Link>
             </div>
           </div>
 
