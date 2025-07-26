@@ -18,6 +18,7 @@ import (
 	"backend/internal/files"
 	"backend/internal/inventory"
 	"backend/internal/report"
+	"backend/internal/requests"
 	"backend/internal/tickets"
 	"backend/internal/travelsheet"
 	"backend/internal/users"
@@ -146,6 +147,13 @@ func main() {
 	)
 	r.GET("/api/reportscount", users.AuthMiddleware(), report.GetReportsCount)
 	r.GET("/api/reports/preview/:filename", users.AuthMiddleware(), report.PreviewReport)
+
+	// График
+	r.GET("/api/requests", users.AuthMiddleware(), requests.GetRequests)
+	r.GET("/api/requests/:id", users.AuthMiddleware(), requests.GetRequestById)
+	r.POST("/api/requests", users.AuthMiddleware(), requests.CreateRequest)
+	r.PUT("/api/requests/:id", users.AuthMiddleware(), requests.UpdateRequest)
+	r.DELETE("/api/requests/:id", users.AuthMiddleware(), requests.DeleteReport)
 
 	// Заявки клиентов
 	r.POST("/api/client-tickets", tickets.CreateTicket)
