@@ -141,7 +141,7 @@ const Statistics = () => {
       if (classification === 'ТО Китчен') classValue = 'ТО Китчен';
       if (classification === 'ТО Пекарня') classValue = 'ТО Пекарня';
       if (classification === 'ТО') classValue = 'ТО';
-      if (classification === 'ПНР') classValue = 'пнр';
+      if (classification === 'ПНР') classValue = 'ПНР';
 
       // Загружаем все страницы отчетов
       let allReports = [];
