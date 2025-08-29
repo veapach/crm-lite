@@ -332,7 +332,7 @@ func GetReportsCount(c *gin.Context) {
 		return
 	}
 	if err := db.DB.Model(&db.Report{}).
-		Where("user_id = ? AND classification = ?", userID, "пнр").
+		Where("user_id = ? AND classification = ?", userID, "ПНР").
 		Count(&pnrCount).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении кол-ва отчетов с классификацией ПНР"})
 		return
@@ -370,7 +370,7 @@ func GetReportsCount(c *gin.Context) {
 			return
 		}
 		if err := db.DB.Model(&db.Report{}).
-			Where("user_id = ? AND classification = ? AND date BETWEEN ? AND ?", userID, "пнр", startDate, endDate).
+			Where("user_id = ? AND classification = ? AND date BETWEEN ? AND ?", userID, "ПНР", startDate, endDate).
 			Count(&filteredPnr).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении кол-ва отфильтрованных отчетов с классификацией ПНР"})
 			return
