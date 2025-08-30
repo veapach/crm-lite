@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -671,6 +672,99 @@ func DownloadReportsByPeriod(c *gin.Context) {
 	c.Header("Content-Type", "application/zip")
 	c.Header("Content-Disposition", "attachment; filename=reports_by_period.zip")
 	c.File(zipFilePath)
+}
+
+func UploadMultipleReports(c *gin.Context) {
+	_, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
+		return
+	}
+
+	form, err := c.MultipartForm()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ошибка при получении файлов"})
+		return
+	}
+
+	files := form.File["files"]
+	if len(files) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "файлы не найдены"})
+		return
+	}
+
+	reportUserID := c.PostForm("userId")
+	classification := c.PostForm("classification")
+
+	if reportUserID == "" || classification == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "не указан пользователь или классификация"})
+		return
+	}
+
+	var reportUser db.User
+	if err := db.DB.First(&reportUser, reportUserID).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "указанный пользователь не найден"})
+		return
+	}
+
+	if err := os.MkdirAll("uploads/reports", 0755); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка при создании директории для отчетов"})
+		return
+	}
+
+	successCount := 0
+	errors := []string{}
+
+	for _, file := range files {
+		// Извлекаем дату и адрес из имени файла
+		match := regexp.MustCompile(`Акт выполненных работ (\d{4}-\d{2}-\d{2}) (.+)\.`).FindStringSubmatch(file.Filename)
+		if len(match) < 3 {
+			errors = append(errors, fmt.Sprintf("Неверный формат имени файла: %s", file.Filename))
+			continue
+		}
+
+		date := match[1]
+		address := match[2]
+
+		fileName := file.Filename
+		filePath := filepath.Join("uploads/reports", fileName)
+
+		// Сохраняем файл
+		if err := c.SaveUploadedFile(file, filePath); err != nil {
+			errors = append(errors, fmt.Sprintf("Ошибка при сохранении файла %s: %v", file.Filename, err))
+			continue
+		}
+
+		// Создаем запись в БД
+		report := db.Report{
+			Filename:       fileName,
+			Date:           date,
+			Address:        address,
+			UserID:         reportUser.ID,
+			Classification: classification,
+		}
+
+		if err := db.DB.Create(&report).Error; err != nil {
+			os.Remove(filePath) // Удаляем файл, если не удалось создать запись в БД
+			errors = append(errors, fmt.Sprintf("Ошибка при сохранении информации о файле %s в БД: %v", file.Filename, err))
+			continue
+		}
+
+		successCount++
+	}
+
+	response := gin.H{
+		"message": fmt.Sprintf("Успешно загружено %d из %d отчетов", successCount, len(files)),
+	}
+	if len(errors) > 0 {
+		response["errors"] = errors
+	}
+
+	if successCount == 0 {
+		c.JSON(http.StatusBadRequest, response)
+	} else {
+		c.JSON(http.StatusOK, response)
+	}
 }
 
 func DownloadSelectedReports(c *gin.Context) {

@@ -194,56 +194,39 @@ const Admin = () => {
   
   // Функции для работы с загрузкой отчетов
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    setReportFile(file);
-    
-    if (file) {
-      // Пытаемся извлечь дату и адрес из имени файла
-      // Формат: "Акт выполненных работ ГГГГ-ММ-ДД АДРЕС.docx"
-      const fileName = file.name;
-      const match = fileName.match(/Акт выполненных работ (\d{4}-\d{2}-\d{2}) (.+)\./i);
-      
-      if (match && match.length >= 3) {
-        const extractedDate = match[1];
-        const extractedAddress = match[2];
-        
-        setReportDate(extractedDate);
-        setReportAddress(extractedAddress);
-      }
-    }
+    const files = Array.from(e.target.files);
+    setReportFile(files);
   };
   
   const uploadReport = async (e) => {
     e.preventDefault();
     
-    if (!reportFile || !reportDate || !reportAddress || !reportUser || !reportClassification) {
-      toast.warning('Заполните все поля');
+    if (!reportFile || !reportUser || !reportClassification) {
+      toast.warning('Выберите файлы, пользователя и классификацию');
       return;
     }
     
     const formData = new FormData();
-    formData.append('file', reportFile);
-    formData.append('date', reportDate);
-    formData.append('address', reportAddress);
+    reportFile.forEach((file) => {
+      formData.append('files', file);
+    });
     formData.append('userId', reportUser);
     formData.append('classification', reportClassification);
     
     try {
-      await axios.post('/api/reports/upload', formData, {
+      await axios.post('/api/reports/upload-multiple', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       });
-      toast.success('Отчет успешно загружен');
+      toast.success('Отчеты успешно загружены');
       setReportFile(null);
-      setReportDate('');
-      setReportAddress('');
       setReportUser('');
       setReportClassification('');
       // Сбросить input file
       document.getElementById('report-file').value = '';
     } catch (error) {
-      toast.error('Ошибка при загрузке отчета: ' + (error.response?.data?.error || error.message));
+      toast.error('Ошибка при загрузке отчетов: ' + (error.response?.data?.error || error.message));
     }
   };
   
@@ -531,51 +514,17 @@ const Admin = () => {
             
             <form onSubmit={uploadReport} className="report-upload-form">
               <div className="form-group">
-                <label htmlFor="report-file">Файл отчета:</label>
+                <label htmlFor="report-file">Файлы отчетов:</label>
                 <input 
                   type="file" 
                   id="report-file" 
                   onChange={handleFileChange} 
                   required 
+                  multiple
                 />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="report-date">Дата:</label>
-                <input 
-                  type="date" 
-                  id="report-date" 
-                  value={reportDate} 
-                  onChange={(e) => setReportDate(e.target.value)} 
-                  required 
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="report-address">Адрес:</label>
-                <div className="address-input-container">
-                  <input
-                    type="text"
-                    id="report-address"
-                    value={reportAddress}
-                    onChange={(e) => setReportAddress(e.target.value)}
-                    placeholder="Введите адрес или выберите из списка"
-                    required
-                  />
-                  <select
-                    onChange={(e) => {
-                      if (e.target.value) setReportAddress(e.target.value);
-                    }}
-                    value=""
-                  >
-                    <option value="">-- Выберите из списка --</option>
-                    {addresses.map(address => (
-                      <option key={address.id} value={address.address}>
-                        {address.address}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <small className="form-text text-muted">
+                  Формат имени файла: "Акт выполненных работ ГГГГ-ММ-ДД АДРЕС.pdf"
+                </small>
               </div>
               
               <div className="form-group">

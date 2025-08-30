@@ -145,6 +145,7 @@ func main() {
 		users.AdminMiddleware(),
 		report.UploadReport,
 	)
+	r.POST("/api/reports/upload-multiple", users.AuthMiddleware(), users.AdminMiddleware(), report.UploadMultipleReports)
 	r.GET("/api/reportscount", users.AuthMiddleware(), report.GetReportsCount)
 	r.GET("/api/reports/preview/:filename", users.AuthMiddleware(), report.PreviewReport)
 
