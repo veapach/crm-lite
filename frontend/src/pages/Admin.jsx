@@ -26,11 +26,15 @@ const Admin = () => {
   const [newEquipment, setNewEquipment] = useState('');
   const [equipmentSearchQuery, setEquipmentSearchQuery] = useState('');
 
+  // Доступные классификации отчетов
+  const CLASSIFICATIONS = ['ТО Китчен', 'ТО Пекарня', 'ТО', 'АВ', 'ПНР'];
+
   // Состояния для раздела загрузки отчетов
   const [reportFile, setReportFile] = useState(null);
   const [reportDate, setReportDate] = useState('');
   const [reportAddress, setReportAddress] = useState('');
   const [reportUser, setReportUser] = useState('');
+  const [reportClassification, setReportClassification] = useState('');
   // Функции для работы с оборудованием
   const fetchEquipment = useCallback(async () => {
     try {
@@ -212,7 +216,7 @@ const Admin = () => {
   const uploadReport = async (e) => {
     e.preventDefault();
     
-    if (!reportFile || !reportDate || !reportAddress || !reportUser) {
+    if (!reportFile || !reportDate || !reportAddress || !reportUser || !reportClassification) {
       toast.warning('Заполните все поля');
       return;
     }
@@ -222,6 +226,7 @@ const Admin = () => {
     formData.append('date', reportDate);
     formData.append('address', reportAddress);
     formData.append('userId', reportUser);
+    formData.append('classification', reportClassification);
     
     try {
       await axios.post('/api/reports/upload', formData, {
@@ -234,6 +239,7 @@ const Admin = () => {
       setReportDate('');
       setReportAddress('');
       setReportUser('');
+      setReportClassification('');
       // Сбросить input file
       document.getElementById('report-file').value = '';
     } catch (error) {
@@ -584,6 +590,23 @@ const Admin = () => {
                   {users.map(user => (
                     <option key={user.id} value={user.id}>
                       {user.lastName} {user.firstName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="report-classification">Классификация:</label>
+                <select 
+                  id="report-classification" 
+                  value={reportClassification} 
+                  onChange={(e) => setReportClassification(e.target.value)} 
+                  required
+                >
+                  <option value="">Выберите классификацию</option>
+                  {CLASSIFICATIONS.map(classification => (
+                    <option key={classification} value={classification}>
+                      {classification}
                     </option>
                   ))}
                 </select>
