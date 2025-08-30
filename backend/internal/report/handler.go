@@ -675,6 +675,9 @@ func DownloadReportsByPeriod(c *gin.Context) {
 }
 
 func UploadMultipleReports(c *gin.Context) {
+	// Установить максимальный размер загружаемых данных (2GB)
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 2<<30)
+
 	_, exists := c.Get("userID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
