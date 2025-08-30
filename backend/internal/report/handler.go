@@ -468,8 +468,9 @@ func UploadReport(c *gin.Context) {
 	date := c.PostForm("date")
 	address := c.PostForm("address")
 	reportUserID := c.PostForm("userId")
+	classification := c.PostForm("classification")
 
-	if date == "" || address == "" || reportUserID == "" {
+	if date == "" || address == "" || reportUserID == "" || classification == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "не все поля заполнены"})
 		return
 	}
@@ -510,10 +511,11 @@ func UploadReport(c *gin.Context) {
 	}
 
 	report := db.Report{
-		Filename: fileName,
-		Date:     date,
-		Address:  address,
-		UserID:   reportUser.ID,
+		Filename:       fileName,
+		Date:           date,
+		Address:        address,
+		UserID:         reportUser.ID,
+		Classification: classification,
 	}
 
 	if err := db.DB.Create(&report).Error; err != nil {
