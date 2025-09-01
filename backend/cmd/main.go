@@ -62,6 +62,7 @@ func main() {
 	db.InitDB()
 
 	r := gin.Default()
+	r.MaxMultipartMemory = 8 << 30 // 8 GiB
 
 	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
 	if err != nil {

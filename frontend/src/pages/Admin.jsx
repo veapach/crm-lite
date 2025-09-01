@@ -30,11 +30,12 @@ const Admin = () => {
   const CLASSIFICATIONS = ['ТО Китчен', 'ТО Пекарня', 'ТО', 'АВ', 'ПНР'];
 
   // Состояния для раздела загрузки отчетов
-  const [reportFile, setReportFile] = useState(null);
+  const [reportFiles, setReportFiles] = useState([]);
   const [reportDate, setReportDate] = useState('');
-  const [reportAddress, setReportAddress] = useState('');
   const [reportUser, setReportUser] = useState('');
   const [reportClassification, setReportClassification] = useState('');
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState('');
   // Функции для работы с оборудованием
   const fetchEquipment = useCallback(async () => {
     try {
@@ -195,38 +196,79 @@ const Admin = () => {
   // Функции для работы с загрузкой отчетов
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
-    setReportFile(files);
+    setReportFiles(files);
+    setUploadProgress(0);
+    setUploadStatus('');
   };
   
   const uploadReport = async (e) => {
     e.preventDefault();
     
-    if (!reportFile || !reportUser || !reportClassification) {
+    if (!reportFiles.length || !reportUser || !reportClassification) {
       toast.warning('Выберите файлы, пользователя и классификацию');
       return;
     }
+
+    setUploadStatus('Подготовка файлов...');
+    setUploadProgress(0);
     
+    // Подготавливаем FormData для отправки
     const formData = new FormData();
-    reportFile.forEach((file) => {
-      formData.append('files', file);
+    reportFiles.forEach((file) => {
+      formData.append('files[]', file);
     });
     formData.append('userId', reportUser);
     formData.append('classification', reportClassification);
+    if (reportDate) {
+      formData.append('date', reportDate);
+    }
     
     try {
-      await axios.post('/api/reports/upload-multiple', formData, {
+      const response = await axios.post('/api/reports/upload-multiple', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
+        },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          setUploadProgress(percentCompleted);
+          setUploadStatus(`Загрузка: ${percentCompleted}%`);
         }
       });
-      toast.success('Отчеты успешно загружены');
-      setReportFile(null);
+
+      const { success, total, errors } = response.data;
+      
+      if (errors && errors.length > 0) {
+        // Если есть ошибки, показываем их в toast
+        errors.forEach(error => toast.error(error));
+      }
+
+      // Показываем общий результат
+      if (success === total) {
+        toast.success(`Все ${total} отчетов успешно загружены`);
+      } else {
+        toast.info(`Загружено ${success} из ${total} отчетов`);
+      }
+
+      // Сбрасываем форму
+      setReportFiles([]);
       setReportUser('');
       setReportClassification('');
-      // Сбросить input file
+      setReportDate('');
+      setUploadProgress(0);
+      setUploadStatus('');
+      
+      // Сбрасываем input file
       document.getElementById('report-file').value = '';
+      
     } catch (error) {
-      toast.error('Ошибка при загрузке отчетов: ' + (error.response?.data?.error || error.message));
+      setUploadStatus('Ошибка загрузки');
+      setUploadProgress(0);
+      
+      if (error.response?.data?.error) {
+        toast.error(`Ошибка при загрузке отчетов: ${error.response.data.error}`);
+      } else {
+        toast.error('Ошибка при загрузке отчетов: ' + error.message);
+      }
     }
   };
   
@@ -521,9 +563,24 @@ const Admin = () => {
                   onChange={handleFileChange} 
                   required 
                   multiple
+                  accept=".pdf"
                 />
                 <small className="form-text text-muted">
-                  Формат имени файла: "Акт выполненных работ ГГГГ-ММ-ДД АДРЕС.pdf"
+                  Вы можете загрузить множество файлов. Если имена файлов соответствуют формату "Акт выполненных работ ГГГГ-ММ-ДД АДРЕС.pdf",
+                  дата и адрес будут извлечены автоматически. Иначе будет использована указанная ниже дата.
+                </small>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="report-date">Дата отчетов (необязательно):</label>
+                <input
+                  type="date"
+                  id="report-date"
+                  value={reportDate}
+                  onChange={(e) => setReportDate(e.target.value)}
+                />
+                <small className="form-text text-muted">
+                  Если дата не указана, будет использована дата из имени файла
                 </small>
               </div>
               
@@ -560,8 +617,28 @@ const Admin = () => {
                   ))}
                 </select>
               </div>
+
+              {uploadStatus && (
+                <div className="upload-status">
+                  <div className="status-text">{uploadStatus}</div>
+                  {uploadProgress > 0 && (
+                    <div className="progress-bar">
+                      <div 
+                        className="progress" 
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
               
-              <button type="submit" className="upload-btn">Загрузить отчет</button>
+              <button 
+                type="submit" 
+                className="upload-btn"
+                disabled={uploadProgress > 0 && uploadProgress < 100}
+              >
+                {uploadProgress > 0 && uploadProgress < 100 ? 'Загрузка...' : 'Загрузить отчеты'}
+              </button>
             </form>
           </div>
         )}

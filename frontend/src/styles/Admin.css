@@ -198,6 +198,47 @@ select {
   margin: 0 auto;
 }
 
+/* Стили для отображения прогресса загрузки */
+.upload-status {
+  margin: 20px 0;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border: 1px solid #e9ecef;
+}
+
+.status-text {
+  margin-bottom: 10px;
+  color: #495057;
+  font-weight: 500;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 20px;
+  background-color: #e9ecef;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress {
+  height: 100%;
+  background-color: #2dbe64;
+  transition: width 0.3s ease;
+}
+
+button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.form-text {
+  display: block;
+  margin-top: 5px;
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
 /* Стили для контейнера с полем ввода адреса и выпадающим списком */
 .address-input-container {
   display: flex;

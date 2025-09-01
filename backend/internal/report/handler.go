@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"os/exec"
@@ -674,96 +675,160 @@ func DownloadReportsByPeriod(c *gin.Context) {
 	c.File(zipFilePath)
 }
 
+type ReportUploadInfo struct {
+	Files          []*multipart.FileHeader `form:"files[]"`
+	UserID         uint                    `form:"userId"`
+	Classification string                  `form:"classification"`
+	Date           string                  `form:"date"`
+	Address        string                  `form:"address"`
+}
+
 func UploadMultipleReports(c *gin.Context) {
 	// Установить максимальный размер загружаемых данных (2GB)
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 2<<30)
 
+	// Проверяем авторизацию
 	_, exists := c.Get("userID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
 		return
 	}
 
+	// Получаем файлы и данные из формы
 	form, err := c.MultipartForm()
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ошибка при получении файлов"})
 		return
 	}
 
-	files := form.File["files"]
+	files := form.File["files[]"]
 	if len(files) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "файлы не найдены"})
 		return
 	}
 
+	// Получаем базовую информацию
 	reportUserID := c.PostForm("userId")
 	classification := c.PostForm("classification")
+	date := c.PostForm("date")
 
 	if reportUserID == "" || classification == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "не указан пользователь или классификация"})
 		return
 	}
 
+	// Проверяем существование пользователя
+	userID, err := strconv.ParseUint(reportUserID, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID пользователя"})
+		return
+	}
+
 	var reportUser db.User
-	if err := db.DB.First(&reportUser, reportUserID).Error; err != nil {
+	if err := db.DB.First(&reportUser, userID).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "указанный пользователь не найден"})
 		return
 	}
 
+	// Создаем директорию для отчетов если её нет
 	if err := os.MkdirAll("uploads/reports", 0755); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка при создании директории для отчетов"})
 		return
 	}
 
-	successCount := 0
-	errors := []string{}
+	// Подготавливаем буфер для копирования файлов
+	buffer := make([]byte, 32*1024) // 32KB buffer
+
+	// Создаем слайс для пакетной вставки в БД
+	reports := make([]db.Report, 0, len(files))
+	errors := make([]string, 0)
+
+	// Регулярное выражение для извлечения даты и адреса
+	dateAddressRegex := regexp.MustCompile(`Акт выполненных работ (\d{4}-\d{2}-\d{2}) (.+)\.`)
 
 	for _, file := range files {
-		// Извлекаем дату и адрес из имени файла
-		match := regexp.MustCompile(`Акт выполненных работ (\d{4}-\d{2}-\d{2}) (.+)\.`).FindStringSubmatch(file.Filename)
-		if len(match) < 3 {
-			errors = append(errors, fmt.Sprintf("Неверный формат имени файла: %s", file.Filename))
+		var fileDate, address string
+
+		// Если дата не указана в форме, пытаемся извлечь из имени файла
+		if date == "" {
+			match := dateAddressRegex.FindStringSubmatch(file.Filename)
+			if len(match) >= 3 {
+				fileDate = match[1]
+				address = match[2]
+			} else {
+				errors = append(errors, fmt.Sprintf("Неверный формат имени файла: %s", file.Filename))
+				continue
+			}
+		} else {
+			fileDate = date
+			address = strings.TrimSuffix(file.Filename, filepath.Ext(file.Filename))
+		}
+
+		// Используем оригинальное имя файла
+		filePath := filepath.Join("uploads/reports", file.Filename)
+
+		// Открываем исходный файл
+		src, err := file.Open()
+		if err != nil {
+			errors = append(errors, fmt.Sprintf("Ошибка при открытии файла %s: %v", file.Filename, err))
 			continue
 		}
 
-		date := match[1]
-		address := match[2]
-
-		fileName := file.Filename
-		filePath := filepath.Join("uploads/reports", fileName)
-
-		// Сохраняем файл
-		if err := c.SaveUploadedFile(file, filePath); err != nil {
-			errors = append(errors, fmt.Sprintf("Ошибка при сохранении файла %s: %v", file.Filename, err))
+		// Создаем новый файл
+		dst, err := os.Create(filePath)
+		if err != nil {
+			src.Close()
+			errors = append(errors, fmt.Sprintf("Ошибка при создании файла %s: %v", file.Filename, err))
 			continue
 		}
 
-		// Создаем запись в БД
-		report := db.Report{
-			Filename:       fileName,
-			Date:           date,
+		// Копируем содержимое с использованием буфера
+		_, err = io.CopyBuffer(dst, src, buffer)
+		src.Close()
+		dst.Close()
+
+		if err != nil {
+			os.Remove(filePath)
+			errors = append(errors, fmt.Sprintf("Ошибка при копировании файла %s: %v", file.Filename, err))
+			continue
+		}
+
+		// Добавляем информацию в слайс для пакетной вставки
+		reports = append(reports, db.Report{
+			Filename:       file.Filename,
+			Date:           fileDate,
 			Address:        address,
 			UserID:         reportUser.ID,
 			Classification: classification,
-		}
+		})
+	}
 
-		if err := db.DB.Create(&report).Error; err != nil {
-			os.Remove(filePath) // Удаляем файл, если не удалось создать запись в БД
-			errors = append(errors, fmt.Sprintf("Ошибка при сохранении информации о файле %s в БД: %v", file.Filename, err))
-			continue
+	// Пакетная вставка в БД
+	if len(reports) > 0 {
+		if err := db.DB.CreateInBatches(reports, 100).Error; err != nil {
+			// В случае ошибки удаляем все созданные файлы
+			for _, report := range reports {
+				os.Remove(filepath.Join("uploads/reports", report.Filename))
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":   "Ошибка при сохранении данных в базу",
+				"details": err.Error(),
+			})
+			return
 		}
-
-		successCount++
 	}
 
 	response := gin.H{
-		"message": fmt.Sprintf("Успешно загружено %d из %d отчетов", successCount, len(files)),
+		"message": fmt.Sprintf("Успешно загружено %d из %d отчетов", len(reports), len(files)),
+		"success": len(reports),
+		"total":   len(files),
 	}
+
 	if len(errors) > 0 {
 		response["errors"] = errors
 	}
 
-	if successCount == 0 {
+	if len(reports) == 0 {
 		c.JSON(http.StatusBadRequest, response)
 	} else {
 		c.JSON(http.StatusOK, response)
