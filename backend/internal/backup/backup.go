@@ -21,9 +21,19 @@ func StartScheduledBackups() {
 		return
 	}
 
+	if isTruthy(getenv("BACKUP_RUN_ON_START", "")) {
+		if err := performBackup(dir); err != nil {
+			log.Printf("backup: immediate run failed: %v", err)
+		} else {
+			log.Printf("backup: immediate run succeeded")
+		}
+		rotateBackups(dir)
+	}
+
 	go func() {
 		for {
 			next := nextRunTime(getenv("BACKUP_DAILY_TIME", "03:15"))
+			log.Printf("backup: next run at %s; dir=%s", next.Format(time.RFC3339), dir)
 			sleepFor := time.Until(next)
 			if sleepFor < 0 {
 				sleepFor = 0
@@ -31,6 +41,8 @@ func StartScheduledBackups() {
 			time.Sleep(sleepFor)
 			if err := performBackup(dir); err != nil {
 				log.Printf("backup: failed: %v", err)
+			} else {
+				log.Printf("backup: completed successfully")
 			}
 			rotateBackups(dir)
 		}
@@ -57,6 +69,7 @@ func performBackup(backupDir string) error {
 	}
 
 	pgDump := getenv("PG_DUMP_PATH", "pg_dump")
+	pgDump = strings.Trim(pgDump, "\"")
 
 	ts := time.Now().Format("20060102-150405")
 	file := filepath.Join(backupDir, fmt.Sprintf("%s_%s.dump", dbname, ts))
@@ -196,4 +209,9 @@ func mustAtoi(s string, def int) int {
 		return def
 	}
 	return v
+}
+
+func isTruthy(s string) bool {
+	s = strings.TrimSpace(strings.ToLower(s))
+	return s == "1" || s == "true" || s == "yes" || s == "y"
 }
