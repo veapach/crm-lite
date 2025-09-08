@@ -13,6 +13,7 @@ import (
 	"github.com/streadway/amqp"
 
 	"backend/internal/address"
+	"backend/internal/backup"
 	"backend/internal/db"
 	"backend/internal/equipment"
 	"backend/internal/files"
@@ -60,6 +61,8 @@ func main() {
 	createRequiredDirectories()
 
 	db.InitDB()
+
+	backup.StartScheduledBackups()
 
 	r := gin.Default()
 	r.MaxMultipartMemory = 8 << 30 // 8 GiB
