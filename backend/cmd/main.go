@@ -200,7 +200,6 @@ func main() {
 	r.GET("/api/travel-sheet/stats/monthly", users.AuthMiddleware(), travelsheet.GetMonthlyStats)
 
 	// Статические файлы
-	r.Static("/uploads/reports", "./uploads/reports")
 	r.Static("/uploads/files", "./uploads/files")
 	r.Static("/uploads/tickets", "./uploads/tickets")
 
