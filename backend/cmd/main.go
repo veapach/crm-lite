@@ -20,6 +20,7 @@ import (
 	"backend/internal/inventory"
 	"backend/internal/report"
 	"backend/internal/requests"
+	"backend/internal/storage"
 	"backend/internal/tickets"
 	"backend/internal/travelsheet"
 	"backend/internal/users"
@@ -61,6 +62,8 @@ func main() {
 	createRequiredDirectories()
 
 	db.InitDB()
+
+	_ = storage.InitS3FromEnv()
 
 	backup.StartScheduledBackups()
 
@@ -137,6 +140,7 @@ func main() {
 	r.DELETE("/api/users/:id", users.AuthMiddleware(), users.AdminMiddleware(), users.DeleteUser)
 
 	// Отчеты
+	r.GET("/uploads/reports/:filename", report.ServeReportFile)
 	r.POST("/api/report", users.AuthMiddleware(), report.CreateReport)
 	r.GET("/api/reports", users.AuthMiddleware(), report.GetReportsHandler)
 	r.GET("/api/reports/monthly-zip", users.AuthMiddleware(), report.DownloadMonthlyReports)

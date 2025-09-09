@@ -2,12 +2,14 @@ package report
 
 import (
 	"archive/zip"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -20,6 +22,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"backend/internal/db"
+	"backend/internal/storage"
 )
 
 type ReportData struct {
@@ -51,17 +54,15 @@ func DeleteReport(c *gin.Context) {
 		reportPath = filepath.Join("uploads", "reports", reportName)
 	}
 
-	if _, err := os.Stat(reportPath); os.IsNotExist(err) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден"})
-		return
-	}
-
-	if err := os.Remove(reportPath); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при удалении файла"})
-		return
+	if _, err := os.Stat(reportPath); err == nil {
+		_ = os.Remove(reportPath)
 	}
 
 	filename := filepath.Base(reportPath)
+
+	if storage.IsS3Enabled() {
+		_ = storage.DeleteReportObject(context.Background(), "reports/"+filename)
+	}
 
 	var report db.Report
 	if err := db.DB.Where("filename = ? OR filename LIKE ?", reportPath, "%"+filename).First(&report).Error; err != nil {
@@ -253,6 +254,16 @@ func CreateReport(c *gin.Context) {
 			gin.H{"error": fmt.Sprintf("Сгенерированный файл не найден: %v", err)},
 		)
 		return
+	}
+
+	if storage.IsS3Enabled() {
+		f, err := os.Open(filePath)
+		if err == nil {
+			defer f.Close()
+			info, _ := f.Stat()
+			_ = storage.UploadReportObject(context.Background(), "reports/"+displayName, f, info.Size(), "application/pdf")
+		}
+		_ = os.Remove(filePath)
 	}
 
 	report := db.Report{
@@ -483,33 +494,38 @@ func UploadReport(c *gin.Context) {
 		return
 	}
 
-	if err := os.MkdirAll("uploads/reports", 0755); err != nil {
-		c.JSON(
-			http.StatusInternalServerError,
-			gin.H{"error": "ошибка при создании директории для отчетов"},
-		)
-		return
-	}
+	fileName := filepath.Base(header.Filename)
 
-	timestamp := time.Now().Format("20060102_150405")
-	fileExt := filepath.Ext(header.Filename)
-	fileName := fmt.Sprintf("%s_%s%s", timestamp, strings.ReplaceAll(address, " ", "_"), fileExt)
-	filePath := filepath.Join("uploads/reports", fileName)
-
-	out, err := os.Create(filePath)
-	if err != nil {
-		c.JSON(
-			http.StatusInternalServerError,
-			gin.H{"error": "ошибка при создании файла на сервере"},
-		)
-		return
-	}
-	defer out.Close()
-
-	_, err = io.Copy(out, file)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка при сохранении файла"})
-		return
+	if storage.IsS3Enabled() {
+		ctx := context.Background()
+		contentType := header.Header.Get("Content-Type")
+		if contentType == "" {
+			contentType = "application/octet-stream"
+		}
+		_ = storage.UploadReportObject(ctx, "reports/"+fileName, file, header.Size, contentType)
+	} else {
+		if err := os.MkdirAll("uploads/reports", 0755); err != nil {
+			c.JSON(
+				http.StatusInternalServerError,
+				gin.H{"error": "ошибка при создании директории для отчетов"},
+			)
+			return
+		}
+		filePath := filepath.Join("uploads/reports", fileName)
+		out, err := os.Create(filePath)
+		if err != nil {
+			c.JSON(
+				http.StatusInternalServerError,
+				gin.H{"error": "ошибка при создании файла на сервере"},
+			)
+			return
+		}
+		defer out.Close()
+		_, err = io.Copy(out, file)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка при сохранении файла"})
+			return
+		}
 	}
 
 	report := db.Report{
@@ -521,18 +537,11 @@ func UploadReport(c *gin.Context) {
 	}
 
 	if err := db.DB.Create(&report).Error; err != nil {
-		os.Remove(filePath)
-		c.JSON(
-			http.StatusInternalServerError,
-			gin.H{"error": "ошибка при сохранении информации в базу данных"},
-		)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении данных в БД"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Отчет успешно загружен",
-		"report":  report,
-	})
+	c.JSON(http.StatusOK, gin.H{"message": "Отчет успешно загружен"})
 }
 
 func DownloadMonthlyReports(c *gin.Context) {
@@ -541,101 +550,73 @@ func DownloadMonthlyReports(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
 		return
 	}
-
-	now := time.Now()
-	startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
-	endOfMonth := startOfMonth.AddDate(0, 1, 0).Add(-time.Second)
-
 	var reports []db.Report
-	if err := db.DB.Where("user_id = ? AND date BETWEEN ? AND ?", userID, startOfMonth.Format("2006-01-02"), endOfMonth.Format("2006-01-02")).Find(&reports).Error; err != nil {
+	if err := db.DB.Where("user_id = ?", userID).Find(&reports).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении отчетов"})
 		return
 	}
-
-	if len(reports) == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Нет отчетов за текущий месяц"})
-		return
-	}
-
 	tempDir, err := os.MkdirTemp("", "monthly_reports_*")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при создании временной директории"})
 		return
 	}
 	defer os.RemoveAll(tempDir)
-
-	zipFilePath := filepath.Join(tempDir, "reports.zip")
+	zipFilePath := filepath.Join(tempDir, "monthly_reports.zip")
 	zipFile, err := os.Create(zipFilePath)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при создании ZIP файла"})
 		return
 	}
 	defer zipFile.Close()
-
 	zipWriter := zip.NewWriter(zipFile)
 	defer zipWriter.Close()
-
 	for _, report := range reports {
 		reportPath := filepath.Join("uploads", "reports", report.Filename)
-		file, err := os.Open(reportPath)
+		var reader io.ReadCloser
+		f, err := os.Open(reportPath)
+		if err == nil {
+			reader = f
+		} else if storage.IsS3Enabled() {
+			obj, _, e := storage.GetReportObject(context.Background(), "reports/"+report.Filename)
+			if e == nil {
+				reader = obj
+			}
+		}
+		if reader == nil {
+			continue
+		}
+		w, err := zipWriter.Create(report.Filename)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при открытии файла отчета"})
-			return
+			reader.Close()
+			continue
 		}
-		defer file.Close()
-
-		zipEntry, err := zipWriter.Create(report.Filename)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при добавлении файла в ZIP архив"})
-			return
-		}
-
-		if _, err := io.Copy(zipEntry, file); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при записи файла в ZIP архив"})
-			return
-		}
+		io.Copy(w, reader)
+		reader.Close()
 	}
-
 	zipWriter.Close()
-
 	c.Header("Content-Type", "application/zip")
-	c.Header("Content-Disposition", "attachment; filename=reports.zip")
+	c.Header("Content-Disposition", "attachment; filename=monthly_reports.zip")
 	c.File(zipFilePath)
 }
 
 func DownloadReportsByPeriod(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
-		return
-	}
-
 	startDate := c.Query("startDate")
 	endDate := c.Query("endDate")
-
 	if startDate == "" || endDate == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Не указан интервал дат"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Не указан период"})
 		return
 	}
-
 	var reports []db.Report
-	if err := db.DB.Where("user_id = ? AND date BETWEEN ? AND ?", userID, startDate, endDate).Find(&reports).Error; err != nil {
+	if err := db.DB.Where("date BETWEEN ? AND ?", startDate, endDate).Find(&reports).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении отчетов"})
 		return
 	}
-
-	if len(reports) == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Нет отчетов за указанный период"})
-		return
-	}
-
 	tempDir, err := os.MkdirTemp("", "reports_by_period_*")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при создании временной директории"})
 		return
 	}
 	defer os.RemoveAll(tempDir)
-
 	zipFilePath := filepath.Join(tempDir, "reports_by_period.zip")
 	zipFile, err := os.Create(zipFilePath)
 	if err != nil {
@@ -643,33 +624,32 @@ func DownloadReportsByPeriod(c *gin.Context) {
 		return
 	}
 	defer zipFile.Close()
-
 	zipWriter := zip.NewWriter(zipFile)
 	defer zipWriter.Close()
-
 	for _, report := range reports {
 		reportPath := filepath.Join("uploads", "reports", report.Filename)
-		file, err := os.Open(reportPath)
+		var reader io.ReadCloser
+		f, err := os.Open(reportPath)
+		if err == nil {
+			reader = f
+		} else if storage.IsS3Enabled() {
+			obj, _, e := storage.GetReportObject(context.Background(), "reports/"+report.Filename)
+			if e == nil {
+				reader = obj
+			}
+		}
+		if reader == nil {
+			continue
+		}
+		w, err := zipWriter.Create(report.Filename)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при открытии файла отчета"})
-			return
+			reader.Close()
+			continue
 		}
-		defer file.Close()
-
-		zipEntry, err := zipWriter.Create(report.Filename)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при добавлении файла в ZIP архив"})
-			return
-		}
-
-		if _, err := io.Copy(zipEntry, file); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при записи файла в ZIP архив"})
-			return
-		}
+		io.Copy(w, reader)
+		reader.Close()
 	}
-
 	zipWriter.Close()
-
 	c.Header("Content-Type", "application/zip")
 	c.Header("Content-Disposition", "attachment; filename=reports_by_period.zip")
 	c.File(zipFilePath)
@@ -684,118 +664,107 @@ type ReportUploadInfo struct {
 }
 
 func UploadMultipleReports(c *gin.Context) {
-	// Установить максимальный размер загружаемых данных (2GB)
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 2<<30)
-
-	// Проверяем авторизацию
 	_, exists := c.Get("userID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
 		return
 	}
-
-	// Получаем файлы и данные из формы
 	form, err := c.MultipartForm()
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ошибка при получении файлов"})
 		return
 	}
-
 	files := form.File["files[]"]
 	if len(files) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "файлы не найдены"})
 		return
 	}
-
-	// Получаем базовую информацию
 	reportUserID := c.PostForm("userId")
 	classification := c.PostForm("classification")
 	date := c.PostForm("date")
-
 	if reportUserID == "" || classification == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "не указан пользователь или классификация"})
 		return
 	}
-
-	// Проверяем существование пользователя
 	userID, err := strconv.ParseUint(reportUserID, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID пользователя"})
 		return
 	}
-
 	var reportUser db.User
 	if err := db.DB.First(&reportUser, userID).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "указанный пользователь не найден"})
 		return
 	}
 
-	// Создаем директорию для отчетов если её нет
-	if err := os.MkdirAll("uploads/reports", 0755); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка при создании директории для отчетов"})
-		return
-	}
-
-	// Подготавливаем буфер для копирования файлов
-	buffer := make([]byte, 32*1024) // 32KB buffer
-
-	// Создаем слайс для пакетной вставки в БД
+	buffer := make([]byte, 32*1024)
 	reports := make([]db.Report, 0, len(files))
 	errors := make([]string, 0)
-
-	// Регулярное выражение для извлечения даты и адреса
 	dateAddressRegex := regexp.MustCompile(`Акт выполненных работ (\d{4}-\d{2}-\d{2}) (.+)\.`)
 
-	for _, file := range files {
-		var fileDate, address string
+	uploadedKeys := make([]string, 0)
 
-		// Если дата не указана в форме, пытаемся извлечь из имени файла
+	for _, f := range files {
+		var fileDate, address string
+		origName := filepath.Base(f.Filename)
 		if date == "" {
-			match := dateAddressRegex.FindStringSubmatch(file.Filename)
+			match := dateAddressRegex.FindStringSubmatch(origName)
 			if len(match) >= 3 {
 				fileDate = match[1]
 				address = match[2]
 			} else {
-				errors = append(errors, fmt.Sprintf("Неверный формат имени файла: %s", file.Filename))
+				errors = append(errors, fmt.Sprintf("Неверный формат имени файла: %s", origName))
 				continue
 			}
 		} else {
 			fileDate = date
-			address = strings.TrimSuffix(file.Filename, filepath.Ext(file.Filename))
+			address = strings.TrimSuffix(origName, filepath.Ext(origName))
 		}
 
-		// Используем оригинальное имя файла
-		filePath := filepath.Join("uploads/reports", file.Filename)
-
-		// Открываем исходный файл
-		src, err := file.Open()
-		if err != nil {
-			errors = append(errors, fmt.Sprintf("Ошибка при открытии файла %s: %v", file.Filename, err))
-			continue
-		}
-
-		// Создаем новый файл
-		dst, err := os.Create(filePath)
-		if err != nil {
+		if storage.IsS3Enabled() {
+			src, err := f.Open()
+			if err != nil {
+				errors = append(errors, fmt.Sprintf("Ошибка при открытии файла %s: %v", origName, err))
+				continue
+			}
+			key := "reports/" + origName
+			if err := storage.UploadReportObject(context.Background(), key, src, f.Size, "application/octet-stream"); err != nil {
+				src.Close()
+				errors = append(errors, fmt.Sprintf("Ошибка при загрузке в S3 %s: %v", origName, err))
+				continue
+			}
 			src.Close()
-			errors = append(errors, fmt.Sprintf("Ошибка при создании файла %s: %v", file.Filename, err))
-			continue
+			uploadedKeys = append(uploadedKeys, key)
+		} else {
+			if err := os.MkdirAll("uploads/reports", 0755); err != nil {
+				errors = append(errors, "ошибка при создании директории для отчетов")
+				continue
+			}
+			filePath := filepath.Join("uploads/reports", origName)
+			src, err := f.Open()
+			if err != nil {
+				errors = append(errors, fmt.Sprintf("Ошибка при открытии файла %s: %v", origName, err))
+				continue
+			}
+			dst, err := os.Create(filePath)
+			if err != nil {
+				src.Close()
+				errors = append(errors, fmt.Sprintf("Ошибка при создании файла %s: %v", origName, err))
+				continue
+			}
+			_, err = io.CopyBuffer(dst, src, buffer)
+			src.Close()
+			dst.Close()
+			if err != nil {
+				os.Remove(filePath)
+				errors = append(errors, fmt.Sprintf("Ошибка при копировании файла %s: %v", origName, err))
+				continue
+			}
 		}
 
-		// Копируем содержимое с использованием буфера
-		_, err = io.CopyBuffer(dst, src, buffer)
-		src.Close()
-		dst.Close()
-
-		if err != nil {
-			os.Remove(filePath)
-			errors = append(errors, fmt.Sprintf("Ошибка при копировании файла %s: %v", file.Filename, err))
-			continue
-		}
-
-		// Добавляем информацию в слайс для пакетной вставки
 		reports = append(reports, db.Report{
-			Filename:       file.Filename,
+			Filename:       origName,
 			Date:           fileDate,
 			Address:        address,
 			UserID:         reportUser.ID,
@@ -803,12 +772,10 @@ func UploadMultipleReports(c *gin.Context) {
 		})
 	}
 
-	// Пакетная вставка в БД
 	if len(reports) > 0 {
 		if err := db.DB.CreateInBatches(reports, 100).Error; err != nil {
-			// В случае ошибки удаляем все созданные файлы
-			for _, report := range reports {
-				os.Remove(filepath.Join("uploads/reports", report.Filename))
+			for _, key := range uploadedKeys {
+				_ = storage.DeleteReportObject(context.Background(), key)
 			}
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error":   "Ошибка при сохранении данных в базу",
@@ -823,11 +790,9 @@ func UploadMultipleReports(c *gin.Context) {
 		"success": len(reports),
 		"total":   len(files),
 	}
-
 	if len(errors) > 0 {
 		response["errors"] = errors
 	}
-
 	if len(reports) == 0 {
 		c.JSON(http.StatusBadRequest, response)
 	} else {
@@ -839,35 +804,29 @@ func DownloadSelectedReports(c *gin.Context) {
 	var request struct {
 		ReportIDs []int `json:"reportIds"`
 	}
-
 	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
 		return
 	}
-
 	if len(request.ReportIDs) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "No reports selected"})
 		return
 	}
-
 	var reports []db.Report
 	if err := db.DB.Where("id IN ?", request.ReportIDs).Find(&reports).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch reports"})
 		return
 	}
-
 	if len(reports) == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "No reports found for the selected IDs"})
 		return
 	}
-
 	tempDir, err := os.MkdirTemp("", "selected_reports_*")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create temporary directory"})
 		return
 	}
 	defer os.RemoveAll(tempDir)
-
 	zipFilePath := filepath.Join(tempDir, "selected_reports.zip")
 	zipFile, err := os.Create(zipFilePath)
 	if err != nil {
@@ -875,33 +834,41 @@ func DownloadSelectedReports(c *gin.Context) {
 		return
 	}
 	defer zipFile.Close()
-
 	zipWriter := zip.NewWriter(zipFile)
 	defer zipWriter.Close()
 
 	for _, report := range reports {
 		reportPath := filepath.Join("uploads", "reports", report.Filename)
-		file, err := os.Open(reportPath)
-		if err != nil {
+		var reader io.ReadCloser
+		var openErr error
+		f, err := os.Open(reportPath)
+		if err == nil {
+			reader = f
+		} else if storage.IsS3Enabled() {
+			obj, _, e := storage.GetReportObject(context.Background(), "reports/"+report.Filename)
+			openErr = e
+			reader = obj
+		} else {
+			openErr = err
+		}
+		if reader == nil || openErr != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open report file"})
 			return
 		}
-		defer file.Close()
-
 		zipEntry, err := zipWriter.Create(report.Filename)
 		if err != nil {
+			reader.Close()
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add file to ZIP archive"})
 			return
 		}
-
-		if _, err := io.Copy(zipEntry, file); err != nil {
+		if _, err := io.Copy(zipEntry, reader); err != nil {
+			reader.Close()
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to write file to ZIP archive"})
 			return
 		}
+		reader.Close()
 	}
-
 	zipWriter.Close()
-
 	c.Header("Content-Type", "application/zip")
 	c.Header("Content-Disposition", "attachment; filename=selected_reports.zip")
 	c.File(zipFilePath)
@@ -910,12 +877,44 @@ func DownloadSelectedReports(c *gin.Context) {
 func PreviewReport(c *gin.Context) {
 	filename := c.Param("filename")
 	filePath := filepath.Join("uploads", "reports", filename)
-
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден"})
+	if _, err := os.Stat(filePath); err == nil {
+		c.File(filePath)
 		return
 	}
+	if storage.IsS3Enabled() {
+		obj, info, err := storage.GetReportObject(context.Background(), "reports/"+filename)
+		if err == nil && obj != nil {
+			defer obj.Close()
+			c.Header("Content-Type", info.ContentType)
+			c.Status(http.StatusOK)
+			io.Copy(c.Writer, obj)
+			return
+		}
+	}
+	c.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден"})
+}
 
-	// Пока просто отдаём PDF, в будущем можно отдавать PNG превью
-	c.File(filePath)
+func ServeReportFile(c *gin.Context) {
+	filename := c.Param("filename")
+	filePath := filepath.Join("uploads", "reports", filename)
+	if _, err := os.Stat(filePath); err == nil {
+		c.File(filePath)
+		return
+	}
+	if storage.IsS3Enabled() {
+		obj, info, err := storage.GetReportObject(context.Background(), "reports/"+filename)
+		if err == nil && obj != nil {
+			defer obj.Close()
+			if info.ContentType != "" {
+				c.Header("Content-Type", info.ContentType)
+			} else {
+				c.Header("Content-Type", "application/octet-stream")
+			}
+			c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", url.PathEscape(filename)))
+			c.Status(http.StatusOK)
+			io.Copy(c.Writer, obj)
+			return
+		}
+	}
+	c.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден"})
 }
