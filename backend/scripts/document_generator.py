@@ -28,7 +28,7 @@ def add_photo_to_document(doc, photo_data, cell):
     max_width_px, max_height_px = int((max_width_cm / 2.54) * dpi), int((max_height_cm / 2.54) * dpi)
 
     aspect_ratio = image.width / image.height
-    if aspect_ratio > 1: 
+    if aspect_ratio > 1:
         width_px = max_width_px
         height_px = int(width_px / aspect_ratio)
     else:
@@ -51,7 +51,9 @@ def add_photo_to_document(doc, photo_data, cell):
 def generate_document(json_file):
     script_dir = os.path.dirname(os.path.abspath(__file__))
     uploads_dir = os.path.join(script_dir, "..", "uploads", "reports")
+    previews_dir = os.path.join(script_dir, "..", "uploads", "previews")
     os.makedirs(uploads_dir, exist_ok=True)
+    os.makedirs(previews_dir, exist_ok=True)
     template_path = os.path.join(script_dir, "template.docx")
 
     with open(json_file, "r", encoding="utf-8") as f:
@@ -123,7 +125,8 @@ def generate_document(json_file):
         name = base + suffix
         docx_path = os.path.join(uploads_dir, name + ".docx")
         pdf_path = os.path.join(uploads_dir, name + ".pdf")
-        if not os.path.exists(docx_path) and not os.path.exists(pdf_path):
+        preview_png_path = os.path.join(previews_dir, name + ".png")
+        if not os.path.exists(docx_path) and not os.path.exists(pdf_path) and not os.path.exists(preview_png_path):
             break
         counter += 1
 
@@ -141,9 +144,13 @@ def generate_document(json_file):
         print("Ошибка при добавлении печати", file=sys.stderr)
         sys.exit(1)
 
+    preview_png = generate_preview_png(final_pdf, preview_png_path)
+
     filename = os.path.basename(final_pdf)
     sys.stderr.write("Generated PDF successfully\n")
     sys.stdout.write(filename + "\n")
+    if preview_png:
+        sys.stdout.write(os.path.basename(preview_png) + "\n")
     sys.stdout.flush()
 
 
@@ -211,6 +218,22 @@ def add_stamp_to_pdf(pdf_path):
     os.rename(output_pdf, final_pdf)
     
     return final_pdf
+
+
+def generate_preview_png(pdf_path, preview_png_path):
+    try:
+        doc = fitz.open(pdf_path)
+        page = doc.load_page(0)
+        matrix = fitz.Matrix(2.0, 2.0)
+        pix = page.get_pixmap(matrix=matrix, alpha=False)
+        tmp_path = preview_png_path + ".tmp"
+        pix.save(tmp_path)
+        doc.close()
+        os.replace(tmp_path, preview_png_path)
+        return preview_png_path
+    except Exception as e:
+        print(f"Ошибка генерации превью PNG: {e}", file=sys.stderr)
+        return None
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

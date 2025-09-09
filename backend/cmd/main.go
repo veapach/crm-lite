@@ -48,6 +48,7 @@ func createRequiredDirectories() {
 	dirs := []string{
 		"uploads/files",
 		"uploads/reports",
+		"uploads/previews",
 	}
 
 	for _, dir := range dirs {
@@ -156,6 +157,7 @@ func main() {
 	r.POST("/api/reports/upload-multiple", users.AuthMiddleware(), users.AdminMiddleware(), report.UploadMultipleReports)
 	r.GET("/api/reportscount", users.AuthMiddleware(), report.GetReportsCount)
 	r.GET("/api/reports/preview/:filename", users.AuthMiddleware(), report.PreviewReport)
+	r.GET("/api/reports/preview-image/:filename", users.AuthMiddleware(), report.PreviewReportImage)
 
 	// График
 	r.GET("/api/requests", users.AuthMiddleware(), requests.GetRequests)

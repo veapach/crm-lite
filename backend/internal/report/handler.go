@@ -2,6 +2,7 @@ package report
 
 import (
 	"archive/zip"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -62,6 +63,12 @@ func DeleteReport(c *gin.Context) {
 
 	if storage.IsS3Enabled() {
 		_ = storage.DeleteReportObject(context.Background(), "reports/"+filename)
+		_ = storage.DeleteReportObject(context.Background(), "previews/"+strings.TrimSuffix(filename, filepath.Ext(filename))+".png")
+	} else {
+		previewPath := filepath.Join("uploads", "previews", strings.TrimSuffix(filename, filepath.Ext(filename))+".png")
+		if _, err := os.Stat(previewPath); err == nil {
+			_ = os.Remove(previewPath)
+		}
 	}
 
 	var report db.Report
@@ -141,6 +148,49 @@ func CreateReport(c *gin.Context) {
 
 	reportData.FirstName = user.FirstName
 	reportData.LastName = user.LastName
+
+	pyServiceURL := os.Getenv("PY_SERVICE_URL")
+	if pyServiceURL != "" && storage.IsS3Enabled() {
+		payload, _ := json.Marshal(reportData)
+		req, err := http.NewRequest(http.MethodPost, pyServiceURL, bytes.NewReader(payload))
+		if err == nil {
+			req.Header.Set("Content-Type", "application/json")
+			cli := &http.Client{Timeout: 120 * time.Second}
+			resp, err := cli.Do(req)
+			if err == nil && resp.StatusCode == http.StatusOK {
+				defer resp.Body.Close()
+				var out struct {
+					PDF     string `json:"pdf"`
+					Preview string `json:"preview"`
+				}
+				dec := json.NewDecoder(resp.Body)
+				if err := dec.Decode(&out); err == nil && strings.HasSuffix(out.PDF, ".pdf") {
+					report := db.Report{
+						Filename:       filepath.Base(out.PDF),
+						Date:           reportData.Date,
+						Address:        reportData.Address,
+						UserID:         userID.(uint),
+						Classification: reportData.Classification,
+					}
+					if result := db.DB.Create(&report); result.Error != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Ошибка при сохранении в БД: %v", result.Error)})
+						return
+					}
+					respMap := gin.H{
+						"message":     "Отчет успешно создан",
+						"report":      report,
+						"displayName": report.Filename,
+						"id":          report.ID,
+					}
+					if out.Preview != "" {
+						respMap["previewName"] = filepath.Base(out.Preview)
+					}
+					c.JSON(http.StatusOK, respMap)
+					return
+				}
+			}
+		}
+	}
 
 	jsonData, err := json.MarshalIndent(reportData, "", "  ")
 	if err != nil {
@@ -225,11 +275,17 @@ func CreateReport(c *gin.Context) {
 
 	lines := strings.Split(string(output), "\n")
 	var displayName string
-	for i := len(lines) - 1; i >= 0; i-- {
-		line := strings.TrimSpace(lines[i])
-		if line != "" && !strings.Contains(line, "%") && strings.HasSuffix(line, ".pdf") {
+	var previewName string
+	for _, lineRaw := range lines {
+		line := strings.TrimSpace(strings.ReplaceAll(strings.TrimPrefix(lineRaw, "\ufeff"), "\r", ""))
+		if line == "" || strings.Contains(line, "%") {
+			continue
+		}
+		if strings.HasSuffix(line, ".pdf") {
 			displayName = line
-			break
+		}
+		if strings.HasSuffix(line, ".png") {
+			previewName = line
 		}
 	}
 
@@ -241,13 +297,7 @@ func CreateReport(c *gin.Context) {
 		return
 	}
 
-	displayName = strings.TrimSpace(displayName)
-	displayName = strings.ReplaceAll(displayName, "\r", "")
-	displayName = strings.TrimPrefix(displayName, "\ufeff")
-
-	filePath := "uploads/reports/" + displayName
-	filePath = filepath.Clean(filePath)
-
+	filePath := filepath.Clean(filepath.Join("uploads", "reports", displayName))
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -264,6 +314,16 @@ func CreateReport(c *gin.Context) {
 			_ = storage.UploadReportObject(context.Background(), "reports/"+displayName, f, info.Size(), "application/pdf")
 		}
 		_ = os.Remove(filePath)
+		if previewName != "" {
+			p := filepath.Clean(filepath.Join("uploads", "previews", previewName))
+			pf, err := os.Open(p)
+			if err == nil {
+				defer pf.Close()
+				pinfo, _ := pf.Stat()
+				_ = storage.UploadReportObject(context.Background(), "previews/"+previewName, pf, pinfo.Size(), "image/png")
+			}
+			_ = os.Remove(p)
+		}
 	}
 
 	report := db.Report{
@@ -282,12 +342,16 @@ func CreateReport(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	resp := gin.H{
 		"message":     "Отчет успешно создан",
 		"report":      report,
 		"displayName": displayName,
 		"id":          report.ID,
-	})
+	}
+	if previewName != "" {
+		resp["previewName"] = previewName
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 func GetReportsCount(c *gin.Context) {
@@ -892,6 +956,31 @@ func PreviewReport(c *gin.Context) {
 		}
 	}
 	c.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден"})
+}
+
+func PreviewReportImage(c *gin.Context) {
+	filename := c.Param("filename")
+	filePath := filepath.Join("uploads", "previews", filename)
+	if _, err := os.Stat(filePath); err == nil {
+		c.Header("Content-Type", "image/png")
+		c.File(filePath)
+		return
+	}
+	if storage.IsS3Enabled() {
+		obj, info, err := storage.GetReportObject(context.Background(), "previews/"+filename)
+		if err == nil && obj != nil {
+			defer obj.Close()
+			if info.ContentType != "" {
+				c.Header("Content-Type", info.ContentType)
+			} else {
+				c.Header("Content-Type", "image/png")
+			}
+			c.Status(http.StatusOK)
+			io.Copy(c.Writer, obj)
+			return
+		}
+	}
+	c.JSON(http.StatusNotFound, gin.H{"error": "Файл превью не найден"})
 }
 
 func ServeReportFile(c *gin.Context) {

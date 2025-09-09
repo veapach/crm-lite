@@ -98,68 +98,60 @@ function Reports() {
     return `${users[userId].lastName || ''} ${users[userId].firstName || ''}`.trim();
   };
 
+  const getPreviewName = (report) => {
+    const base = report.filename.replace(/\.pdf$/i, '');
+    return `${base}.png`;
+  };
+
   const handlePreviewClick = async (report) => {
     setSelectedReport(report);
     setShowPreview(true);
     try {
-      // Используем защищённый эндпоинт для предпросмотра
-      const response = await axios.get(`/api/reports/preview/${encodeURIComponent(report.filename)}`, {
-        responseType: 'arraybuffer',
-        withCredentials: true, // если требуется авторизация по cookie/JWT
+      const previewName = getPreviewName(report);
+      const imgResp = await axios.get(`/api/reports/preview-image/${encodeURIComponent(previewName)}`, {
+        responseType: 'blob',
+        withCredentials: true,
       });
-      const arrayBuffer = response.data;
-
-      if (report.filename.toLowerCase().endsWith('.pdf')) {
-        // Для PDF файлов
+      const url = URL.createObjectURL(imgResp.data);
+      const container = viewerRef.current;
+      container.innerHTML = '';
+      const img = document.createElement('img');
+      img.src = url;
+      img.style.maxWidth = '100%';
+      img.style.height = 'auto';
+      container.appendChild(img);
+    } catch (e) {
+      try {
+        const response = await axios.get(`/api/reports/preview/${encodeURIComponent(report.filename)}`, {
+          responseType: 'arraybuffer',
+          withCredentials: true,
+        });
+        const arrayBuffer = response.data;
         const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
         const pdf = await loadingTask.promise;
-
         const container = viewerRef.current;
         container.innerHTML = '';
-
         const isMobile = window.innerWidth <= 768;
         const scale = isMobile ? 1.2 : 1.5;
-
-        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-          const canvas = document.createElement('canvas');
-          container.appendChild(canvas);
-          const page = await pdf.getPage(pageNum);
-
-          let currentScale = scale;
-          if (isMobile) {
-            const containerWidth = container.clientWidth - 12;
-            const defaultViewport = page.getViewport({ scale });
-            const ratio = containerWidth / defaultViewport.width;
-            currentScale = scale * ratio;
-          }
-
-          const viewport = page.getViewport({ scale: currentScale });
-          canvas.height = viewport.height;
-          canvas.width = viewport.width;
-
-          const context = canvas.getContext('2d');
-          await page.render({
-            canvasContext: context,
-            viewport: viewport
-          }).promise;
-
-          if (pageNum < pdf.numPages) {
-            const spacer = document.createElement('div');
-            spacer.style.height = '20px';
-            container.appendChild(spacer);
-          }
+        const page = await pdf.getPage(1);
+        const canvas = document.createElement('canvas');
+        container.appendChild(canvas);
+        let currentScale = scale;
+        if (isMobile) {
+          const containerWidth = container.clientWidth - 12;
+          const defaultViewport = page.getViewport({ scale });
+          const ratio = containerWidth / defaultViewport.width;
+          currentScale = scale * ratio;
         }
-      } else {
-        // Для DOCX файлов используем docx-preview
-        setTimeout(() => {
-          renderAsync(arrayBuffer, viewerRef.current).catch(() => {
-            setError('Произошла ошибка при рендеринге документа');
-          });
-        }, 100);
+        const viewport = page.getViewport({ scale: currentScale });
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        const context = canvas.getContext('2d');
+        await page.render({ canvasContext: context, viewport }).promise;
+      } catch (error) {
+        setError('Ошибка при загрузке документа');
+        console.error('Ошибка при загрузке документа:', error);
       }
-    } catch (error) {
-      setError('Ошибка при загрузке документа');
-      console.error('Ошибка при загрузке документа:', error);
     }
   };
 
@@ -474,13 +466,12 @@ function Reports() {
               maxHeight: '70vh',
               overflowY: 'auto',
               overflowX: 'hidden',
-              padding: window.innerWidth <= 768 ? '8px' : '16px 0 16px 0', // Убираем горизонтальные отступы на ПК
+              padding: window.innerWidth <= 768 ? '8px' : '16px 0 16px 0',
               margin: '0',
               textAlign: 'left',
               width: '100%'
             }}
           >
-            {/* Содержимое будет добавлено динамически */}
           </div>
         </Modal.Body>
       </Modal>
