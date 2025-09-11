@@ -85,6 +85,24 @@ func DeleteReport(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Отчет успешно удален"})
 }
 
+func getUniqueS3FileName(ctx context.Context, prefix, baseName string) string { // добавлено
+	ext := filepath.Ext(baseName)
+	name := strings.TrimSuffix(baseName, ext)
+	newName := baseName
+	counter := 1
+
+	for {
+		key := prefix + newName
+		_, _, err := storage.GetReportObject(ctx, key)
+		if err != nil {
+			// объекта нет — значит имя уникально
+			return newName
+		}
+		newName = fmt.Sprintf("%s(%d)%s", name, counter, ext)
+		counter++
+	}
+}
+
 func CreateReport(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -311,18 +329,61 @@ func CreateReport(c *gin.Context) {
 		if err == nil {
 			defer f.Close()
 			info, _ := f.Stat()
-			_ = storage.UploadReportObject(context.Background(), "reports/"+displayName, f, info.Size(), "application/pdf")
-		}
-		_ = os.Remove(filePath)
-		if previewName != "" {
-			p := filepath.Clean(filepath.Join("uploads", "previews", previewName))
-			pf, err := os.Open(p)
-			if err == nil {
-				defer pf.Close()
-				pinfo, _ := pf.Stat()
-				_ = storage.UploadReportObject(context.Background(), "previews/"+previewName, pf, pinfo.Size(), "image/png")
+
+			ext := filepath.Ext(displayName)
+			base := strings.TrimSuffix(displayName, ext)
+			uniqueName := displayName
+			counter := 1
+
+			for {
+				key := "reports/" + uniqueName
+				obj, _, e := storage.GetReportObject(context.Background(), key)
+				if e == nil && obj != nil {
+					obj.Close()
+					uniqueName = fmt.Sprintf("%s(%d)%s", base, counter, ext)
+					counter++
+					continue
+				}
+				break
 			}
-			_ = os.Remove(p)
+
+			_, _ = f.Seek(0, 0)
+			_ = storage.UploadReportObject(context.Background(), "reports/"+uniqueName, f, info.Size(), "application/pdf")
+			_ = os.Remove(filePath)
+			displayName = uniqueName
+
+			if previewName != "" {
+				p := filepath.Clean(filepath.Join("uploads", "previews", previewName))
+				pf, err := os.Open(p)
+				if err == nil {
+					defer pf.Close()
+					pinfo, _ := pf.Stat()
+
+					pext := filepath.Ext(previewName)
+					pbase := strings.TrimSuffix(previewName, pext)
+					pUnique := previewName
+					pCounter := 1
+
+					for {
+						pKey := "previews/" + pUnique
+						pObj, _, pe := storage.GetReportObject(context.Background(), pKey)
+						if pe == nil && pObj != nil {
+							pObj.Close()
+							pUnique = fmt.Sprintf("%s(%d)%s", pbase, pCounter, pext)
+							pCounter++
+							continue
+						}
+						break
+					}
+
+					_, _ = pf.Seek(0, 0)
+					_ = storage.UploadReportObject(context.Background(), "previews/"+pUnique, pf, pinfo.Size(), "image/png")
+					_ = os.Remove(p)
+					previewName = pUnique
+				}
+			}
+		} else {
+			_ = os.Remove(filePath)
 		}
 	}
 
@@ -562,6 +623,7 @@ func UploadReport(c *gin.Context) {
 
 	if storage.IsS3Enabled() {
 		ctx := context.Background()
+		fileName = getUniqueS3FileName(ctx, "reports/", fileName)
 		contentType := header.Header.Get("Content-Type")
 		if contentType == "" {
 			contentType = "application/octet-stream"
@@ -792,7 +854,8 @@ func UploadMultipleReports(c *gin.Context) {
 				errors = append(errors, fmt.Sprintf("Ошибка при открытии файла %s: %v", origName, err))
 				continue
 			}
-			key := "reports/" + origName
+			uniqueName := getUniqueS3FileName(context.Background(), "reports/", origName)
+			key := "reports/" + uniqueName
 			if err := storage.UploadReportObject(context.Background(), key, src, f.Size, "application/octet-stream"); err != nil {
 				src.Close()
 				errors = append(errors, fmt.Sprintf("Ошибка при загрузке в S3 %s: %v", origName, err))
@@ -800,6 +863,13 @@ func UploadMultipleReports(c *gin.Context) {
 			}
 			src.Close()
 			uploadedKeys = append(uploadedKeys, key)
+			reports = append(reports, db.Report{
+				Filename:       uniqueName,
+				Date:           fileDate,
+				Address:        address,
+				UserID:         reportUser.ID,
+				Classification: classification,
+			})
 		} else {
 			if err := os.MkdirAll("uploads/reports", 0755); err != nil {
 				errors = append(errors, "ошибка при создании директории для отчетов")
@@ -819,6 +889,13 @@ func UploadMultipleReports(c *gin.Context) {
 			}
 			_, err = io.CopyBuffer(dst, src, buffer)
 			src.Close()
+			reports = append(reports, db.Report{
+				Filename:       origName, // изменено
+				Date:           fileDate,
+				Address:        address,
+				UserID:         reportUser.ID,
+				Classification: classification,
+			})
 			dst.Close()
 			if err != nil {
 				os.Remove(filePath)
@@ -826,14 +903,6 @@ func UploadMultipleReports(c *gin.Context) {
 				continue
 			}
 		}
-
-		reports = append(reports, db.Report{
-			Filename:       origName,
-			Date:           fileDate,
-			Address:        address,
-			UserID:         reportUser.ID,
-			Classification: classification,
-		})
 	}
 
 	if len(reports) > 0 {
