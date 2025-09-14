@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import '../styles/Schedule.css';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
@@ -237,7 +238,7 @@ function Inventory() {
         </label>
       </div>
       {error && <div className="alert alert-danger">{error}</div>}
-      <div className="table-responsive">
+      <div className="schedule-table-wrapper">
         <table className="table table-bordered table-striped">
           <thead className="table-light">
             <tr>
