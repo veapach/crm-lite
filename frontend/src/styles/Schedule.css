@@ -1,0 +1,17 @@
+/* Горизонтальный скролл для таблиц на странице графика */
+.schedule-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.schedule-table-wrapper table {
+  min-width: 700px;
+  width: max-content;
+}
+
+@media (max-width: 600px) {
+  .schedule-table-wrapper table {
+    min-width: 600px;
+  }
+}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import '../styles/Schedule.css';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -323,7 +324,8 @@ useEffect(() => {
               </select>
             </div>
           </div>
-          <table className="table table-bordered align-middle mb-0">
+          <div className="schedule-table-wrapper">
+            <table className="table table-bordered align-middle mb-0">
             <thead>
               <tr>
                 <th style={{ width: 40 }}>№</th>
@@ -356,7 +358,8 @@ useEffect(() => {
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
       )}
 
@@ -432,7 +435,8 @@ useEffect(() => {
       {sortedTodaySchedules.length > 0 && (
         <div className="mb-4 p-2" style={{ border: '2px solid #0d6efd22', borderRadius: '12px', background: '#f8faff' }}>
           <div className="mb-2" style={{ fontWeight: 'bold', color: '#0d6efd' }}>Сегодняшние выезды</div>
-          <table className="table table-bordered align-middle mb-0">
+          <div className="schedule-table-wrapper">
+            <table className="table table-bordered align-middle mb-0">
             <thead>
               <tr>
                 <th style={{ width: 40 }}>№</th>
@@ -473,12 +477,14 @@ useEffect(() => {
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
       )}
 
       {/* Остальные выезды */}
-      <table className="table table-bordered align-middle">
+      <div className="schedule-table-wrapper">
+        <table className="table table-bordered align-middle">
         <thead>
           <tr>
             <th style={{ width: 40 }}>№</th>
@@ -519,7 +525,8 @@ useEffect(() => {
             </tr>
           ))}
         </tbody>
-      </table>
+        </table>
+      </div>
     </div>
   );
 }
