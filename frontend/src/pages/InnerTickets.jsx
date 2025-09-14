@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Table, Button, Modal } from 'react-bootstrap';
+import '../styles/Schedule.css';
 
 function InnerTickets() {
   const [tickets, setTickets] = useState([]);
@@ -143,7 +144,8 @@ function InnerTickets() {
           {showCompletedTickets ? "Показать активные" : "Показать завершенные"}
         </Button>
       </div>
-      <Table striped bordered hover responsive>
+      <div className="schedule-table-wrapper">
+        <Table striped bordered hover responsive>
         <thead>
           <tr>
             <th>ID</th>
@@ -200,7 +202,8 @@ function InnerTickets() {
     })}
 </tbody>
 
-      </Table>
+        </Table>
+      </div>
 
       <Modal show={showDetailsModal} onHide={() => setShowDetailsModal(false)}>
         <Modal.Header closeButton>

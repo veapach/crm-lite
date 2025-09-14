@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import '../styles/Files.css';
+import '../styles/Schedule.css';
 import { Modal } from 'react-bootstrap';
 
 function Files() {
@@ -164,7 +165,7 @@ function Files() {
       </div>
 
       <h3>Загруженные файлы</h3>
-      <div className="table-responsive">
+      <div className="schedule-table-wrapper">
         <table className="table">
           <thead>
             <tr>
