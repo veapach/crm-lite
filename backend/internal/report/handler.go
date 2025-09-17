@@ -841,7 +841,7 @@ func UploadMultipleReports(c *gin.Context) {
 	buffer := make([]byte, 32*1024)
 	reports := make([]db.Report, 0, len(files))
 	errors := make([]string, 0)
-	dateAddressRegex := regexp.MustCompile(`Акт выполненных работ (\d{4}-\d{2}-\d{2}) (.+)\.`)
+	dateAddressRegex := regexp.MustCompile(`Акт[_\s]+выполненных[_\s]+работ[_\s]+(\d{4}[-_]\d{2}[-_]\d{2})[_\s]+(.+)\.`)
 
 	uploadedKeys := make([]string, 0)
 
@@ -851,8 +851,9 @@ func UploadMultipleReports(c *gin.Context) {
 		if date == "" {
 			match := dateAddressRegex.FindStringSubmatch(origName)
 			if len(match) >= 3 {
-				fileDate = match[1]
-				address = match[2]
+				// Нормализуем дату к формату YYYY-MM-DD
+				fileDate = strings.ReplaceAll(match[1], "_", "-")
+				address = strings.ReplaceAll(match[2], "_", " ")
 			} else {
 				errors = append(errors, fmt.Sprintf("Неверный формат имени файла: %s", origName))
 				continue
