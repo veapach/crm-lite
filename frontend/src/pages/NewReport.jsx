@@ -329,7 +329,7 @@ function NewReport() {
     // Если выбрана классификация "Другое", заменяем значение
   let dataToSend = { ...formData };
   // Добавляем выбранного исполнителя
-  dataToSend.userId = selectedUserId;
+  dataToSend.userId = parseInt(selectedUserId, 10);
     if (dataToSend.classification === 'Другое') {
       dataToSend.classification = dataToSend.customClass;
     } else if (dataToSend.classification === 'Аварийный вызов') {
@@ -422,7 +422,7 @@ function NewReport() {
           <select
             className="form-select"
             value={selectedUserId || ''}
-            onChange={e => setSelectedUserId(e.target.value)}
+            onChange={e => setSelectedUserId(parseInt(e.target.value, 10))}
             required
           >
             {users.map(u => (

@@ -131,7 +131,7 @@ func CreateReport(c *gin.Context) {
 	if err := db.DB.First(&user, execUserId).Error; err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
-			gin.H{"error": "Ошибка при получении данных пользователя-исполнителя"},
+			gin.H{"error": "Ошибка при получении данных исполнителя"},
 		)
 		return
 	}
@@ -198,7 +198,7 @@ func CreateReport(c *gin.Context) {
 						Filename:       filepath.Base(out.PDF),
 						Date:           reportData.Date,
 						Address:        reportData.Address,
-						UserID:         userID.(uint),
+						UserID:         execUserId,
 						Classification: reportData.Classification,
 					}
 					if result := db.DB.Create(&report); result.Error != nil {
