@@ -90,8 +90,10 @@ const Admin = () => {
     try {
       const response = await axios.get('/api/users');
       setUsers(response.data);
+      console.log('Пользователи загружены:', response.data);
     } catch (error) {
-      toast.error('Ошибка при загрузке пользователей');
+      console.error('Ошибка при загрузке пользователей:', error);
+      toast.error(`Ошибка при загрузке пользователей: ${error.response?.data?.error || error.message}`);
     }
   }, []);
   
@@ -263,6 +265,10 @@ const Admin = () => {
     } catch (error) {
       setUploadStatus('Ошибка загрузки');
       setUploadProgress(0);
+      
+      console.error('Подробная ошибка загрузки отчетов:', error);
+      console.error('Response data:', error.response?.data);
+      console.error('Response status:', error.response?.status);
       
       if (error.response?.data?.error) {
         toast.error(`Ошибка при загрузке отчетов: ${error.response.data.error}`);

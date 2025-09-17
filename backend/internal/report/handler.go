@@ -125,6 +125,9 @@ func CreateReport(c *gin.Context) {
 		execUserId = id
 	} else if id, ok := userID.(int); ok {
 		execUserId = uint(id)
+	} else {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось определить исполнителя"})
+		return
 	}
 
 	var user db.User
