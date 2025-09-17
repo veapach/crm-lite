@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FaChevronDown } from 'react-icons/fa';
 
 function NewReport() {
+  const { user } = useAuth();
   const navigate = useNavigate();
   // Prefill from query params if present
   const getInitialFormData = () => {
@@ -48,6 +50,27 @@ function NewReport() {
   };
 
   const [formData, setFormData] = useState(getInitialFormData());
+  // Список пользователей и выбранный исполнитель
+  const [users, setUsers] = useState([]);
+  const [selectedUserId, setSelectedUserId] = useState(null);
+  // Загрузка пользователей
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await axios.get('/api/users');
+        setUsers(response.data);
+        // По умолчанию выбран текущий пользователь
+        if (user && user.id) {
+          setSelectedUserId(user.id);
+        } else if (response.data.length > 0) {
+          setSelectedUserId(response.data[0].id);
+        }
+      } catch (err) {
+        setUsers([]);
+      }
+    };
+    fetchUsers();
+  }, [user]);
 
   const [previewImages, setPreviewImages] = useState([]);
   const [error, setError] = useState('');
@@ -304,7 +327,9 @@ function NewReport() {
     }
   
     // Если выбрана классификация "Другое", заменяем значение
-    let dataToSend = { ...formData };
+  let dataToSend = { ...formData };
+  // Добавляем выбранного исполнителя
+  dataToSend.userId = selectedUserId;
     if (dataToSend.classification === 'Другое') {
       dataToSend.classification = dataToSend.customClass;
     } else if (dataToSend.classification === 'Аварийный вызов') {
@@ -315,7 +340,7 @@ function NewReport() {
     setIsLoading(true);
   
     try {
-      const response = await axios.post('/api/report', dataToSend, {
+  const response = await axios.post('/api/report', dataToSend, {
         headers: { 'Content-Type': 'application/json' },
       });
       const newReportId = response.data.id;
@@ -351,7 +376,7 @@ function NewReport() {
       }
   
       // Перенаправляем на страницу путевого листа после успешного создания
-      setTimeout(() => navigate('/travel-sheet'), 2000);
+  setTimeout(() => navigate('/travel-sheet'), 2000);
     } catch (err) {
       setError(err.response?.data?.error || 'Ошибка при создании отчета');
       setIsLoading(false);
@@ -392,6 +417,21 @@ function NewReport() {
       {success && <div className="alert alert-success">{success}</div>}
 
       <form onSubmit={handleSubmit} className="needs-validation">
+        <div className="mb-3">
+          <label className="form-label fw-bold">Исполнитель</label>
+          <select
+            className="form-select"
+            value={selectedUserId || ''}
+            onChange={e => setSelectedUserId(e.target.value)}
+            required
+          >
+            {users.map(u => (
+              <option key={u.id} value={u.id}>
+                {u.lastName || ''} {u.firstName || ''} {u.patronymic || ''}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="mb-3">
           <label className="form-label fw-bold mt-3">Дата *</label>
           <input

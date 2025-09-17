@@ -43,6 +43,7 @@ type ReportData struct {
 	Photos           []string                 `json:"photos"`
 	FirstName        string                   `json:"firstName"`
 	LastName         string                   `json:"lastName"`
+	UserId           uint                     `json:"userId"`
 }
 
 func DeleteReport(c *gin.Context) {
@@ -110,18 +111,28 @@ func CreateReport(c *gin.Context) {
 		return
 	}
 
-	var user db.User
-	if err := db.DB.First(&user, userID).Error; err != nil {
-		c.JSON(
-			http.StatusInternalServerError,
-			gin.H{"error": "Ошибка при получении данных пользователя"},
-		)
-		return
-	}
-
 	var reportData ReportData
 	if err := c.ShouldBindJSON(&reportData); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат данных"})
+		return
+	}
+
+	// Если явно передан userId (исполнитель), используем его, иначе текущий userID
+	var execUserId uint
+	if reportData.UserId != 0 {
+		execUserId = reportData.UserId
+	} else if id, ok := userID.(uint); ok {
+		execUserId = id
+	} else if id, ok := userID.(int); ok {
+		execUserId = uint(id)
+	}
+
+	var user db.User
+	if err := db.DB.First(&user, execUserId).Error; err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": "Ошибка при получении данных пользователя-исполнителя"},
+		)
 		return
 	}
 
@@ -391,7 +402,7 @@ func CreateReport(c *gin.Context) {
 		Filename:       displayName,
 		Date:           reportData.Date,
 		Address:        reportData.Address,
-		UserID:         userID.(uint),
+		UserID:         execUserId,
 		Classification: reportData.Classification,
 	}
 
