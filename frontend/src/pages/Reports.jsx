@@ -25,9 +25,12 @@ function Reports() {
   const [isDateFiltered, setIsDateFiltered] = useState(false);
   const [classificationStats, setClassificationStats] = useState({ toKitchen: 0, toBakery: 0, to: 0, av: 0, pnr: 0 });
   const [selectedReports, setSelectedReports] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(12); // Можно изменить размер страницы
-  const [totalPages, setTotalPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1); // Текущая страница для подгрузки
+  const [pageSize] = useState(20); // Размер страницы
+  // totalPages больше не нужен явно (hasMore хранит состояние)
+  const [isLoading, setIsLoading] = useState(false); // Идет ли загрузка
+  const [hasMore, setHasMore] = useState(true); // Есть ли еще страницы
+  const sentinelRef = useRef(null); // Наблюдатель для бесконечной прокрутки
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('ru-RU');
@@ -76,9 +79,11 @@ function Reports() {
     }
   }, [isDateFiltered, dateRange.startDate, dateRange.endDate]);
 
-  const fetchReports = useCallback(async () => {
+  const fetchReports = useCallback(async (pageToLoad = 1, replace = false) => {
+    if (isLoading) return;
+    setIsLoading(true);
     try {
-      let url = `/api/reports?onlyMine=${showOnlyMine}&page=${currentPage}&pageSize=${pageSize}`;
+      let url = `/api/reports?onlyMine=${showOnlyMine}&page=${pageToLoad}&pageSize=${pageSize}`;
       if (isDateFiltered && dateRange.startDate && dateRange.endDate) {
         url += `&startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`;
       }
@@ -86,12 +91,22 @@ function Reports() {
         url += `&search=${encodeURIComponent(searchTerm)}`;
       }
       const response = await axios.get(url);
-      setReports(response.data.reports);
-      setTotalPages(response.data.totalPages);
+  setHasMore(pageToLoad < response.data.totalPages);
+      if (replace) {
+        setReports(response.data.reports || []);
+      } else {
+        setReports(prev => {
+          const existingIds = new Set(prev.map(r => r.id));
+            const newOnes = (response.data.reports || []).filter(r => !existingIds.has(r.id));
+            return [...prev, ...newOnes];
+        });
+      }
     } catch (error) {
       console.error('Ошибка при загрузке отчетов', error);
+    } finally {
+      setIsLoading(false);
     }
-  }, [showOnlyMine, isDateFiltered, dateRange.startDate, dateRange.endDate, currentPage, pageSize, searchTerm]);
+  }, [showOnlyMine, isDateFiltered, dateRange.startDate, dateRange.endDate, searchTerm, pageSize, isLoading]);
 
   const getUserFullName = (userId) => {
     if (!users[userId]) return 'Неизвестный пользователь';
@@ -282,7 +297,7 @@ function Reports() {
   };
 
   useEffect(() => {
-    fetchReports();
+    fetchReports(1, true);
     fetchUsers();
     fetchReportsCount();
   }, [fetchReports, fetchUsers, fetchReportsCount]);
@@ -301,10 +316,28 @@ function Reports() {
     }
   }, []);
 
-  // useEffect для сброса страницы при изменении фильтров/поиска
+  // При изменении фильтров/поиска сбрасываем список и страницу
   useEffect(() => {
     setCurrentPage(1);
-  }, [showOnlyMine, isDateFiltered, dateRange.startDate, dateRange.endDate, searchTerm]);
+    setHasMore(true);
+    fetchReports(1, true);
+    fetchReportsCount();
+  }, [showOnlyMine, isDateFiltered, dateRange.startDate, dateRange.endDate, searchTerm, fetchReports, fetchReportsCount]);
+
+  // IntersectionObserver для бесконечной прокрутки
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+    const observer = new IntersectionObserver((entries) => {
+      const first = entries[0];
+      if (first.isIntersecting && hasMore && !isLoading) {
+        const nextPage = currentPage + 1;
+        setCurrentPage(nextPage);
+        fetchReports(nextPage, false);
+      }
+    }, { threshold: 0.1 });
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [currentPage, hasMore, isLoading, fetchReports]);
 
   return (
     <div className="container mt-5">
@@ -445,24 +478,20 @@ function Reports() {
             </div>
           </div>
         ))}
+        {/* Sentinel */}
+        <div ref={sentinelRef} style={{ height: 1, width: '100%' }} />
+        {isLoading && (
+          <div className="col-12 text-center mb-3" style={{color: '#666'}}>
+            Загрузка...
+          </div>
+        )}
+        {!isLoading && !hasMore && reports.length > 0 && (
+          <div className="col-12 text-center mb-3" style={{color: '#666'}}>
+            Все отчеты загружены
+          </div>
+        )}
       </div>
-      <div className="d-flex justify-content-center align-items-center my-4">
-        <button
-          className="btn btn-outline-secondary me-2"
-          disabled={currentPage === 1}
-          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-        >
-          Назад
-        </button>
-        <span>Страница {currentPage} из {totalPages}</span>
-        <button
-          className="btn btn-outline-secondary ms-2"
-          disabled={currentPage === totalPages}
-          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-        >
-          Вперед
-        </button>
-      </div>
+      {/* Удалена панель пагинации в пользу бесконечной прокрутки */}
 
       <Modal show={showPreview} onHide={() => setShowPreview(false)} size="lg" centered>
         <Modal.Header closeButton>
