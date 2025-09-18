@@ -28,9 +28,11 @@ function Reports() {
   const [currentPage, setCurrentPage] = useState(1); // Текущая страница для подгрузки
   const [pageSize] = useState(20); // Размер страницы
   // totalPages больше не нужен явно (hasMore хранит состояние)
-  const [isLoading, setIsLoading] = useState(false); // Идет ли загрузка
+  const [isLoading, setIsLoading] = useState(false); // UI индикатор
   const [hasMore, setHasMore] = useState(true); // Есть ли еще страницы
   const sentinelRef = useRef(null); // Наблюдатель для бесконечной прокрутки
+  const loadingRef = useRef(false); // фактическое состояние загрузки для защиты от гонок
+  const activeRequestRef = useRef(0); // id последнего запроса
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('ru-RU');
@@ -80,10 +82,15 @@ function Reports() {
   }, [isDateFiltered, dateRange.startDate, dateRange.endDate]);
 
   const fetchReports = useCallback(async (pageToLoad = 1, replace = false) => {
-    if (isLoading) return;
+    if (loadingRef.current) return;
+    loadingRef.current = true;
     setIsLoading(true);
+    const requestId = ++activeRequestRef.current;
     try {
       let url = `/api/reports?onlyMine=${showOnlyMine}&page=${pageToLoad}&pageSize=${pageSize}`;
+      if (sortOrder) {
+        url += `&order=${sortOrder}`; // предполагаем поддержку сортировки (если нет — игнорируется сервером)
+      }
       if (isDateFiltered && dateRange.startDate && dateRange.endDate) {
         url += `&startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`;
       }
@@ -91,22 +98,31 @@ function Reports() {
         url += `&search=${encodeURIComponent(searchTerm)}`;
       }
       const response = await axios.get(url);
-  setHasMore(pageToLoad < response.data.totalPages);
+      // Если пришел неактуальный ответ (устаревший запрос) — игнорируем
+      if (requestId !== activeRequestRef.current) return;
+      setHasMore(pageToLoad < response.data.totalPages);
+      const newData = response.data.reports || [];
       if (replace) {
-        setReports(response.data.reports || []);
+        // Очищаем мгновенно чтобы не мигало
+        setReports([]);
+        // Небольшая микротаска чтобы показать skeleton/пустоту — можно убрать
+        requestAnimationFrame(() => setReports(newData));
       } else {
         setReports(prev => {
           const existingIds = new Set(prev.map(r => r.id));
-            const newOnes = (response.data.reports || []).filter(r => !existingIds.has(r.id));
-            return [...prev, ...newOnes];
+          const filtered = newData.filter(r => !existingIds.has(r.id));
+          return [...prev, ...filtered];
         });
       }
     } catch (error) {
       console.error('Ошибка при загрузке отчетов', error);
     } finally {
-      setIsLoading(false);
+      if (requestId === activeRequestRef.current) {
+        setIsLoading(false);
+        loadingRef.current = false;
+      }
     }
-  }, [showOnlyMine, isDateFiltered, dateRange.startDate, dateRange.endDate, searchTerm, pageSize, isLoading]);
+  }, [showOnlyMine, isDateFiltered, dateRange.startDate, dateRange.endDate, searchTerm, pageSize, sortOrder]);
 
   const getUserFullName = (userId) => {
     if (!users[userId]) return 'Неизвестный пользователь';
@@ -300,7 +316,8 @@ function Reports() {
     fetchReports(1, true);
     fetchUsers();
     fetchReportsCount();
-  }, [fetchReports, fetchUsers, fetchReportsCount]);
+  // fetchReports стабилен по зависимостям выше
+  }, [fetchUsers, fetchReportsCount, fetchReports]);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -329,7 +346,7 @@ function Reports() {
     if (!sentinelRef.current) return;
     const observer = new IntersectionObserver((entries) => {
       const first = entries[0];
-      if (first.isIntersecting && hasMore && !isLoading) {
+      if (first.isIntersecting && hasMore && !loadingRef.current && !isLoading) {
         const nextPage = currentPage + 1;
         setCurrentPage(nextPage);
         fetchReports(nextPage, false);
