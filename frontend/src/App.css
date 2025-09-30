@@ -112,3 +112,40 @@ html, body {
   font-size: 1.5rem;
   color: #333;
 }
+
+/* Индикация новых заявок */
+@keyframes vv-blink-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+
+.vv-badge-pulse {
+  position: relative;
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-left: 6px;
+  border-radius: 9999px;
+  background-color: #ff3b30;
+  animation: vv-blink-soft 1.4s infinite ease-in-out;
+}
+
+.vv-banner-alert {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #fff;
+  background: linear-gradient(90deg, #ff3b30, #ff6b6b);
+  border-radius: 10px;
+  padding: 4px 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  animation: vv-blink-soft 1.6s infinite ease-in-out;
+}
+
+.vv-banner-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 6px 0;
+}

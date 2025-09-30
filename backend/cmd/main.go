@@ -66,21 +66,29 @@ func main() {
 
 	_ = storage.InitS3FromEnv()
 
-	backup.StartScheduledBackups()
+	if serverMode == "RELEASE" {
+		backup.StartScheduledBackups()
+	} else {
+		log.Println("DEBUG: бэкапы отключены")
+	}
 
 	r := gin.Default()
 	r.MaxMultipartMemory = 8 << 30 // 8 GiB
 
-	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
-	if err != nil {
-		log.Fatalf("Ошибка подключения к RabbitMQ: %v", err)
+	if serverMode == "RELEASE" {
+		conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+		if err != nil {
+			log.Fatalf("Ошибка подключения к RabbitMQ: %v", err)
+		}
+		ch, err := conn.Channel()
+		if err != nil {
+			log.Fatalf("Ошибка создания канала RabbitMQ: %v", err)
+		}
+		tickets.TicketQueue = ch
+		go tickets.StartTicketWorker("amqp://guest:guest@localhost:5672/")
+	} else {
+		log.Println("DEBUG: RabbitMQ обработчик заявок отключен")
 	}
-	ch, err := conn.Channel()
-	if err != nil {
-		log.Fatalf("Ошибка создания канала RabbitMQ: %v", err)
-	}
-	tickets.TicketQueue = ch
-	go tickets.StartTicketWorker("amqp://guest:guest@localhost:5672/")
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins: []string{

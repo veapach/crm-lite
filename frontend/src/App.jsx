@@ -23,9 +23,22 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
+import { NewTicketsProvider, useNewTickets } from './context/NewTicketsContext';
 
 axios.defaults.withCredentials = true;
 axios.defaults.baseURL = `${config.API_BASE_URL}`;
+
+function NewTicketsBanner() {
+  const { hasNewTickets } = useNewTickets() || { hasNewTickets: false };
+  const location = useLocation();
+  const hideOnTickets = location.pathname === '/inner-tickets';
+  if (!hasNewTickets || hideOnTickets) return null;
+  return (
+    <div className="vv-banner-container">
+      <div className="vv-banner-alert">Новая заявка</div>
+    </div>
+  );
+}
 
 function App() {
   const [serverAvailable, setServerAvailable] = useState(true);
@@ -65,6 +78,7 @@ function App() {
   return (
     <>
       {!hideNavbar && <Navbar />}  
+      {!hideNavbar && <NewTicketsBanner />}
       <div> 
         <Routes>
             <Route path="/auth" element={isAuthenticated ? <Navigate to="/" replace /> : <Auth />} />
@@ -92,7 +106,9 @@ export default function WrappedApp() {
   return (
     <AuthProvider>
         <BrowserRouter>
-          <App />
+          <NewTicketsProvider>
+            <App />
+          </NewTicketsProvider>
         </BrowserRouter>
     </AuthProvider>
   );

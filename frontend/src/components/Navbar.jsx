@@ -3,9 +3,11 @@ import { Link, useLocation } from 'react-router-dom';
 import { FaBars } from 'react-icons/fa';
 import '../styles/Navbar.css';
 import { useAuth } from '../context/AuthContext';
+import { useNewTickets } from '../context/NewTicketsContext';
 
 function Navbar() {
   const { isAuthenticated, user } = useAuth();
+  const { hasNewTickets } = useNewTickets() || { hasNewTickets: false };
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false); // Состояние для анимации закрытия
   const location = useLocation();
@@ -77,8 +79,9 @@ function Navbar() {
                   <li className="nav-item mx-1">
                     <Link className={`nav-link rounded-pill ${location.pathname === '/reports' ? 'active' : ''}`} to="/reports">Отчеты</Link>
                   </li>
-                  <li className="nav-item mx-1">
+                  <li className="nav-item mx-1" style={{ display: 'flex', alignItems: 'center' }}>
                     <Link className={`nav-link rounded-pill ${location.pathname === '/inner-tickets' ? 'active' : ''}`} to="/inner-tickets">Заявки</Link>
+                    {hasNewTickets && <span className="vv-badge-pulse" aria-label="Новые заявки" />}
                   </li>
                   <li className="nav-item mx-1">
                     <Link className={`nav-link rounded-pill ${location.pathname === '/statistics' ? 'active' : ''}`} to="/statistics">Статистика</Link>
@@ -123,7 +126,11 @@ function Navbar() {
                 <li><Link to="/schedule" onClick={closeMenu}>График</Link></li>
                 <li><Link to="/new-report" onClick={closeMenu}>Новый отчет</Link></li>
                 <li><Link to="/reports" onClick={closeMenu}>Отчеты</Link></li>
-                <li><Link to="/inner-tickets" onClick={closeMenu}>Заявки</Link></li>
+                <li>
+                  <Link to="/inner-tickets" onClick={closeMenu}>
+                    Заявки{hasNewTickets && <span className="vv-badge-pulse" aria-label="Новые заявки" />}
+                  </Link>
+                </li>
                 <li><Link to="/statistics" onClick={closeMenu}>Статистика</Link></li>
                 <li><Link to="/files" onClick={closeMenu}>Файлы</Link></li>
                 <li><Link to="/inventory" onClick={closeMenu}>ЗИП</Link></li>

@@ -13,31 +13,31 @@ function InnerTickets() {
   const [currentUser, setCurrentUser] = useState(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchTickets = async () => {
-      try {
-        const response = await axios.get('/api/client-tickets');
-        const data = response.data.tickets; // Ensure we access the 'tickets' field from the response
-        setTickets(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error('Ошибка при загрузке заявок:', error);
-        setTickets([]);
-      }
-    };
+	useEffect(() => {
+		const fetchTickets = async () => {
+			try {
+				const response = await axios.get('/api/client-tickets');
+				const data = response.data.tickets;
+				setTickets(Array.isArray(data) ? data : []);
+			} catch (error) {
+				console.error('Ошибка при загрузке заявок:', error);
+				setTickets([]);
+			}
+		};
 
-    const fetchCurrentUser = async () => {
-      try {
-        const response = await axios.get('/api/check-auth');
-        const user = response.data.user;
-        setCurrentUser(user);
-      } catch (error) {
-        console.error('Ошибка при загрузке текущего пользователя:', error);
-      }
-    };
+		const fetchCurrentUser = async () => {
+			try {
+				const response = await axios.get('/api/check-auth');
+				const user = response.data.user;
+				setCurrentUser(user);
+			} catch (error) {
+				console.error('Ошибка при загрузке текущего пользователя:', error);
+			}
+		};
 
-    fetchTickets();
-    fetchCurrentUser();
-  }, []);
+		fetchTickets();
+		fetchCurrentUser();
+	}, []);
 
   const handleTakeInWork = async (ticketId) => {
     try {
@@ -85,11 +85,9 @@ function InnerTickets() {
 
   const handleConfirmReport = async (shouldComplete) => {
     const ticket = selectedTicket;
-    // Сохраняем текущего инженера
     const currentEngineer = ticket.engineerName || `${currentUser.firstName} ${currentUser.lastName}`;
     
     try {
-      // Обновляем статус и сохраняем инженера в любом случае
       await axios.put(`/api/client-tickets/${ticket.id}`, { 
         status: shouldComplete ? 'Завершено' : 'В работе', 
         engineerName: currentEngineer 
