@@ -90,6 +90,13 @@ func main() {
 		log.Println("DEBUG: RabbitMQ обработчик заявок отключен")
 	}
 
+	go func() {
+		for {
+			time.Sleep(5 * time.Second)
+			tickets.NotifyUnassignedPublic()
+		}
+	}()
+
 	r.Use(cors.New(cors.Config{
 		AllowOrigins: []string{
 			"https://crmlite-vv.ru",
@@ -180,6 +187,9 @@ func main() {
 	r.PUT("/api/client-tickets/:id", users.AuthMiddleware(), tickets.UpdateClientTicket)
 	r.DELETE("/api/client-tickets/:id", users.AuthMiddleware(), tickets.DeleteClientTicket)
 	r.GET("/api/tickets/files/:filename", tickets.ServeTicketFile)
+
+	// Debug TG отправка (только админ)
+	r.POST("/api/debug/send-unassigned-alert", users.AuthMiddleware(), users.AdminMiddleware(), tickets.DebugSendUnassigned)
 
 	// Адреса объектов
 	r.GET("/api/addresses", address.GetAddresses)

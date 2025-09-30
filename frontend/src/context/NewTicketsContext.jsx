@@ -30,7 +30,7 @@ export const NewTicketsProvider = ({ children }) => {
 	};
 
 	useEffect(() => {
-		const interval = setInterval(fetchUnassignedCount, 5000);
+		const interval = setInterval(fetchUnassignedCount, 15000);
 		fetchUnassignedCount();
 		return () => clearInterval(interval);
 	}, []);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { BrowserRouter } from 'react-router-dom';
 
 import Navbar from './components/Navbar';
@@ -31,11 +31,14 @@ axios.defaults.baseURL = `${config.API_BASE_URL}`;
 function NewTicketsBanner() {
   const { hasNewTickets } = useNewTickets() || { hasNewTickets: false };
   const location = useLocation();
+  const navigate = useNavigate();
   const hideOnTickets = location.pathname === '/inner-tickets';
   if (!hasNewTickets || hideOnTickets) return null;
   return (
     <div className="vv-banner-container">
-      <div className="vv-banner-alert">Новая заявка</div>
+      <div className="vv-banner-alert" onClick={() => navigate('/inner-tickets')} role="button" aria-label="Перейти к заявкам" tabIndex={0}>
+        Новая заявка
+      </div>
     </div>
   );
 }

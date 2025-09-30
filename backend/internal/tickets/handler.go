@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -16,6 +18,99 @@ import (
 
 // RabbitMQ connection (инициализируй в main)
 var TicketQueue *amqp.Channel
+
+var lastNotifiedUnassignedCount int64 = -1
+
+func russianPlural(n int64, one string, few string, many string) string {
+	mod10 := n % 10
+	mod100 := n % 100
+	if mod10 == 1 && mod100 != 11 {
+		return one
+	}
+	if mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14) {
+		return few
+	}
+	return many
+}
+
+func notifyUnassignedIfNeeded() {
+	var total int64
+	db.DB.Model(&db.ClientTicket{}).Where("status = ?", "Не назначено").Count(&total)
+	if total <= 0 {
+		lastNotifiedUnassignedCount = 0
+		return
+	}
+	if total == lastNotifiedUnassignedCount {
+		return
+	}
+	token := os.Getenv("BOT_TOKEN")
+	if token == "" {
+		lastNotifiedUnassignedCount = total
+		return
+	}
+	var users []db.User
+	db.DB.Where("department != ? AND telegram_notify_on = ? AND telegram_chat_id IS NOT NULL", "Клиент", true).Find(&users)
+	var chatIDs []int64
+	for _, u := range users {
+		if u.TelegramChatID != nil {
+			chatIDs = append(chatIDs, *u.TelegramChatID)
+		}
+	}
+	if len(chatIDs) == 0 {
+		lastNotifiedUnassignedCount = total
+		return
+	}
+	var list []db.ClientTicket
+	db.DB.Where("status = ?", "Не назначено").Find(&list)
+	sort.Slice(list, func(i, j int) bool { return list[i].ID > list[j].ID })
+	if len(list) > 3 {
+		list = list[:3]
+	}
+	word := russianPlural(total, "заявка", "заявки", "заявок")
+	header := fmt.Sprintf("🚨 <b>Внимание:</b> %d %s без назначения", total, word)
+	var details []string
+	for _, t := range list {
+		desc := t.Description
+		if len(desc) > 80 {
+			desc = desc[:80] + "…"
+		}
+		line := fmt.Sprintf("• <b>%s</b> — %s — %s", t.Date, htmlEscape(t.Address), htmlEscape(desc))
+		details = append(details, line)
+	}
+	var body string
+	if len(details) > 0 {
+		body = header + "\n" + strings.Join(details, "\n") + "\n\n" + "<a href=\"https://crmlite-vv.ru/inner-tickets\">проверить заявки</a>"
+	} else {
+		body = header + "\n\n" + "<a href=\"https://crmlite-vv.ru/inner-tickets\">проверить заявки</a>"
+	}
+	for _, chatID := range chatIDs {
+		u := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", token)
+		data := url.Values{}
+		data.Set("chat_id", fmt.Sprintf("%d", chatID))
+		data.Set("text", body)
+		data.Set("parse_mode", "HTML")
+		http.Post(u, "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
+	}
+	lastNotifiedUnassignedCount = total
+}
+
+func htmlEscape(s string) string {
+	s = strings.ReplaceAll(s, "&", "&amp;")
+	s = strings.ReplaceAll(s, "<", "&lt;")
+	s = strings.ReplaceAll(s, ">", "&gt;")
+	return s
+}
+
+// NotifyUnassignedPublic — экспортируемая обертка для периодического/ручного вызова
+func NotifyUnassignedPublic() {
+	notifyUnassignedIfNeeded()
+}
+
+// DebugSendUnassigned — ручной запуск уведомления (для админ-маршрута)
+func DebugSendUnassigned(c *gin.Context) {
+	go notifyUnassignedIfNeeded()
+	c.JSON(http.StatusOK, gin.H{"success": true})
+}
 
 func CreateTicket(c *gin.Context) {
 	var ticket db.ClientTicket
@@ -67,6 +162,8 @@ func CreateTicket(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true})
+
+	go notifyUnassignedIfNeeded()
 }
 
 func GetClientTickets(c *gin.Context) {
@@ -172,6 +269,8 @@ func UpdateClientTicket(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "ticket": ticket})
+
+	go notifyUnassignedIfNeeded()
 }
 
 func DeleteClientTicket(c *gin.Context) {
@@ -194,6 +293,8 @@ func DeleteClientTicket(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true})
+
+	go notifyUnassignedIfNeeded()
 }
 
 func ServeTicketFile(c *gin.Context) {

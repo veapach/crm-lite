@@ -55,7 +55,7 @@ html, body {
     padding: 4px 6px !important;
   }
   .statistics-total-count {
-    font-size: 1em !important;
+    font-size: 1em !Important;
   }
   .statistics-page ul {
     font-size: 1em !important;
@@ -137,15 +137,31 @@ html, body {
   color: #fff;
   background: linear-gradient(90deg, #ff3b30, #ff6b6b);
   border-radius: 10px;
-  padding: 4px 10px;
+  padding: 6px 12px;
   font-weight: 700;
   letter-spacing: 0.3px;
   animation: vv-blink-soft 1.6s infinite ease-in-out;
+  cursor: pointer;
 }
 
 .vv-banner-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 6px 0;
+  padding: 8px 0;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 8px);
+}
+
+@media (min-width: 992px) {
+  .vv-banner-container {
+    padding-top: 16px;
+  }
+}
+
+/* --- мобильный оверрайд в конце, чтобы перебить базовое правило --- */
+@media (max-width: 768px) {
+  .vv-banner-container {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 40px) !important;
+    padding-bottom: 10px;
+  }
 }
