@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Table, Button, Modal, Tabs, Tab } from 'react-bootstrap';
+import { Table, Button, Modal, Tabs, Tab, Fade } from 'react-bootstrap';
 import TicketsMap from '../components/TicketsMap';
 import '../styles/Schedule.css';
+import '../styles/InnerTickets.css';
 
 function InnerTickets() {
   const [tickets, setTickets] = useState([]);
@@ -140,7 +141,8 @@ function InnerTickets() {
       <Tabs
         activeKey={activeTab}
         onSelect={(k) => setActiveTab(k)}
-        className="mb-3"
+        className="mb-3 tickets-tabs"
+        transition={Fade}
       >
         <Tab eventKey="list" title="Список">
           <div className="mb-3">

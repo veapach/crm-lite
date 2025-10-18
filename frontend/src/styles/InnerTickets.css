@@ -1,3 +1,78 @@
 .red-background{
     background-color: #ff9999 !important;
 }
+.red-background{
+    background-color: #ff9999 !important;
+}
+
+/* Scoped styles for InnerTickets tabs */
+.tickets-tabs {
+    --tab-bg: #ffffff;
+    --tab-active-bg: #2dbe64;
+    --tab-active-color: #fff;
+    --tab-inactive-color: #2e2e2e;
+}
+
+/* Make bootstrap tab nav look like pill tabs and always visible */
+.tickets-tabs .nav {
+    display: flex !important;
+    gap: 8px;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.tickets-tabs .nav-link {
+    background: var(--tab-bg);
+    color: var(--tab-inactive-color);
+    border-radius: 10px;
+    padding: 8px 14px;
+    border: 1px solid rgba(0,0,0,0.08);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    transition: all 220ms cubic-bezier(.2,.9,.2,1);
+    margin-bottom: 0; /* avoid extra spacing */
+}
+
+.tickets-tabs .nav-link:hover,
+.tickets-tabs .nav-link:focus {
+    transform: translateY(-2px);
+    color: var(--tab-active-bg);
+}
+
+.tickets-tabs .nav-link.active {
+    background: var(--tab-active-bg) !important;
+    color: var(--tab-active-color) !important;
+    box-shadow: 0 6px 18px rgba(45,190,100,0.18);
+    border-color: transparent;
+}
+
+/* Make tab content switch with a subtle fade/slide */
+.tab-content {
+    position: relative;
+    overflow: hidden;
+}
+
+.tab-pane {
+    transition: opacity 280ms ease, transform 280ms ease;
+    will-change: opacity, transform;
+}
+
+.tab-pane.fade:not(.show) {
+    opacity: 0;
+    transform: translateY(6px);
+}
+
+.tab-pane.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Responsive tweak */
+@media (max-width: 768px) {
+    .tickets-tabs .nav {
+        flex-wrap: wrap;
+    }
+    .tickets-tabs .nav-link {
+        flex: 1 1 auto;
+        text-align: center;
+    }
+}
