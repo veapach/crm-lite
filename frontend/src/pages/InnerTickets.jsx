@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Table, Button, Modal } from 'react-bootstrap';
+import { Table, Button, Modal, Tabs, Tab } from 'react-bootstrap';
+import TicketsMap from '../components/TicketsMap';
 import '../styles/Schedule.css';
 
 function InnerTickets() {
@@ -11,6 +12,7 @@ function InnerTickets() {
   const [showReportModal, setShowReportModal] = useState(false);
   const [showCompletedTickets, setShowCompletedTickets] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [activeTab, setActiveTab] = useState('list');
   const navigate = useNavigate();
 
 	useEffect(() => {
@@ -134,74 +136,99 @@ function InnerTickets() {
   return (
     <div className="inner-tickets container mt-4">
       <h1 className="text-center mb-4">Заявки</h1>
-      <div className="mb-3">
-        <Button 
-          variant={showCompletedTickets ? "secondary" : "primary"} 
-          onClick={() => setShowCompletedTickets(!showCompletedTickets)}
-        >
-          {showCompletedTickets ? "Показать активные" : "Показать завершенные"}
-        </Button>
-      </div>
-      <div className="schedule-table-wrapper">
-        <Table striped bordered hover responsive>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Дата</th>
-            <th>ФИО</th>
-            <th>Должность</th>
-            <th>Контакт</th>
-            <th>Адрес</th>
-            <th>Описание</th>
-            <th>Статус</th>
-            <th>Инженер</th>
-            <th>Действия</th>
-          </tr>
-        </thead>
-        <tbody>
-  {tickets
-    .filter(ticket => showCompletedTickets ? 
-      ticket.status === 'Завершено' : 
-      ['Не назначено', 'В работе'].includes(ticket.status))
-    .map((ticket) => {
-      const isCurrentEngineer = currentUser && ticket.engineerName === `${currentUser.firstName} ${currentUser.lastName}`;
+      
+      <Tabs
+        activeKey={activeTab}
+        onSelect={(k) => setActiveTab(k)}
+        className="mb-3"
+      >
+        <Tab eventKey="list" title="Список">
+          <div className="mb-3">
+            <Button 
+              variant={showCompletedTickets ? "secondary" : "primary"} 
+              onClick={() => setShowCompletedTickets(!showCompletedTickets)}
+            >
+              {showCompletedTickets ? "Показать активные" : "Показать завершенные"}
+            </Button>
+          </div>
+          <div className="schedule-table-wrapper">
+            <Table striped bordered hover responsive>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Дата</th>
+                <th>ФИО</th>
+                <th>Должность</th>
+                <th>Контакт</th>
+                <th>Адрес</th>
+                <th>Описание</th>
+                <th>Статус</th>
+                <th>Инженер</th>
+                <th>Действия</th>
+              </tr>
+            </thead>
+            <tbody>
+      {tickets
+        .filter(ticket => showCompletedTickets ? 
+          ticket.status === 'Завершено' : 
+          ['Не назначено', 'В работе'].includes(ticket.status))
+        .map((ticket) => {
+          const isCurrentEngineer = currentUser && ticket.engineerName === `${currentUser.firstName} ${currentUser.lastName}`;
 
-      return (
-        <tr key={ticket.id}>
-          <td>{ticket.id}</td>
-          <td>{ticket.date}</td>
-          <td>{ticket.fullName}</td>
-          <td>{ticket.position}</td>
-          <td>{ticket.contact}</td>
-          <td>{ticket.address}</td>
-          <td>{ticket.description.length > 50 ? `${ticket.description.substring(0, 50)}...` : ticket.description}</td>
-          <td style={{ backgroundColor: ticket.status === 'Не назначено' ? '#ff9999' : 'transparent' }}>
-            {ticket.status}
-          </td>
-          <td style={{ backgroundColor: isCurrentEngineer ? '#d0e7ff' : undefined }}>
-            {ticket.engineerName || 'Не назначен'}
-          </td>
-          <td>
-            {ticket.status !== 'В работе' && (
-              <Button variant="success" size="sm" onClick={() => handleTakeInWork(ticket.id)}>Взять в работу</Button>
-            )}{' '}
-            {ticket.status === 'В работе' && (
-              <>
-                <Button variant="warning" size="sm" onClick={() => handleChangeStatus(ticket.id, 'Не назначено')}>Сбросить статус</Button>{' '}
-                <Button variant="success" size="sm" onClick={() => handleChangeStatus(ticket.id, 'Завершено')}>Завершить заявку</Button>
-              </>
-            )}{' '}
-            <Button variant="danger" size="sm" onClick={() => handleDelete(ticket.id)}>Удалить</Button>{' '}
-            <Button variant="primary" size="sm" onClick={() => handleCreateReport(ticket)}>Создать отчет</Button>{' '}
-            <Button variant="info" size="sm" onClick={() => handleViewDetails(ticket)}>Подробнее</Button>
-          </td>
-        </tr>
-      );
-    })}
-</tbody>
+          return (
+            <tr key={ticket.id}>
+              <td>{ticket.id}</td>
+              <td>{ticket.date}</td>
+              <td>{ticket.fullName}</td>
+              <td>{ticket.position}</td>
+              <td>{ticket.contact}</td>
+              <td>{ticket.address}</td>
+              <td>{ticket.description.length > 50 ? `${ticket.description.substring(0, 50)}...` : ticket.description}</td>
+              <td style={{ backgroundColor: ticket.status === 'Не назначено' ? '#ff9999' : 'transparent' }}>
+                {ticket.status}
+              </td>
+              <td style={{ backgroundColor: isCurrentEngineer ? '#d0e7ff' : undefined }}>
+                {ticket.engineerName || 'Не назначен'}
+              </td>
+              <td>
+                {ticket.status !== 'В работе' && (
+                  <Button variant="success" size="sm" onClick={() => handleTakeInWork(ticket.id)}>Взять в работу</Button>
+                )}{' '}
+                {ticket.status === 'В работе' && (
+                  <>
+                    <Button variant="warning" size="sm" onClick={() => handleChangeStatus(ticket.id, 'Не назначено')}>Сбросить статус</Button>{' '}
+                    <Button variant="success" size="sm" onClick={() => handleChangeStatus(ticket.id, 'Завершено')}>Завершить заявку</Button>
+                  </>
+                )}{' '}
+                <Button variant="danger" size="sm" onClick={() => handleDelete(ticket.id)}>Удалить</Button>{' '}
+                <Button variant="primary" size="sm" onClick={() => handleCreateReport(ticket)}>Создать отчет</Button>{' '}
+                <Button variant="info" size="sm" onClick={() => handleViewDetails(ticket)}>Подробнее</Button>
+              </td>
+            </tr>
+          );
+        })}
+    </tbody>
 
-        </Table>
-      </div>
+            </Table>
+          </div>
+        </Tab>
+        
+        <Tab eventKey="map" title="Карта">
+          <div className="mb-3">
+            <Button 
+              variant={showCompletedTickets ? "secondary" : "primary"} 
+              onClick={() => setShowCompletedTickets(!showCompletedTickets)}
+            >
+              {showCompletedTickets ? "Показать активные" : "Показать завершенные"}
+            </Button>
+          </div>
+          <TicketsMap 
+            tickets={tickets.filter(ticket => showCompletedTickets ? 
+              ticket.status === 'Завершено' : 
+              ['Не назначено', 'В работе'].includes(ticket.status))}
+          />
+        </Tab>
+      </Tabs>
 
       <Modal show={showDetailsModal} onHide={() => setShowDetailsModal(false)}>
         <Modal.Header closeButton>
