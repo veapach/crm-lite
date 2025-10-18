@@ -16,7 +16,7 @@
 /* Make bootstrap tab nav look like pill tabs and always visible */
 .tickets-tabs .nav {
     display: flex !important;
-    gap: 8px;
+    gap: 16px;
     align-items: center;
     justify-content: flex-start;
 }

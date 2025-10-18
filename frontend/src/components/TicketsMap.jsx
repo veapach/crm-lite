@@ -1,42 +1,38 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { YMaps, Map, Placemark, GeolocationControl, ZoomControl } from 'react-yandex-maps';
-import { Modal, Button, Spinner } from 'react-bootstrap';
+import { Modal, Button } from 'react-bootstrap';
+import { getAddressData } from '../data/addressMapping';
 
 function TicketsMap({ tickets }) {
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [mapCenter, setMapCenter] = useState([55.751574, 37.573856]); // Москва по умолчанию
   const [ticketsWithCoords, setTicketsWithCoords] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
 
-  // Функция для парсинга адреса из формата "цифры_адрес"
-  const parseAddress = (address) => {
-    if (!address) return '';
-    // Удаляем цифры и подчеркивание в начале (например, "123_улица Ленина" -> "улица Ленина")
-    const match = address.match(/^\d+_(.+)$/);
-    return match ? match[1] : address;
-  };
+  // Обрабатываем заявки при изменении списка
+  useEffect(() => {
+    const ticketsWithCoordinates = [];
 
-  // Используем встроенный геокодер Яндекс.Карт через window.ymaps
-  const geocodeAddressYmaps = (address, ymaps) => {
-    return new Promise((resolve) => {
-      const parsedAddress = parseAddress(address);
-      ymaps.geocode(parsedAddress, { results: 1 })
-        .then(result => {
-          const firstGeoObject = result.geoObjects.get(0);
-          if (firstGeoObject) {
-            const coords = firstGeoObject.geometry.getCoordinates();
-            resolve(coords);
-          } else {
-            resolve(null);
-          }
-        })
-        .catch(error => {
-          console.error('Ошибка геокодирования:', error);
-          resolve(null);
+    for (const ticket of tickets) {
+      // Получаем данные адреса из маппинга
+      const addressData = getAddressData(ticket.address);
+      
+      if (addressData && addressData.coordinates) {
+        ticketsWithCoordinates.push({
+          ...ticket,
+          coordinates: addressData.coordinates,
+          parsedAddress: addressData.address
         });
-    });
-  };
+      }
+    }
+
+    setTicketsWithCoords(ticketsWithCoordinates);
+    
+    // Если есть координаты, центрируем карту на первой точке
+    if (ticketsWithCoordinates.length > 0) {
+      setMapCenter(ticketsWithCoordinates[0].coordinates);
+    }
+  }, [tickets]);
 
   const handlePlacemarkClick = (ticket) => {
     setSelectedTicket(ticket);
@@ -50,31 +46,6 @@ function TicketsMap({ tickets }) {
       window.open(`https://yandex.ru/maps/?rtext=~${lat},${lng}&rtt=auto`, '_blank');
     }
     setShowModal(false);
-  };
-
-  const onMapLoad = async (ymaps) => {
-    setIsLoading(true);
-    const ticketsWithCoordinates = [];
-
-    for (const ticket of tickets) {
-      const coords = await geocodeAddressYmaps(ticket.address, ymaps);
-      if (coords) {
-        ticketsWithCoordinates.push({
-          ...ticket,
-          coordinates: coords,
-          parsedAddress: parseAddress(ticket.address)
-        });
-      }
-    }
-
-    setTicketsWithCoords(ticketsWithCoordinates);
-    
-    // Если есть координаты, центрируем карту на первой точке
-    if (ticketsWithCoordinates.length > 0) {
-      setMapCenter(ticketsWithCoordinates[0].coordinates);
-    }
-    
-    setIsLoading(false);
   };
 
   // Определяем цвет метки в зависимости от статуса заявки
@@ -95,7 +66,6 @@ function TicketsMap({ tickets }) {
     <div style={{ height: '600px', width: '100%' }}>
       <YMaps
         query={{
-          apikey: '29294198-6cdc-4996-a870-01e89b830f3e', // Замените на ваш API ключ
           lang: 'ru_RU',
         }}
       >
@@ -106,29 +76,9 @@ function TicketsMap({ tickets }) {
           }}
           width="100%"
           height="100%"
-          modules={['geocode']}
-          onLoad={onMapLoad}
         >
           <GeolocationControl options={{ float: 'left' }} />
           <ZoomControl options={{ float: 'right' }} />
-          
-          {isLoading && (
-            <div style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              backgroundColor: 'white',
-              padding: '20px',
-              borderRadius: '8px',
-              zIndex: 1000
-            }}>
-              <Spinner animation="border" role="status">
-                <span className="visually-hidden">Загрузка...</span>
-              </Spinner>
-              <div>Геокодирование адресов...</div>
-            </div>
-          )}
 
           {ticketsWithCoords.map((ticket) => (
             <Placemark
