@@ -3,6 +3,7 @@ test.xlsx
 # Зависимости
 venv/
 /venv
+.venv/
 venv
 node_modules/
 /node_modules
@@ -10,6 +11,7 @@ node_modules/
 .pnp.js
 /frontend/node_modules
 /backend/vendor
+/backups
 
 # Тестирование
 /coverage
