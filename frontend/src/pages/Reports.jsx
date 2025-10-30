@@ -82,15 +82,12 @@ function Reports() {
 
   const fetchReports = useCallback(async (pageToLoad = 1, replace = false) => {
     if (loadingRef.current) {
-      console.log('Already loading, skipping request');
       return;
     }
     
     loadingRef.current = true;
     setIsLoading(true);
     const requestId = ++activeRequestRef.current;
-    
-    console.log(`Fetching reports: page=${pageToLoad}, replace=${replace}, requestId=${requestId}`);
     
     try {
       let url = `/api/reports?onlyMine=${showOnlyMine}&page=${pageToLoad}&pageSize=${pageSize}`;
@@ -108,14 +105,11 @@ function Reports() {
       
       // Если пришел неактуальный ответ (устаревший запрос) — игнорируем
       if (requestId !== activeRequestRef.current) {
-        console.log(`Ignoring stale response: requestId=${requestId}, current=${activeRequestRef.current}`);
         return;
       }
       
       const newData = response.data.reports || [];
       const totalPages = response.data.totalPages || 1;
-      
-      console.log(`Received ${newData.length} reports for page ${pageToLoad}, totalPages=${totalPages}`);
       
       setHasMore(pageToLoad < totalPages);
       
@@ -124,26 +118,15 @@ function Reports() {
         currentPageRef.current = pageToLoad;
       } else {
         setReports(prev => {
-          // Создаем Map для более эффективной дедупликации
-          const reportsMap = new Map();
+          // Создаем Set существующих ID для быстрой проверки
+          const existingIds = new Set(prev.map(r => r.id));
           
-          // Сначала добавляем существующие отчеты
-          prev.forEach(r => reportsMap.set(r.id, r));
+          // Фильтруем только новые отчеты (которых еще нет)
+          const newReports = newData.filter(r => !existingIds.has(r.id));
           
-          // Затем добавляем новые (перезаписываем, если уже есть)
-          newData.forEach(r => reportsMap.set(r.id, r));
-          
-          // Преобразуем обратно в массив и сортируем по дате
-          const merged = Array.from(reportsMap.values());
-          
-          // Сортируем по дате создания в зависимости от sortOrder
-          merged.sort((a, b) => {
-            const dateA = new Date(a.createdAt || a.date);
-            const dateB = new Date(b.createdAt || b.date);
-            return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
-          });
-          
-          return merged;
+          // Добавляем новые отчеты в конец массива
+          // Сервер уже вернул их в правильном порядке
+          return [...prev, ...newReports];
         });
         currentPageRef.current = pageToLoad;
       }
@@ -369,12 +352,10 @@ function Reports() {
 
   // При изменении фильтров/поиска сбрасываем список и страницу
   useEffect(() => {
-    console.log('Filters changed, resetting to page 1');
     currentPageRef.current = 1;
     setHasMore(true);
     setReports([]); // Сразу очищаем список
-    // Отменяем все предыдущие запросы
-    activeRequestRef.current++;
+    loadingRef.current = false; // Сбрасываем флаг загрузки
     fetchReports(1, true);
     fetchReportsCount();
   }, [showOnlyMine, isDateFiltered, dateRange.startDate, dateRange.endDate, searchTerm, sortOrder, fetchReports, fetchReportsCount]);
@@ -387,14 +368,13 @@ function Reports() {
       const first = entries[0];
       if (first.isIntersecting && hasMore && !loadingRef.current) {
         const nextPage = currentPageRef.current + 1;
-        console.log(`IntersectionObserver triggered, loading page ${nextPage}`);
         fetchReports(nextPage, false);
       }
-    }, { threshold: 0.1, rootMargin: '100px' }); // Добавили rootMargin для более плавной подгрузки
+    }, { threshold: 0.1, rootMargin: '100px' });
     
     observer.observe(sentinelRef.current);
     return () => observer.disconnect();
-  }, [hasMore, fetchReports]); // Убрали currentPage и isLoading из зависимостей
+  }, [hasMore, fetchReports]);
 
   return (
     <div className="container mt-5">

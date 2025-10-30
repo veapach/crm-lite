@@ -557,6 +557,7 @@ func GetReportsHandler(c *gin.Context) {
 	startDate := c.Query("startDate")
 	endDate := c.Query("endDate")
 	search := c.Query("search")
+	order := c.DefaultQuery("order", "desc") // добавлено
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "12"))
 	if page < 1 {
@@ -589,7 +590,13 @@ func GetReportsHandler(c *gin.Context) {
 		return
 	}
 
-	if err := query.Order("date desc").Offset((page - 1) * pageSize).Limit(pageSize).Find(&reports).Error; err != nil {
+	// Применяем сортировку
+	orderClause := "date DESC"
+	if order == "asc" {
+		orderClause = "date ASC"
+	}
+
+	if err := query.Order(orderClause).Offset((page - 1) * pageSize).Limit(pageSize).Find(&reports).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении отчетов"})
 		return
 	}
