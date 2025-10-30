@@ -25,14 +25,13 @@ function Reports() {
   const [isDateFiltered, setIsDateFiltered] = useState(false);
   const [classificationStats, setClassificationStats] = useState({ toKitchen: 0, toBakery: 0, to: 0, av: 0, pnr: 0 });
   const [selectedReports, setSelectedReports] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1); // Текущая страница для подгрузки
   const [pageSize] = useState(20); // Размер страницы
-  // totalPages больше не нужен явно (hasMore хранит состояние)
   const [isLoading, setIsLoading] = useState(false); // UI индикатор
   const [hasMore, setHasMore] = useState(true); // Есть ли еще страницы
   const sentinelRef = useRef(null); // Наблюдатель для бесконечной прокрутки
   const loadingRef = useRef(false); // фактическое состояние загрузки для защиты от гонок
   const activeRequestRef = useRef(0); // id последнего запроса
+  const currentPageRef = useRef(1); // ref для отслеживания текущей страницы
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('ru-RU');
@@ -82,14 +81,21 @@ function Reports() {
   }, [isDateFiltered, dateRange.startDate, dateRange.endDate]);
 
   const fetchReports = useCallback(async (pageToLoad = 1, replace = false) => {
-    if (loadingRef.current) return;
+    if (loadingRef.current) {
+      console.log('Already loading, skipping request');
+      return;
+    }
+    
     loadingRef.current = true;
     setIsLoading(true);
     const requestId = ++activeRequestRef.current;
+    
+    console.log(`Fetching reports: page=${pageToLoad}, replace=${replace}, requestId=${requestId}`);
+    
     try {
       let url = `/api/reports?onlyMine=${showOnlyMine}&page=${pageToLoad}&pageSize=${pageSize}`;
       if (sortOrder) {
-        url += `&order=${sortOrder}`; // предполагаем поддержку сортировки (если нет — игнорируется сервером)
+        url += `&order=${sortOrder}`;
       }
       if (isDateFiltered && dateRange.startDate && dateRange.endDate) {
         url += `&startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`;
@@ -97,25 +103,53 @@ function Reports() {
       if (searchTerm) {
         url += `&search=${encodeURIComponent(searchTerm)}`;
       }
+      
       const response = await axios.get(url);
+      
       // Если пришел неактуальный ответ (устаревший запрос) — игнорируем
-      if (requestId !== activeRequestRef.current) return;
-      setHasMore(pageToLoad < response.data.totalPages);
+      if (requestId !== activeRequestRef.current) {
+        console.log(`Ignoring stale response: requestId=${requestId}, current=${activeRequestRef.current}`);
+        return;
+      }
+      
       const newData = response.data.reports || [];
+      const totalPages = response.data.totalPages || 1;
+      
+      console.log(`Received ${newData.length} reports for page ${pageToLoad}, totalPages=${totalPages}`);
+      
+      setHasMore(pageToLoad < totalPages);
+      
       if (replace) {
-        // Очищаем мгновенно чтобы не мигало
-        setReports([]);
-        // Небольшая микротаска чтобы показать skeleton/пустоту — можно убрать
-        requestAnimationFrame(() => setReports(newData));
+        setReports(newData);
+        currentPageRef.current = pageToLoad;
       } else {
         setReports(prev => {
-          const existingIds = new Set(prev.map(r => r.id));
-          const filtered = newData.filter(r => !existingIds.has(r.id));
-          return [...prev, ...filtered];
+          // Создаем Map для более эффективной дедупликации
+          const reportsMap = new Map();
+          
+          // Сначала добавляем существующие отчеты
+          prev.forEach(r => reportsMap.set(r.id, r));
+          
+          // Затем добавляем новые (перезаписываем, если уже есть)
+          newData.forEach(r => reportsMap.set(r.id, r));
+          
+          // Преобразуем обратно в массив и сортируем по дате
+          const merged = Array.from(reportsMap.values());
+          
+          // Сортируем по дате создания в зависимости от sortOrder
+          merged.sort((a, b) => {
+            const dateA = new Date(a.createdAt || a.date);
+            const dateB = new Date(b.createdAt || b.date);
+            return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+          });
+          
+          return merged;
         });
+        currentPageRef.current = pageToLoad;
       }
     } catch (error) {
       console.error('Ошибка при загрузке отчетов', error);
+      setError('Ошибка при загрузке отчетов');
     } finally {
       if (requestId === activeRequestRef.current) {
         setIsLoading(false);
@@ -335,26 +369,32 @@ function Reports() {
 
   // При изменении фильтров/поиска сбрасываем список и страницу
   useEffect(() => {
-    setCurrentPage(1);
+    console.log('Filters changed, resetting to page 1');
+    currentPageRef.current = 1;
     setHasMore(true);
+    setReports([]); // Сразу очищаем список
+    // Отменяем все предыдущие запросы
+    activeRequestRef.current++;
     fetchReports(1, true);
     fetchReportsCount();
-  }, [showOnlyMine, isDateFiltered, dateRange.startDate, dateRange.endDate, searchTerm, fetchReports, fetchReportsCount]);
+  }, [showOnlyMine, isDateFiltered, dateRange.startDate, dateRange.endDate, searchTerm, sortOrder, fetchReports, fetchReportsCount]);
 
   // IntersectionObserver для бесконечной прокрутки
   useEffect(() => {
     if (!sentinelRef.current) return;
+    
     const observer = new IntersectionObserver((entries) => {
       const first = entries[0];
-      if (first.isIntersecting && hasMore && !loadingRef.current && !isLoading) {
-        const nextPage = currentPage + 1;
-        setCurrentPage(nextPage);
+      if (first.isIntersecting && hasMore && !loadingRef.current) {
+        const nextPage = currentPageRef.current + 1;
+        console.log(`IntersectionObserver triggered, loading page ${nextPage}`);
         fetchReports(nextPage, false);
       }
-    }, { threshold: 0.1 });
+    }, { threshold: 0.1, rootMargin: '100px' }); // Добавили rootMargin для более плавной подгрузки
+    
     observer.observe(sentinelRef.current);
     return () => observer.disconnect();
-  }, [currentPage, hasMore, isLoading, fetchReports]);
+  }, [hasMore, fetchReports]); // Убрали currentPage и isLoading из зависимостей
 
   return (
     <div className="container mt-5">
