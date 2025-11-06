@@ -496,6 +496,7 @@ function NewReport() {
             <option value="не выбрано">Не выбрано</option>
             <option value="ТО Китчен">ТО Китчен</option>
             <option value="ТО Пекарня">ТО Пекарня</option>
+            <option value="ТО Китчен/Пекарня">ТО Китчен/Пекарня</option>
             <option value="ПНР">ПНР</option>
             <option value="Аварийный вызов">Аварийный вызов</option>
             <option value="Другое">Другое</option>

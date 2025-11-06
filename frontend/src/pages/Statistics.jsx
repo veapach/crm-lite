@@ -7,7 +7,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 const Statistics = () => {
-  const [stats, setStats] = useState({ month: 0, toKitchen: 0, toBakery: 0, to: 0, av: 0, pnr: 0, total: 0, filteredToKitchen: 0, filteredToBakery: 0, filteredTo: 0, filteredAv: 0, filteredPnr: 0 });
+  const [stats, setStats] = useState({ month: 0, toKitchen: 0, toBakery: 0, toKitchenBakery: 0, to: 0, av: 0, pnr: 0, total: 0, filteredToKitchen: 0, filteredToBakery: 0, filteredToKitchenBakery: 0, filteredTo: 0, filteredAv: 0, filteredPnr: 0 });
   const [filteredReports, setFilteredReports] = useState([]);
   const [activeClass, setActiveClass] = useState('');
   const [reportsLoading, setReportsLoading] = useState(false);
@@ -103,12 +103,14 @@ const Statistics = () => {
           month: response.data.filteredTotal || 0,
           toKitchen: response.data.filteredToKitchen || 0,
           toBakery: response.data.filteredToBakery || 0,
+          toKitchenBakery: response.data.filteredToKitchenBakery || 0,
           to: response.data.filteredTo || 0,
           av: response.data.filteredAv || 0,
           pnr: response.data.filteredPnr || 0,
           total: response.data.total || 0,
           filteredToKitchen: response.data.filteredToKitchen || 0,
           filteredToBakery: response.data.filteredToBakery || 0,
+          filteredToKitchenBakery: response.data.filteredToKitchenBakery || 0,
           filteredTo: response.data.filteredTo || 0,
           filteredAv: response.data.filteredAv || 0,
           filteredPnr: response.data.filteredPnr || 0,
@@ -140,6 +142,7 @@ const Statistics = () => {
       if (classification === 'АВ') classValue = 'АВ';
       if (classification === 'ТО Китчен') classValue = 'ТО Китчен';
       if (classification === 'ТО Пекарня') classValue = 'ТО Пекарня';
+      if (classification === 'ТО Китчен/Пекарня') classValue = 'ТО Китчен/Пекарня';
       if (classification === 'ТО') classValue = 'ТО';
       if (classification === 'ПНР') classValue = 'ПНР';
 
@@ -168,12 +171,12 @@ const Statistics = () => {
 
       let filteredReports = allReports;
       
-      if (["ТО Китчен", "ТО Пекарня", "ТО", "АВ", "ПНР"].includes(classification)) {
+      if (["ТО Китчен", "ТО Пекарня", "ТО Китчен/Пекарня", "ТО", "АВ", "ПНР"].includes(classification)) {
         filteredReports = allReports.filter(r => (r.classification || '').toLowerCase() === classValue.toLowerCase());
       } else if (classification === 'Другие') {
         filteredReports = allReports.filter(r => {
           const c = (r.classification || '').toLowerCase();
-          return c !== 'то китчен' && c !== 'то пекарня' && c !== 'то' && c !== 'ав' && c !== 'пнр';
+          return c !== 'то китчен' && c !== 'то пекарня' && c !== 'то китчен/пекарня' && c !== 'то' && c !== 'ав' && c !== 'пнр';
         });
       }
       setFilteredReports(filteredReports);
@@ -220,6 +223,13 @@ const Statistics = () => {
               ТО Пекарня: {stats.filteredToBakery}
             </button>
             <button
+              className={`btn btn-outline-primary${activeClass === 'ТО Китчен/Пекарня' ? ' active' : ''}`}
+              style={{ fontWeight: 600, fontSize: '1em', borderWidth: 2, minWidth: 170, marginBottom: 8 }}
+              onClick={() => handleClassClick('ТО Китчен/Пекарня')}
+            >
+              ТО Китчен/Пекарня: {stats.filteredToKitchenBakery || 0}
+            </button>
+            <button
               className={`btn btn-outline-primary${activeClass === 'ТО' ? ' active' : ''}`}
               style={{ fontWeight: 600, fontSize: '1em', borderWidth: 2, minWidth: 70, marginBottom: 8 }}
               onClick={() => handleClassClick('ТО')}
@@ -238,7 +248,7 @@ const Statistics = () => {
               style={{ fontWeight: 600, fontSize: '1em', borderWidth: 2, minWidth: 90, marginBottom: 8 }}
               onClick={() => handleClassClick('Другие')}
             >
-              Другие: {stats.month - stats.filteredAv - stats.filteredToKitchen - stats.filteredToBakery - stats.filteredTo - stats.filteredPnr}
+              Другие: {stats.month - stats.filteredAv - stats.filteredToKitchen - stats.filteredToBakery - (stats.filteredToKitchenBakery || 0) - stats.filteredTo - stats.filteredPnr}
             </button>
           </div>
           <div className="statistics-total-count" style={{ fontSize: '1.1rem', color: '#888', marginBottom: 18 }}>

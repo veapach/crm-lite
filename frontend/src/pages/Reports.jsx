@@ -23,7 +23,7 @@ function Reports() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
   const [isDateFiltered, setIsDateFiltered] = useState(false);
-  const [classificationStats, setClassificationStats] = useState({ toKitchen: 0, toBakery: 0, to: 0, av: 0, pnr: 0 });
+  const [classificationStats, setClassificationStats] = useState({ toKitchen: 0, toBakery: 0, toKitchenBakery: 0, to: 0, av: 0, pnr: 0 });
   const [selectedReports, setSelectedReports] = useState([]);
   const [pageSize] = useState(20); // Размер страницы
   const [isLoading, setIsLoading] = useState(false); // UI индикатор
@@ -66,11 +66,13 @@ function Reports() {
       setClassificationStats({
         toKitchen: response.data.toKitchen,
         toBakery: response.data.toBakery,
+        toKitchenBakery: response.data.toKitchenBakery,
         to: response.data.to,
         av: response.data.av,
         pnr: response.data.pnr,
         filteredToKitchen: response.data.filteredToKitchen || 0,
         filteredToBakery: response.data.filteredToBakery || 0,
+        filteredToKitchenBakery: response.data.filteredToKitchenBakery || 0,
         filteredTo: response.data.filteredTo || 0,
         filteredAv: response.data.filteredAv || 0,
         filteredPnr: response.data.filteredPnr || 0,
@@ -401,6 +403,7 @@ function Reports() {
       <div style={{ fontSize: '0.9em', marginBottom: '1rem' }}>
         <span>ТО Китчен: {isDateFiltered ? classificationStats.filteredToKitchen || 0 : classificationStats.toKitchen || 0} | </span>
         <span>ТО Пекарня: {isDateFiltered ? classificationStats.filteredToBakery || 0 : classificationStats.toBakery || 0} | </span>
+        <span>ТО Китчен/Пекарня: {isDateFiltered ? classificationStats.filteredToKitchenBakery || 0 : classificationStats.toKitchenBakery || 0} | </span>
         <span>АВ: {isDateFiltered ? classificationStats.filteredAv || 0 : classificationStats.av || 0} | </span>
         <span>ПНР: {isDateFiltered ? classificationStats.filteredPnr || 0 : classificationStats.pnr || 0} | </span>
         <span>Прочие ТО: {isDateFiltered ? classificationStats.filteredTo || 0 : classificationStats.to || 0}</span>
