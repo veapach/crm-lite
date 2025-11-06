@@ -248,7 +248,7 @@ const Statistics = () => {
               style={{ fontWeight: 600, fontSize: '1em', borderWidth: 2, minWidth: 90, marginBottom: 8 }}
               onClick={() => handleClassClick('Другие')}
             >
-              Другие: {stats.month - stats.filteredAv - stats.filteredToKitchen - stats.filteredToBakery - (stats.filteredToKitchenBakery || 0) - stats.filteredTo - stats.filteredPnr}
+              Другие: {stats.month - stats.filteredAv - stats.filteredToKitchen - stats.filteredToBakery - (stats.filteredToKitchenBakery || 0) * 2 - stats.filteredTo - stats.filteredPnr}
             </button>
           </div>
           <div className="statistics-total-count" style={{ fontSize: '1.1rem', color: '#888', marginBottom: 18 }}>
