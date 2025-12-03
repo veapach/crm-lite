@@ -51,6 +51,7 @@ function App() {
 
   const isClient = user?.department === 'Клиент';
   const isAdmin = user && user.department === 'Админ';
+  const isViewOnly = user?.phone === 'viewonlyuser';
   const isTicketsPage = location.pathname === '/tickets';
   const hideNavbar = isTicketsPage && (!isAuthenticated || isClient);
 
@@ -86,16 +87,16 @@ function App() {
         <Routes>
             <Route path="/auth" element={isAuthenticated ? <Navigate to="/" replace /> : <Auth />} />
             <Route path="/tickets" element={<Tickets />} />
-            <Route path="/" element={isAuthenticated ? <Dashboard /> : <Navigate to="/tickets" replace />} />
-            <Route path="/schedule" element={isAuthenticated ? <Schedule /> : <Navigate to="/auth" replace />} />
-            <Route path="/new-report" element={isAuthenticated ? <NewReport /> : <Navigate to="/auth" replace />} />
+            <Route path="/" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <Dashboard />) : <Navigate to="/tickets" replace />} />
+            <Route path="/schedule" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <Schedule />) : <Navigate to="/auth" replace />} />
+            <Route path="/new-report" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <NewReport />) : <Navigate to="/auth" replace />} />
             <Route path="/reports" element={isAuthenticated ? <Reports /> : <Navigate to="/auth" replace />} />
-            <Route path="/inner-tickets" element={isAuthenticated ? <InnerTickets /> : <Navigate to="/auth" replace />} />
-            <Route path="/files" element={isAuthenticated ? <Files /> : <Navigate to="/auth" replace />} />
-            <Route path="/inventory" element={isAuthenticated ? <Inventory /> : <Navigate to="/auth" replace />} />
-            <Route path="/travel-sheet" element={isAuthenticated ? <TravelSheet /> : <Navigate to="/auth" replace />} />
-            <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/auth" replace />} />
-            <Route path="/statistics" element={isAuthenticated ? <Statistics /> : <Navigate to="/auth" replace />} />
+            <Route path="/inner-tickets" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <InnerTickets />) : <Navigate to="/auth" replace />} />
+            <Route path="/files" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <Files />) : <Navigate to="/auth" replace />} />
+            <Route path="/inventory" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <Inventory />) : <Navigate to="/auth" replace />} />
+            <Route path="/travel-sheet" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <TravelSheet />) : <Navigate to="/auth" replace />} />
+            <Route path="/profile" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <Profile />) : <Navigate to="/auth" replace />} />
+            <Route path="/statistics" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <Statistics />) : <Navigate to="/auth" replace />} />
             <Route path="/admin" element={isAuthenticated && isAdmin ? <Admin /> : <Navigate to="/" replace />} />
             <Route path="*" element={<Navigate to="/tickets" replace />} />
         </Routes>

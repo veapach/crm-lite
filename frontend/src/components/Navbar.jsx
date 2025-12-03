@@ -16,6 +16,8 @@ function Navbar() {
 
   // Проверка, является ли пользователь администратором
   const isAdmin = user && user.department === 'Админ';
+  // Проверка, является ли пользователь viewonlyuser
+  const isViewOnly = user?.phone === 'viewonlyuser';
 
   // Закрытие меню при клике за его пределами
   useEffect(() => {
@@ -70,38 +72,46 @@ function Navbar() {
             <ul className="navbar-nav ml-auto">
               {isAuthenticated ? (
                 <>
-                  <li className="nav-item mx-1">
-                    <Link className={`nav-link rounded-pill ${location.pathname === '/schedule' ? 'active' : ''}`} to="/schedule">График</Link>
-                  </li>
-                  <li className="nav-item mx-1">
-                    <Link className={`nav-link rounded-pill ${location.pathname === '/new-report' ? 'active' : ''}`} to="/new-report">Новый отчет</Link>
-                  </li>
-                  <li className="nav-item mx-1">
-                    <Link className={`nav-link rounded-pill ${location.pathname === '/reports' ? 'active' : ''}`} to="/reports">Отчеты</Link>
-                  </li>
-                  <li className="nav-item mx-1" style={{ display: 'flex', alignItems: 'center' }}>
-                    <Link className={`nav-link rounded-pill ${location.pathname === '/inner-tickets' ? 'active' : ''}`} to="/inner-tickets">Заявки</Link>
-                    {hasNewTickets && <span className="vv-badge-pulse" aria-label="Новые заявки" />}
-                  </li>
-                  <li className="nav-item mx-1">
-                    <Link className={`nav-link rounded-pill ${location.pathname === '/statistics' ? 'active' : ''}`} to="/statistics">Статистика</Link>
-                  </li>
-                  <li className="nav-item mx-1">
-                    <Link className={`nav-link rounded-pill ${location.pathname === '/files' ? 'active' : ''}`} to="/files">Файлы</Link>
-                  </li>
-                  <li className="nav-item mx-1">
-                    <Link className={`nav-link rounded-pill ${location.pathname === '/inventory' ? 'active' : ''}`} to="/inventory">ЗИП</Link>
-                  </li>
-                  <li className="nav-item mx-1">
-                    <Link className={`nav-link rounded-pill ${location.pathname === '/travel-sheet' ? 'active' : ''}`} to="/travel-sheet">Путевой лист</Link>
-                  </li>
-                  <li className="nav-item mx-1">
-                    <Link className={`nav-link rounded-pill ${location.pathname === '/profile' ? 'active' : ''}`} to="/profile">Профиль</Link>
-                  </li>
-                  {isAdmin && (
+                  {isViewOnly ? (
                     <li className="nav-item mx-1">
-                      <Link className={`nav-link rounded-pill ${location.pathname === '/admin' ? 'active' : ''}`} to="/admin">Администрирование</Link>
+                      <Link className={`nav-link rounded-pill ${location.pathname === '/reports' ? 'active' : ''}`} to="/reports">Отчеты</Link>
                     </li>
+                  ) : (
+                    <>
+                      <li className="nav-item mx-1">
+                        <Link className={`nav-link rounded-pill ${location.pathname === '/schedule' ? 'active' : ''}`} to="/schedule">График</Link>
+                      </li>
+                      <li className="nav-item mx-1">
+                        <Link className={`nav-link rounded-pill ${location.pathname === '/new-report' ? 'active' : ''}`} to="/new-report">Новый отчет</Link>
+                      </li>
+                      <li className="nav-item mx-1">
+                        <Link className={`nav-link rounded-pill ${location.pathname === '/reports' ? 'active' : ''}`} to="/reports">Отчеты</Link>
+                      </li>
+                      <li className="nav-item mx-1" style={{ display: 'flex', alignItems: 'center' }}>
+                        <Link className={`nav-link rounded-pill ${location.pathname === '/inner-tickets' ? 'active' : ''}`} to="/inner-tickets">Заявки</Link>
+                        {hasNewTickets && <span className="vv-badge-pulse" aria-label="Новые заявки" />}
+                      </li>
+                      <li className="nav-item mx-1">
+                        <Link className={`nav-link rounded-pill ${location.pathname === '/statistics' ? 'active' : ''}`} to="/statistics">Статистика</Link>
+                      </li>
+                      <li className="nav-item mx-1">
+                        <Link className={`nav-link rounded-pill ${location.pathname === '/files' ? 'active' : ''}`} to="/files">Файлы</Link>
+                      </li>
+                      <li className="nav-item mx-1">
+                        <Link className={`nav-link rounded-pill ${location.pathname === '/inventory' ? 'active' : ''}`} to="/inventory">ЗИП</Link>
+                      </li>
+                      <li className="nav-item mx-1">
+                        <Link className={`nav-link rounded-pill ${location.pathname === '/travel-sheet' ? 'active' : ''}`} to="/travel-sheet">Путевой лист</Link>
+                      </li>
+                      <li className="nav-item mx-1">
+                        <Link className={`nav-link rounded-pill ${location.pathname === '/profile' ? 'active' : ''}`} to="/profile">Профиль</Link>
+                      </li>
+                      {isAdmin && (
+                        <li className="nav-item mx-1">
+                          <Link className={`nav-link rounded-pill ${location.pathname === '/admin' ? 'active' : ''}`} to="/admin">Администрирование</Link>
+                        </li>
+                      )}
+                    </>
                   )}
                 </>
               ) : (
@@ -123,21 +133,27 @@ function Navbar() {
           <ul className="navbar-nav">
             {isAuthenticated ? (
               <>
-                <li><Link to="/schedule" onClick={closeMenu}>График</Link></li>
-                <li><Link to="/new-report" onClick={closeMenu}>Новый отчет</Link></li>
-                <li><Link to="/reports" onClick={closeMenu}>Отчеты</Link></li>
-                <li>
-                  <Link to="/inner-tickets" onClick={closeMenu}>
-                    Заявки{hasNewTickets && <span className="vv-badge-pulse" aria-label="Новые заявки" />}
-                  </Link>
-                </li>
-                <li><Link to="/statistics" onClick={closeMenu}>Статистика</Link></li>
-                <li><Link to="/files" onClick={closeMenu}>Файлы</Link></li>
-                <li><Link to="/inventory" onClick={closeMenu}>ЗИП</Link></li>
-                <li><Link to="/travel-sheet" onClick={closeMenu}>Путевой лист</Link></li>
-                <li><Link to="/profile" onClick={closeMenu}>Профиль</Link></li>
-                {isAdmin && (
-                  <li><Link to="/admin" onClick={closeMenu}>Администрирование</Link></li>
+                {isViewOnly ? (
+                  <li><Link to="/reports" onClick={closeMenu}>Отчеты</Link></li>
+                ) : (
+                  <>
+                    <li><Link to="/schedule" onClick={closeMenu}>График</Link></li>
+                    <li><Link to="/new-report" onClick={closeMenu}>Новый отчет</Link></li>
+                    <li><Link to="/reports" onClick={closeMenu}>Отчеты</Link></li>
+                    <li>
+                      <Link to="/inner-tickets" onClick={closeMenu}>
+                        Заявки{hasNewTickets && <span className="vv-badge-pulse" aria-label="Новые заявки" />}
+                      </Link>
+                    </li>
+                    <li><Link to="/statistics" onClick={closeMenu}>Статистика</Link></li>
+                    <li><Link to="/files" onClick={closeMenu}>Файлы</Link></li>
+                    <li><Link to="/inventory" onClick={closeMenu}>ЗИП</Link></li>
+                    <li><Link to="/travel-sheet" onClick={closeMenu}>Путевой лист</Link></li>
+                    <li><Link to="/profile" onClick={closeMenu}>Профиль</Link></li>
+                    {isAdmin && (
+                      <li><Link to="/admin" onClick={closeMenu}>Администрирование</Link></li>
+                    )}
+                  </>
                 )}
               </>
             ) : (

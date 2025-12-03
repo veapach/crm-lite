@@ -4,11 +4,15 @@ import { renderAsync } from 'docx-preview';
 import { Modal } from 'react-bootstrap';
 import '../styles/Reports.css';
 import * as pdfjsLib from 'pdfjs-dist';
+import { useAuth } from '../context/AuthContext';
 
 // Устанавливаем worker для PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 function Reports() {
+  const { user } = useAuth();
+  const isViewOnly = user?.phone === 'viewonlyuser';
+  
   const [reports, setReports] = useState([]);
   const [users, setUsers] = useState({});
   const [error, setError] = useState('');
@@ -16,7 +20,7 @@ function Reports() {
   const [selectedReport, setSelectedReport] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState('desc');
-  const [showOnlyMine, setShowOnlyMine] = useState(true);
+  const [showOnlyMine, setShowOnlyMine] = useState(!isViewOnly);
   const viewerRef = useRef(null);
   const [highlightedReportId, setHighlightedReportId] = useState(null);
   const [reportsStats, setReportsStats] = useState({ total: 0, month: 0 });
@@ -510,9 +514,11 @@ function Reports() {
                   <button className="btn btn-success me-2" onClick={() => handleDownload(report.filename)}>
                     Скачать
                   </button>
-                  <button className="btn btn-danger" onClick={() => handleDelete(report.filename)}>
-                    Удалить
-                  </button>
+                  {!isViewOnly && (
+                    <button className="btn btn-danger" onClick={() => handleDelete(report.filename)}>
+                      Удалить
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
