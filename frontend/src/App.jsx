@@ -95,7 +95,7 @@ function App() {
             <Route path="/files" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <Files />) : <Navigate to="/auth" replace />} />
             <Route path="/inventory" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <Inventory />) : <Navigate to="/auth" replace />} />
             <Route path="/travel-sheet" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <TravelSheet />) : <Navigate to="/auth" replace />} />
-            <Route path="/profile" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <Profile />) : <Navigate to="/auth" replace />} />
+            <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/auth" replace />} />
             <Route path="/statistics" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <Statistics />) : <Navigate to="/auth" replace />} />
             <Route path="/admin" element={isAuthenticated && isAdmin ? <Admin /> : <Navigate to="/" replace />} />
             <Route path="*" element={<Navigate to="/tickets" replace />} />

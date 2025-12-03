@@ -73,9 +73,14 @@ function Navbar() {
               {isAuthenticated ? (
                 <>
                   {isViewOnly ? (
-                    <li className="nav-item mx-1">
-                      <Link className={`nav-link rounded-pill ${location.pathname === '/reports' ? 'active' : ''}`} to="/reports">Отчеты</Link>
-                    </li>
+                    <>
+                      <li className="nav-item mx-1">
+                        <Link className={`nav-link rounded-pill ${location.pathname === '/reports' ? 'active' : ''}`} to="/reports">Отчеты</Link>
+                      </li>
+                      <li className="nav-item mx-1">
+                        <Link className={`nav-link rounded-pill ${location.pathname === '/profile' ? 'active' : ''}`} to="/profile">Профиль</Link>
+                      </li>
+                    </>
                   ) : (
                     <>
                       <li className="nav-item mx-1">
@@ -134,7 +139,10 @@ function Navbar() {
             {isAuthenticated ? (
               <>
                 {isViewOnly ? (
-                  <li><Link to="/reports" onClick={closeMenu}>Отчеты</Link></li>
+                  <>
+                    <li><Link to="/reports" onClick={closeMenu}>Отчеты</Link></li>
+                    <li><Link to="/profile" onClick={closeMenu}>Профиль</Link></li>
+                  </>
                 ) : (
                   <>
                     <li><Link to="/schedule" onClick={closeMenu}>График</Link></li>
