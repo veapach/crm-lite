@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"backend/internal/storage"
+
+	"github.com/joho/godotenv"
 )
 
 var foldersToMigrate = map[string]string{
@@ -19,6 +21,11 @@ var foldersToMigrate = map[string]string{
 }
 
 func main() {
+	// Загружаем .env файл
+	if err := godotenv.Load(); err != nil {
+		log.Printf("Предупреждение: .env файл не найден: %v", err)
+	}
+
 	if err := storage.InitS3FromEnv(); err != nil {
 		log.Fatalf("Ошибка инициализации S3: %v", err)
 	}
