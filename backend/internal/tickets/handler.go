@@ -2,8 +2,11 @@ package tickets
 
 import (
 	"backend/internal/db"
+	"backend/internal/storage"
+	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -20,6 +23,8 @@ import (
 var TicketQueue *amqp.Channel
 
 var lastNotifiedUnassignedCount int64 = -1
+
+const ticketsPrefix = "tickets/"
 
 func russianPlural(n int64, one string, few string, many string) string {
 	mod10 := n % 10
@@ -128,13 +133,36 @@ func CreateTicket(c *gin.Context) {
 		if err == nil && form != nil {
 			files := form.File["files"]
 			var savedFiles []string
+			ctx := context.Background()
+
 			for _, file := range files {
-				saveDir := "uploads/tickets"
-				os.MkdirAll(saveDir, os.ModePerm)
 				filename := time.Now().Format("20060102150405") + "_" + file.Filename
-				savePath := filepath.Join(saveDir, filename)
-				if err := c.SaveUploadedFile(file, savePath); err == nil {
-					savedFiles = append(savedFiles, filename)
+
+				if storage.IsS3Enabled() {
+					// Загрузка в S3
+					src, err := file.Open()
+					if err != nil {
+						continue
+					}
+					contentType := file.Header.Get("Content-Type")
+					if contentType == "" {
+						contentType = "application/octet-stream"
+					}
+					uniqueName := storage.GetUniqueFileName(ctx, ticketsPrefix, filename)
+					if err := storage.UploadObject(ctx, ticketsPrefix, uniqueName, src, file.Size, contentType); err != nil {
+						src.Close()
+						continue
+					}
+					src.Close()
+					savedFiles = append(savedFiles, uniqueName)
+				} else {
+					// Локальное сохранение (fallback)
+					saveDir := "uploads/tickets"
+					os.MkdirAll(saveDir, os.ModePerm)
+					savePath := filepath.Join(saveDir, filename)
+					if err := c.SaveUploadedFile(file, savePath); err == nil {
+						savedFiles = append(savedFiles, filename)
+					}
 				}
 			}
 			ticket.Files = strings.Join(savedFiles, ",")
@@ -255,7 +283,13 @@ func UpdateClientTicket(c *gin.Context) {
 		// Если статус "Выполнено" — удалить фото
 		if input.Status == "Выполнено" && ticket.Files != "" {
 			files := strings.Split(ticket.Files, ",")
+			ctx := context.Background()
 			for _, f := range files {
+				// Удаляем из S3 если включено
+				if storage.IsS3Enabled() {
+					_ = storage.DeleteObject(ctx, ticketsPrefix, f)
+				}
+				// Также пробуем удалить локально
 				path := filepath.Join("uploads/tickets", f)
 				_ = os.Remove(path)
 			}
@@ -283,7 +317,13 @@ func DeleteClientTicket(c *gin.Context) {
 	// Удалить файлы
 	if ticket.Files != "" {
 		files := strings.Split(ticket.Files, ",")
+		ctx := context.Background()
 		for _, f := range files {
+			// Удаляем из S3 если включено
+			if storage.IsS3Enabled() {
+				_ = storage.DeleteObject(ctx, ticketsPrefix, f)
+			}
+			// Также пробуем удалить локально
 			path := filepath.Join("uploads/tickets", f)
 			_ = os.Remove(path)
 		}
@@ -299,12 +339,29 @@ func DeleteClientTicket(c *gin.Context) {
 
 func ServeTicketFile(c *gin.Context) {
 	filename := c.Param("filename")
-	filePath := filepath.Join("uploads/tickets", filename)
 
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден"})
+	// Сначала проверяем локальный файл
+	filePath := filepath.Join("uploads/tickets", filename)
+	if _, err := os.Stat(filePath); err == nil {
+		c.File(filePath)
 		return
 	}
 
-	c.File(filePath)
+	// Если локально нет - пробуем S3
+	if storage.IsS3Enabled() {
+		obj, info, err := storage.GetObject(context.Background(), ticketsPrefix, filename)
+		if err == nil && obj != nil {
+			defer obj.Close()
+			if info.ContentType != "" {
+				c.Header("Content-Type", info.ContentType)
+			} else {
+				c.Header("Content-Type", "application/octet-stream")
+			}
+			c.Status(http.StatusOK)
+			io.Copy(c.Writer, obj)
+			return
+		}
+	}
+
+	c.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден"})
 }

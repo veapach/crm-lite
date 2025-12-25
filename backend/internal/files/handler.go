@@ -2,7 +2,10 @@ package files
 
 import (
 	"backend/internal/db"
+	"backend/internal/storage"
+	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -10,6 +13,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
+
+const filesPrefix = "files/"
 
 func GetFiles(c *gin.Context) {
 	var files []db.File
@@ -30,15 +35,44 @@ func UploadFiles(c *gin.Context) {
 	form, _ := c.MultipartForm()
 	files := form.File["file"]
 
-	for _, file := range files {
-		filePath := filepath.Join("uploads", "files", file.Filename)
+	ctx := context.Background()
 
-		if err := c.SaveUploadedFile(file, filePath); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении файла"})
+	for _, file := range files {
+		src, err := file.Open()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при открытии файла"})
 			return
 		}
+		defer src.Close()
 
-		certificate := db.File{Filename: file.Filename}
+		filename := file.Filename
+		contentType := file.Header.Get("Content-Type")
+		if contentType == "" {
+			contentType = "application/octet-stream"
+		}
+
+		if storage.IsS3Enabled() {
+			// Получаем уникальное имя файла для S3
+			uniqueName := storage.GetUniqueFileName(ctx, filesPrefix, filename)
+			if err := storage.UploadObject(ctx, filesPrefix, uniqueName, src, file.Size, contentType); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при загрузке файла в S3"})
+				return
+			}
+			filename = uniqueName
+		} else {
+			// Локальное сохранение (fallback)
+			filePath := filepath.Join("uploads", "files", filename)
+			if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при создании директории"})
+				return
+			}
+			if err := c.SaveUploadedFile(file, filePath); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении файла"})
+				return
+			}
+		}
+
+		certificate := db.File{Filename: filename}
 		if err := db.DB.Create(&certificate).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении данных в БД"})
 			return
@@ -55,16 +89,33 @@ func PreviewFiles(c *gin.Context) {
 		return
 	}
 
+	// Сначала проверяем локальный файл
 	filePath := filepath.Join("uploads", "files", filename)
-
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден"})
+	if _, err := os.Stat(filePath); err == nil {
+		c.Header("Content-Type", "image/*")
+		c.Header("Cache-Control", "public, max-age=31536000")
+		c.File(filePath)
 		return
 	}
 
-	c.Header("Content-Type", "image/*")
-	c.Header("Cache-Control", "public, max-age=31536000")
-	c.File(filePath)
+	// Если локально нет - пробуем S3
+	if storage.IsS3Enabled() {
+		obj, info, err := storage.GetObject(context.Background(), filesPrefix, filename)
+		if err == nil && obj != nil {
+			defer obj.Close()
+			if info.ContentType != "" {
+				c.Header("Content-Type", info.ContentType)
+			} else {
+				c.Header("Content-Type", "image/*")
+			}
+			c.Header("Cache-Control", "public, max-age=31536000")
+			c.Status(http.StatusOK)
+			io.Copy(c.Writer, obj)
+			return
+		}
+	}
+
+	c.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден"})
 }
 
 func DownloadFiles(c *gin.Context) {
@@ -74,17 +125,29 @@ func DownloadFiles(c *gin.Context) {
 		return
 	}
 
+	// Сначала проверяем локальный файл
 	filePath := filepath.Join("uploads", "files", filename)
-
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден"})
+	if _, err := os.Stat(filePath); err == nil {
+		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename*=UTF-8''%s", url.PathEscape(filename)))
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(filePath)
 		return
 	}
 
-	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename*=UTF-8''%s", url.PathEscape(filename)))
-	c.Header("Content-Type", "application/octet-stream")
+	// Если локально нет - пробуем S3
+	if storage.IsS3Enabled() {
+		obj, _, err := storage.GetObject(context.Background(), filesPrefix, filename)
+		if err == nil && obj != nil {
+			defer obj.Close()
+			c.Header("Content-Disposition", fmt.Sprintf("attachment; filename*=UTF-8''%s", url.PathEscape(filename)))
+			c.Header("Content-Type", "application/octet-stream")
+			c.Status(http.StatusOK)
+			io.Copy(c.Writer, obj)
+			return
+		}
+	}
 
-	c.File(filePath)
+	c.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден"})
 }
 
 func RenameFiles(c *gin.Context) {
@@ -97,18 +160,36 @@ func RenameFiles(c *gin.Context) {
 		return
 	}
 
-	oldPath := filepath.Join("uploads", "files", request.OldName)
 	ext := filepath.Ext(request.OldName)
 	newNameWithExt := request.NewName + ext
-	newPath := filepath.Join("uploads", "files", newNameWithExt)
 
-	if _, err := os.Stat(oldPath); os.IsNotExist(err) {
+	ctx := context.Background()
+
+	// Проверяем где находится файл и переименовываем
+	oldPath := filepath.Join("uploads", "files", request.OldName)
+	if _, err := os.Stat(oldPath); err == nil {
+		// Локальный файл
+		newPath := filepath.Join("uploads", "files", newNameWithExt)
+		if err := os.Rename(oldPath, newPath); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при переименовании файла"})
+			return
+		}
+	} else if storage.IsS3Enabled() {
+		// S3 файл - копируем с новым именем и удаляем старый
+		if !storage.ObjectExists(ctx, filesPrefix, request.OldName) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден"})
+			return
+		}
+		if err := storage.CopyObject(ctx, filesPrefix, request.OldName, filesPrefix, newNameWithExt); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при переименовании файла в S3"})
+			return
+		}
+		if err := storage.DeleteObject(ctx, filesPrefix, request.OldName); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при удалении старого файла из S3"})
+			return
+		}
+	} else {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден"})
-		return
-	}
-
-	if err := os.Rename(oldPath, newPath); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при переименовании файла"})
 		return
 	}
 
@@ -122,15 +203,27 @@ func RenameFiles(c *gin.Context) {
 
 func DeleteFiles(c *gin.Context) {
 	filename := c.Param("filename")
-	filePath := filepath.Join("uploads", "files", filename)
 
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден"})
-		return
+	ctx := context.Background()
+
+	// Пробуем удалить локальный файл
+	filePath := filepath.Join("uploads", "files", filename)
+	localDeleted := false
+	if _, err := os.Stat(filePath); err == nil {
+		if err := os.Remove(filePath); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при удалении файла"})
+			return
+		}
+		localDeleted = true
 	}
 
-	if err := os.Remove(filePath); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при удалении файла"})
+	// Также пробуем удалить из S3
+	if storage.IsS3Enabled() {
+		_ = storage.DeleteObject(ctx, filesPrefix, filename)
+	}
+
+	if !localDeleted && !storage.IsS3Enabled() {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден"})
 		return
 	}
 
