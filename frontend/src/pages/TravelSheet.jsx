@@ -64,7 +64,7 @@ function TravelSheet() {
         axios.get(`/api/travel-sheet/stats/daily?date=${selectedDate}`),
         axios.get(`/api/travel-sheet/stats/monthly?month=${selectedMonth}`)
       ]);
-      
+
       setDailyStats(dailyResponse.data);
       setMonthlyStats(monthlyResponse.data);
     } catch (error) {
@@ -100,7 +100,7 @@ function TravelSheet() {
         setShowStartAddressSuggestions(filtered.length > 0);
       }
     }
-    
+
     if (name === 'endPoint') {
       if (value.trim() === '') {
         setFilteredEndAddresses([]);
@@ -173,7 +173,7 @@ function TravelSheet() {
       }
 
       await axios.post('/api/travel-sheet', formData);
-      
+
       setSuccess('Запись успешно добавлена');
       setFormData({
         date: new Date().toISOString().split('T')[0],
@@ -182,7 +182,7 @@ function TravelSheet() {
         distance: ''
       });
       setShowForm(false);
-      
+
       fetchTravelRecords();
       fetchStats();
     } catch (error) {
@@ -221,7 +221,7 @@ function TravelSheet() {
   const getSortedRecords = () => {
     const sorted = [...travelRecords].sort((a, b) => {
       let aValue, bValue;
-      
+
       switch (sortField) {
         case 'date':
           aValue = new Date(a.date);
@@ -242,12 +242,12 @@ function TravelSheet() {
         default:
           return 0;
       }
-      
+
       if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
       if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
       return 0;
     });
-    
+
     return sorted;
   };
 
@@ -260,7 +260,7 @@ function TravelSheet() {
     <div className="travel-sheet-container">
       <div className="travel-sheet-header">
         <h2>Путевой лист</h2>
-        <button 
+        <button
           className="btn btn-primary add-record-btn"
           onClick={() => setShowForm(!showForm)}
         >
@@ -416,8 +416,8 @@ function TravelSheet() {
               <button type="submit" className="btn btn-success" disabled={isLoading}>
                 {isLoading ? 'Добавление...' : 'Добавить'}
               </button>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="btn btn-secondary"
                 onClick={() => setShowForm(false)}
               >
@@ -431,29 +431,32 @@ function TravelSheet() {
       {error && <div className="alert alert-danger">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
 
+      <div className="scroll-hint">
+        ← Прокрутите таблицу для просмотра всех столбцов →
+      </div>
       <div className="table-container">
         <table className="table table-striped">
           <thead>
             <tr>
-              <th 
+              <th
                 className="sortable-header"
                 onClick={() => handleSort('date')}
               >
                 Дата {getSortIcon('date')}
               </th>
-              <th 
+              <th
                 className="sortable-header"
                 onClick={() => handleSort('startPoint')}
               >
                 Начальная точка {getSortIcon('startPoint')}
               </th>
-              <th 
+              <th
                 className="sortable-header"
                 onClick={() => handleSort('endPoint')}
               >
                 Конечная точка {getSortIcon('endPoint')}
               </th>
-              <th 
+              <th
                 className="sortable-header"
                 onClick={() => handleSort('distance')}
               >

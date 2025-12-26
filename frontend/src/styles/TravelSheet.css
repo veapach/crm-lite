@@ -226,12 +226,36 @@
 .table-container {
   background-color: white;
   border-radius: 8px;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: visible;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  -webkit-overflow-scrolling: touch;
+  /* Индикатор горизонтального скролла */
+  scrollbar-width: thin;
+  scrollbar-color: #007bff #f1f1f1;
+}
+
+.table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: #007bff;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: #0056b3;
 }
 
 .table {
   width: 100%;
+  min-width: 700px;
   margin-bottom: 0;
   border-collapse: collapse;
 }
@@ -297,26 +321,29 @@
     gap: 15px;
     align-items: stretch;
   }
-  
+
   .stats-container {
     grid-template-columns: 1fr;
     gap: 15px;
   }
-  
+
   .form-row {
     grid-template-columns: 1fr;
     gap: 15px;
   }
-  
+
   .form-actions {
     flex-direction: column;
   }
-  
-  .table-container {
-    overflow-x: auto;
-  }
-  
-  .table {
-    min-width: 600px;
-  }
-} 
+}
+
+/* Индикатор прокрутки для лучшего UX */
+.scroll-hint {
+  text-align: center;
+  color: #6c757d;
+  font-size: 12px;
+  padding: 8px;
+  background: linear-gradient(90deg, transparent, rgba(0, 123, 255, 0.1), transparent);
+  margin-bottom: 10px;
+  border-radius: 4px;
+}

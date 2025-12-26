@@ -16,31 +16,31 @@ function InnerTickets() {
   const [activeTab, setActiveTab] = useState('list');
   const navigate = useNavigate();
 
-	useEffect(() => {
-		const fetchTickets = async () => {
-			try {
-				const response = await axios.get('/api/client-tickets');
-				const data = response.data.tickets;
-				setTickets(Array.isArray(data) ? data : []);
-			} catch (error) {
-				console.error('Ошибка при загрузке заявок:', error);
-				setTickets([]);
-			}
-		};
+  useEffect(() => {
+    const fetchTickets = async () => {
+      try {
+        const response = await axios.get('/api/client-tickets');
+        const data = response.data.tickets;
+        setTickets(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Ошибка при загрузке заявок:', error);
+        setTickets([]);
+      }
+    };
 
-		const fetchCurrentUser = async () => {
-			try {
-				const response = await axios.get('/api/check-auth');
-				const user = response.data.user;
-				setCurrentUser(user);
-			} catch (error) {
-				console.error('Ошибка при загрузке текущего пользователя:', error);
-			}
-		};
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await axios.get('/api/check-auth');
+        const user = response.data.user;
+        setCurrentUser(user);
+      } catch (error) {
+        console.error('Ошибка при загрузке текущего пользователя:', error);
+      }
+    };
 
-		fetchTickets();
-		fetchCurrentUser();
-	}, []);
+    fetchTickets();
+    fetchCurrentUser();
+  }, []);
 
   const handleTakeInWork = async (ticketId) => {
     try {
@@ -57,14 +57,14 @@ function InnerTickets() {
       const currentTicket = tickets.find(ticket => ticket.id === ticketId);
       const engineerName = newStatus === 'Не назначено' ? null : currentTicket.engineerName;
       await axios.put(`/api/client-tickets/${ticketId}`, { status: newStatus, engineerName });
-      setTickets((prev) => prev.map((ticket) => 
-        ticket.id === ticketId 
-          ? { 
-              ...ticket, 
-              status: newStatus, 
-              engineerName: newStatus === 'Не назначено' ? null : ticket.engineerName 
-            } 
-        : ticket
+      setTickets((prev) => prev.map((ticket) =>
+        ticket.id === ticketId
+          ? {
+            ...ticket,
+            status: newStatus,
+            engineerName: newStatus === 'Не назначено' ? null : ticket.engineerName
+          }
+          : ticket
       ));
     } catch (error) {
       console.error('Ошибка при изменении статуса заявки:', error);
@@ -89,21 +89,21 @@ function InnerTickets() {
   const handleConfirmReport = async (shouldComplete) => {
     const ticket = selectedTicket;
     const currentEngineer = ticket.engineerName || `${currentUser.firstName} ${currentUser.lastName}`;
-    
+
     try {
-      await axios.put(`/api/client-tickets/${ticket.id}`, { 
-        status: shouldComplete ? 'Завершено' : 'В работе', 
-        engineerName: currentEngineer 
+      await axios.put(`/api/client-tickets/${ticket.id}`, {
+        status: shouldComplete ? 'Завершено' : 'В работе',
+        engineerName: currentEngineer
       });
-      setTickets((prev) => prev.map((t) => 
-        t.id === ticket.id 
+      setTickets((prev) => prev.map((t) =>
+        t.id === ticket.id
           ? { ...t, status: shouldComplete ? 'Завершено' : 'В работе', engineerName: currentEngineer }
           : t
       ));
     } catch (error) {
       console.error('Ошибка при изменении статуса заявки:', error);
     }
-    
+
     setShowReportModal(false);
     navigate(`/new-report?date=${ticket.date}&address=${ticket.address}&classification=${ticket.description}`);
   };
@@ -113,11 +113,11 @@ function InnerTickets() {
   const handleViewDetails = async (ticket) => {
     setSelectedTicket(ticket);
     setShowDetailsModal(true);
-    
+
     if (ticket.files) {
       const files = ticket.files.split(',');
       const urls = {};
-      
+
       for (const file of files) {
         try {
           const response = await axios.get(`/api/tickets/files/${file}`, {
@@ -129,7 +129,7 @@ function InnerTickets() {
           console.error('Ошибка при загрузке файла:', file, error);
         }
       }
-      
+
       setFileUrls(urls);
     }
   };
@@ -137,7 +137,7 @@ function InnerTickets() {
   return (
     <div className="inner-tickets container mt-4">
       <h1 className="text-center mb-4">Заявки</h1>
-      
+
       <Tabs
         activeKey={activeTab}
         onSelect={(k) => setActiveTab(k)}
@@ -146,87 +146,90 @@ function InnerTickets() {
       >
         <Tab eventKey="list" title="Список">
           <div className="mb-3">
-            <Button 
-              variant={showCompletedTickets ? "secondary" : "primary"} 
+            <Button
+              variant={showCompletedTickets ? "secondary" : "primary"}
               onClick={() => setShowCompletedTickets(!showCompletedTickets)}
             >
               {showCompletedTickets ? "Показать активные" : "Показать завершенные"}
             </Button>
           </div>
+          <div className="scroll-indicator">
+            ← Прокрутите таблицу для просмотра всех столбцов и действий →
+          </div>
           <div className="schedule-table-wrapper">
             <Table striped bordered hover responsive>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Дата</th>
-                <th>ФИО</th>
-                <th>Должность</th>
-                <th>Контакт</th>
-                <th>Адрес</th>
-                <th>Описание</th>
-                <th>Статус</th>
-                <th>Инженер</th>
-                <th>Действия</th>
-              </tr>
-            </thead>
-            <tbody>
-      {tickets
-        .filter(ticket => showCompletedTickets ? 
-          ticket.status === 'Завершено' : 
-          ['Не назначено', 'В работе'].includes(ticket.status))
-        .map((ticket) => {
-          const isCurrentEngineer = currentUser && ticket.engineerName === `${currentUser.firstName} ${currentUser.lastName}`;
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Дата</th>
+                  <th>ФИО</th>
+                  <th>Должность</th>
+                  <th>Контакт</th>
+                  <th>Адрес</th>
+                  <th>Описание</th>
+                  <th>Статус</th>
+                  <th>Инженер</th>
+                  <th>Действия</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tickets
+                  .filter(ticket => showCompletedTickets ?
+                    ticket.status === 'Завершено' :
+                    ['Не назначено', 'В работе'].includes(ticket.status))
+                  .map((ticket) => {
+                    const isCurrentEngineer = currentUser && ticket.engineerName === `${currentUser.firstName} ${currentUser.lastName}`;
 
-          return (
-            <tr key={ticket.id}>
-              <td>{ticket.id}</td>
-              <td>{ticket.date}</td>
-              <td>{ticket.fullName}</td>
-              <td>{ticket.position}</td>
-              <td>{ticket.contact}</td>
-              <td>{ticket.address}</td>
-              <td>{ticket.description.length > 50 ? `${ticket.description.substring(0, 50)}...` : ticket.description}</td>
-              <td style={{ backgroundColor: ticket.status === 'Не назначено' ? '#ff9999' : 'transparent' }}>
-                {ticket.status}
-              </td>
-              <td style={{ backgroundColor: isCurrentEngineer ? '#d0e7ff' : undefined }}>
-                {ticket.engineerName || 'Не назначен'}
-              </td>
-              <td>
-                {ticket.status !== 'В работе' && (
-                  <Button variant="success" size="sm" onClick={() => handleTakeInWork(ticket.id)}>Взять в работу</Button>
-                )}{' '}
-                {ticket.status === 'В работе' && (
-                  <>
-                    <Button variant="warning" size="sm" onClick={() => handleChangeStatus(ticket.id, 'Не назначено')}>Сбросить статус</Button>{' '}
-                    <Button variant="success" size="sm" onClick={() => handleChangeStatus(ticket.id, 'Завершено')}>Завершить заявку</Button>
-                  </>
-                )}{' '}
-                <Button variant="danger" size="sm" onClick={() => handleDelete(ticket.id)}>Удалить</Button>{' '}
-                <Button variant="primary" size="sm" onClick={() => handleCreateReport(ticket)}>Создать отчет</Button>{' '}
-                <Button variant="info" size="sm" onClick={() => handleViewDetails(ticket)}>Подробнее</Button>
-              </td>
-            </tr>
-          );
-        })}
-    </tbody>
+                    return (
+                      <tr key={ticket.id}>
+                        <td>{ticket.id}</td>
+                        <td>{ticket.date}</td>
+                        <td>{ticket.fullName}</td>
+                        <td>{ticket.position}</td>
+                        <td>{ticket.contact}</td>
+                        <td>{ticket.address}</td>
+                        <td>{ticket.description.length > 50 ? `${ticket.description.substring(0, 50)}...` : ticket.description}</td>
+                        <td style={{ backgroundColor: ticket.status === 'Не назначено' ? '#ff9999' : 'transparent' }}>
+                          {ticket.status}
+                        </td>
+                        <td style={{ backgroundColor: isCurrentEngineer ? '#d0e7ff' : undefined }}>
+                          {ticket.engineerName || 'Не назначен'}
+                        </td>
+                        <td>
+                          {ticket.status !== 'В работе' && (
+                            <Button variant="success" size="sm" onClick={() => handleTakeInWork(ticket.id)}>Взять в работу</Button>
+                          )}{' '}
+                          {ticket.status === 'В работе' && (
+                            <>
+                              <Button variant="warning" size="sm" onClick={() => handleChangeStatus(ticket.id, 'Не назначено')}>Сбросить статус</Button>{' '}
+                              <Button variant="success" size="sm" onClick={() => handleChangeStatus(ticket.id, 'Завершено')}>Завершить заявку</Button>
+                            </>
+                          )}{' '}
+                          <Button variant="danger" size="sm" onClick={() => handleDelete(ticket.id)}>Удалить</Button>{' '}
+                          <Button variant="primary" size="sm" onClick={() => handleCreateReport(ticket)}>Создать отчет</Button>{' '}
+                          <Button variant="info" size="sm" onClick={() => handleViewDetails(ticket)}>Подробнее</Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
 
             </Table>
           </div>
         </Tab>
-        
+
         <Tab eventKey="map" title="Карта">
           <div className="mb-3">
-            <Button 
-              variant={showCompletedTickets ? "secondary" : "primary"} 
+            <Button
+              variant={showCompletedTickets ? "secondary" : "primary"}
               onClick={() => setShowCompletedTickets(!showCompletedTickets)}
             >
               {showCompletedTickets ? "Показать активные" : "Показать завершенные"}
             </Button>
           </div>
-          <TicketsMap 
-            tickets={tickets.filter(ticket => showCompletedTickets ? 
-              ticket.status === 'Завершено' : 
+          <TicketsMap
+            tickets={tickets.filter(ticket => showCompletedTickets ?
+              ticket.status === 'Завершено' :
               ['Не назначено', 'В работе'].includes(ticket.status))}
           />
         </Tab>
@@ -251,10 +254,10 @@ function InnerTickets() {
                 {selectedTicket.files && selectedTicket.files.split(',').map((file, index) => (
                   <div key={index}>
                     {fileUrls[file] ? (
-                      <img 
+                      <img
                         src={fileUrls[file]}
-                        alt={file} 
-                        style={{ maxWidth: '100%', marginBottom: '10px' }} 
+                        alt={file}
+                        style={{ maxWidth: '100%', marginBottom: '10px' }}
                       />
                     ) : (
                       <div>Загрузка {file}...</div>
