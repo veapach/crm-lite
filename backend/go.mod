@@ -13,7 +13,7 @@ require (
 	github.com/minio/minio-go/v7 v7.0.70
 	github.com/streadway/amqp v1.1.0
 	golang.org/x/crypto v0.40.0
-	google.golang.org/grpc v1.60.1
+	google.golang.org/grpc v1.70.0
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.30.0
 )
