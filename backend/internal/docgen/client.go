@@ -19,7 +19,17 @@ type Client struct {
 
 // NewClient создает новый клиент для gRPC сервиса генерации документов
 func NewClient(address string) (*Client, error) {
-	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	// Увеличиваем лимит размера сообщений до 50MB
+	maxMsgSize := 50 * 1024 * 1024
+	opts := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(maxMsgSize),
+			grpc.MaxCallSendMsgSize(maxMsgSize),
+		),
+	}
+
+	conn, err := grpc.Dial(address, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("не удалось подключиться к сервису генерации документов: %v", err)
 	}

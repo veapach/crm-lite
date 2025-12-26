@@ -100,7 +100,12 @@ class DocumentGeneratorServicer(document_generator_pb2_grpc.DocumentGeneratorSer
 
 def serve(port: int = 50051):
     """Запуск gRPC сервера"""
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    # Увеличиваем лимит размера сообщений до 50MB
+    options = [
+        ('grpc.max_send_message_length', 50 * 1024 * 1024),
+        ('grpc.max_receive_message_length', 50 * 1024 * 1024),
+    ]
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10), options=options)
     document_generator_pb2_grpc.add_DocumentGeneratorServiceServicer_to_server(
         DocumentGeneratorServicer(), server
     )

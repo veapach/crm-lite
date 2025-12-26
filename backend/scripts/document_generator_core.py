@@ -124,10 +124,9 @@ def generate_preview_png(pdf_path, preview_png_path):
         page = doc.load_page(0)
         matrix = fitz.Matrix(2.0, 2.0)
         pix = page.get_pixmap(matrix=matrix, alpha=False)
-        tmp_path = preview_png_path + ".tmp"
-        pix.save(tmp_path)
+        # Сохраняем напрямую в целевой файл
+        pix.save(preview_png_path)
         doc.close()
-        os.replace(tmp_path, preview_png_path)
         return preview_png_path
     except Exception as e:
         print(f"Ошибка генерации превью PNG: {e}")
