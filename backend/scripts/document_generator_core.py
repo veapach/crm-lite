@@ -71,22 +71,14 @@ def convert_to_pdf(docx_path):
             return None
     elif system == "Linux" or system == "Darwin":
         try:
-            if system == "Darwin":
-                # macOS - попробуем использовать LibreOffice если установлен
-                subprocess.run(
-                    ["soffice", "--headless", "--convert-to", "pdf", "--outdir", 
-                     os.path.dirname(docx_path), docx_path],
-                    check=True,
-                    stderr=subprocess.PIPE,
-                    stdout=subprocess.PIPE
-                )
-            else:
-                # Linux - используем unoconv
-                subprocess.run(
-                    ["unoconv", "-f", "pdf", docx_path],
-                    check=True,
-                    stderr=subprocess.PIPE
-                )
+            # Используем soffice (LibreOffice) напрямую для обеих систем
+            subprocess.run(
+                ["soffice", "--headless", "--convert-to", "pdf", "--outdir", 
+                 os.path.dirname(docx_path), docx_path],
+                check=True,
+                stderr=subprocess.PIPE,
+                stdout=subprocess.PIPE
+            )
             os.remove(docx_path)
             if os.path.exists(pdf_path):
                 return pdf_path

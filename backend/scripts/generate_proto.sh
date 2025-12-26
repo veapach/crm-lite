@@ -14,8 +14,17 @@ python3 -m grpc_tools.protoc \
     --grpc_python_out="$OUTPUT_DIR" \
     "$PROTO_DIR/document_generator.proto"
 
-# Исправляем импорт в сгенерированном файле
-sed -i.bak 's/import document_generator_pb2/from . import document_generator_pb2/' "$OUTPUT_DIR/document_generator_pb2_grpc.py" 2>/dev/null || \
-sed -i '' 's/import document_generator_pb2/import document_generator_pb2/' "$OUTPUT_DIR/document_generator_pb2_grpc.py"
+if [ $? -ne 0 ]; then
+    echo "✗ Ошибка при генерации Python gRPC кода"
+    exit 1
+fi
 
-echo "Python gRPC код успешно сгенерирован в $OUTPUT_DIR"
+# Исправляем импорт в сгенерированном файле (убираем относительный импорт)
+if [ -f "$OUTPUT_DIR/document_generator_pb2_grpc.py" ]; then
+    echo "Исправление импортов..."
+    sed -i.bak 's/from \. import document_generator_pb2/import document_generator_pb2/' "$OUTPUT_DIR/document_generator_pb2_grpc.py" 2>/dev/null || \
+    sed -i '' 's/from \. import document_generator_pb2/import document_generator_pb2/' "$OUTPUT_DIR/document_generator_pb2_grpc.py"
+    rm -f "$OUTPUT_DIR/document_generator_pb2_grpc.py.bak"
+fi
+
+echo "✓ Python gRPC код успешно сгенерирован в $OUTPUT_DIR"
