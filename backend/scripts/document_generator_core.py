@@ -24,6 +24,15 @@ def add_photo_to_document(doc, photo_data, cell):
     image_stream = BytesIO(image_binary)
     image = Image.open(image_stream)
 
+    # Конвертируем RGBA в RGB если нужно (JPEG не поддерживает прозрачность)
+    if image.mode in ('RGBA', 'LA', 'P'):
+        # Создаём белый фон
+        rgb_image = Image.new('RGB', image.size, (255, 255, 255))
+        if image.mode == 'P':
+            image = image.convert('RGBA')
+        rgb_image.paste(image, mask=image.split()[-1] if image.mode in ('RGBA', 'LA') else None)
+        image = rgb_image
+
     max_width_cm, max_height_cm, dpi = 18, 13.5, 96
     max_width_px, max_height_px = int((max_width_cm / 2.54) * dpi), int((max_height_cm / 2.54) * dpi)
 
