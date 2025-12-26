@@ -23,6 +23,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"backend/internal/db"
+	"backend/internal/docgen"
 	"backend/internal/storage"
 )
 
@@ -224,6 +225,169 @@ func CreateReport(c *gin.Context) {
 		}
 	}
 
+	// Попытка использовать gRPC сервис генерации документов
+	grpcClient, err := docgen.GetClientFromEnv()
+	if err == nil && grpcClient != nil {
+		defer grpcClient.Close()
+
+		// Преобразуем checklistItems
+		var checklistItems []*docgen.ChecklistItem
+		for _, item := range reportData.ChecklistItems {
+			if task, ok := item["task"].(string); ok {
+				done, _ := item["done"].(bool)
+				checklistItems = append(checklistItems, &docgen.ChecklistItem{
+					Task: task,
+					Done: done,
+				})
+			}
+		}
+
+		// Создаём gRPC запрос
+		req := &docgen.GenerateDocumentRequest{
+			Date:            reportData.Date,
+			Address:         reportData.Address,
+			MachineName:     reportData.Machine_name,
+			MachineNumber:   reportData.Machine_number,
+			InventoryNumber: reportData.Inventory_number,
+			Classification:  reportData.Classification,
+			CustomClass:     reportData.CustomClass,
+			Material:        reportData.Material,
+			Recommendations: reportData.Recommendations,
+			Defects:         reportData.Defects,
+			AdditionalWorks: reportData.AdditionalWorks,
+			Comments:        reportData.Comments,
+			ChecklistItems:  checklistItems,
+			Photos:          reportData.Photos,
+			FirstName:       reportData.FirstName,
+			LastName:        reportData.LastName,
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+		defer cancel()
+
+		resp, err := grpcClient.GenerateDocument(ctx, req)
+		if err == nil && resp.Success {
+			// Успешная генерация через gRPC
+			displayName := resp.PdfFilename
+			previewName := resp.PreviewFilename
+
+			// Если есть контент, сохраняем файлы
+			if len(resp.PdfContent) > 0 {
+				uploadsDir := filepath.Join("uploads", "reports")
+				os.MkdirAll(uploadsDir, 0755)
+				filePath := filepath.Join(uploadsDir, displayName)
+				if err := os.WriteFile(filePath, resp.PdfContent, 0644); err != nil {
+					log.Printf("Ошибка при сохранении PDF: %v", err)
+				}
+			}
+
+			if len(resp.PreviewContent) > 0 && previewName != "" {
+				previewsDir := filepath.Join("uploads", "previews")
+				os.MkdirAll(previewsDir, 0755)
+				previewPath := filepath.Join(previewsDir, previewName)
+				if err := os.WriteFile(previewPath, resp.PreviewContent, 0644); err != nil {
+					log.Printf("Ошибка при сохранении превью: %v", err)
+				}
+			}
+
+			filePath := filepath.Clean(filepath.Join("uploads", "reports", displayName))
+
+			if storage.IsS3Enabled() {
+				f, err := os.Open(filePath)
+				if err == nil {
+					defer f.Close()
+					info, _ := f.Stat()
+
+					ext := filepath.Ext(displayName)
+					base := strings.TrimSuffix(displayName, ext)
+					uniqueName := displayName
+					counter := 1
+
+					for {
+						key := "reports/" + uniqueName
+						obj, _, e := storage.GetReportObject(context.Background(), key)
+						if e == nil && obj != nil {
+							obj.Close()
+							uniqueName = fmt.Sprintf("%s(%d)%s", base, counter, ext)
+							counter++
+							continue
+						}
+						break
+					}
+
+					_, _ = f.Seek(0, 0)
+					_ = storage.UploadReportObject(context.Background(), "reports/"+uniqueName, f, info.Size(), "application/pdf")
+					_ = os.Remove(filePath)
+					displayName = uniqueName
+
+					if previewName != "" {
+						p := filepath.Clean(filepath.Join("uploads", "previews", previewName))
+						pf, err := os.Open(p)
+						if err == nil {
+							defer pf.Close()
+							pinfo, _ := pf.Stat()
+
+							pext := filepath.Ext(previewName)
+							pbase := strings.TrimSuffix(previewName, pext)
+							pUnique := previewName
+							pCounter := 1
+
+							for {
+								pKey := "previews/" + pUnique
+								pObj, _, pe := storage.GetReportObject(context.Background(), pKey)
+								if pe == nil && pObj != nil {
+									pObj.Close()
+									pUnique = fmt.Sprintf("%s(%d)%s", pbase, pCounter, pext)
+									pCounter++
+									continue
+								}
+								break
+							}
+
+							_, _ = pf.Seek(0, 0)
+							_ = storage.UploadReportObject(context.Background(), "previews/"+pUnique, pf, pinfo.Size(), "image/png")
+							_ = os.Remove(p)
+							previewName = pUnique
+						}
+					}
+				} else {
+					_ = os.Remove(filePath)
+				}
+			}
+
+			report := db.Report{
+				Filename:       displayName,
+				Date:           reportData.Date,
+				Address:        reportData.Address,
+				UserID:         execUserId,
+				Classification: reportData.Classification,
+			}
+
+			if result := db.DB.Create(&report); result.Error != nil {
+				c.JSON(
+					http.StatusInternalServerError,
+					gin.H{"error": fmt.Sprintf("Ошибка при сохранении в БД: %v", result.Error)},
+				)
+				return
+			}
+
+			respMap := gin.H{
+				"message":     "Отчет успешно создан",
+				"report":      report,
+				"displayName": displayName,
+				"id":          report.ID,
+			}
+			if previewName != "" {
+				respMap["previewName"] = previewName
+			}
+			c.JSON(http.StatusOK, respMap)
+			return
+		}
+	}
+
+	// Fallback: использование прямого вызова Python скрипта через exec
+	log.Println("Используется fallback метод генерации документов через exec")
+
 	jsonData, err := json.MarshalIndent(reportData, "", "  ")
 	if err != nil {
 		c.JSON(
@@ -253,7 +417,7 @@ func CreateReport(c *gin.Context) {
 
 	tempFile.Close()
 
-	scriptPath := filepath.Join("scripts", "document_generator.py")
+	scriptPath := filepath.Join("scripts", "document_generator_core.py")
 	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
 		c.JSON(
 			http.StatusInternalServerError,

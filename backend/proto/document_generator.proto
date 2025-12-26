@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package documentgenerator;
+
+option go_package = "backend/internal/docgen";
+
+// Элемент чеклиста
+message ChecklistItem {
+  string task = 1;
+  bool   done = 2;
+}
+
+// Запрос на генерацию документа
+message GenerateDocumentRequest {
+  string                 date             = 1;
+  string                 address          = 2;
+  string                 machine_name     = 3;
+  string                 machine_number   = 4;
+  string                 inventory_number = 5;
+  string                 classification   = 6;
+  string                 custom_class     = 7;
+  string                 material         = 8;
+  string                 recommendations  = 9;
+  string                 defects          = 10;
+  string                 additional_works = 11;
+  string                 comments         = 12;
+  repeated ChecklistItem checklist_items  = 13;
+  repeated string        photos           = 14;
+  string                 first_name       = 15;
+  string                 last_name        = 16;
+}
+
+// Ответ с результатом генерации документа
+message GenerateDocumentResponse {
+  bool   success          = 1;
+  string pdf_filename     = 2;
+  string preview_filename = 3;
+  bytes  pdf_content      = 4;
+  bytes  preview_content  = 5;
+  string error_message    = 6;
+}
+
+// Запрос на проверку здоровья сервиса
+message HealthCheckRequest {}
+
+// Ответ на проверку здоровья сервиса
+message HealthCheckResponse {
+  bool   healthy = 1;
+  string message = 2;
+}
+
+// Сервис генерации документов
+service DocumentGeneratorService {
+    // Генерация документа (акта выполненных работ)
+  rpc GenerateDocument(GenerateDocumentRequest) returns (GenerateDocumentResponse);
+
+    // Проверка здоровья сервиса
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}

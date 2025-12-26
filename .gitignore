@@ -96,6 +96,16 @@ $RECYCLE.BIN/
 *.out
 /backend/bin/
 /backend/pkg/
+/backend/server
+backend/server
+
+# Python сгенерированные proto файлы
+backend/scripts/*_pb2.py
+backend/scripts/*_pb2_grpc.py
+backend/scripts/*_pb2.pyi
+
+# Go сгенерированные proto файлы  
+backend/internal/docgen/*.pb.go
 
 # React/JavaScript специфичные файлы
 .eslintcache

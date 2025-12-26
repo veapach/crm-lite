@@ -1,0 +1,19 @@
+[Unit]
+Description=Document Generator gRPC Service
+After=network.target
+
+[Service]
+Type=simple
+User=your_user
+WorkingDirectory=/path/to/crm-lite/backend/scripts
+ExecStart=/path/to/crm-lite/backend/scripts/venv/bin/python3 /path/to/crm-lite/backend/scripts/grpc_server.py --port 50051
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=docgen-grpc
+
+[Install]
+WantedBy=multi-user.target
