@@ -59,10 +59,12 @@
 }
 
 .inner-tickets td:nth-child(7) {
-    /* Описание - разрешаем перенос */
-    white-space: normal;
-    min-width: 150px;
-    max-width: 200px;
+    /* Описание - ограничиваем и обрезаем */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 120px;
+    max-width: 180px;
 }
 
 .inner-tickets td:last-child {
