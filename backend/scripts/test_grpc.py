@@ -18,7 +18,12 @@ def test_health_check(address="localhost:50051"):
     print(f"Подключение к {address}...")
     
     try:
-        channel = grpc.insecure_channel(address)
+        # Увеличиваем лимит размера сообщений до 50MB
+        options = [
+            ('grpc.max_send_message_length', 50 * 1024 * 1024),
+            ('grpc.max_receive_message_length', 50 * 1024 * 1024),
+        ]
+        channel = grpc.insecure_channel(address, options=options)
         stub = document_generator_pb2_grpc.DocumentGeneratorServiceStub(channel)
         
         request = document_generator_pb2.HealthCheckRequest()
@@ -46,7 +51,12 @@ def test_document_generation(address="localhost:50051"):
     print(f"\nТестирование генерации документа...")
     
     try:
-        channel = grpc.insecure_channel(address)
+        # Увеличиваем лимит размера сообщений до 50MB
+        options = [
+            ('grpc.max_send_message_length', 50 * 1024 * 1024),
+            ('grpc.max_receive_message_length', 50 * 1024 * 1024),
+        ]
+        channel = grpc.insecure_channel(address, options=options)
         stub = document_generator_pb2_grpc.DocumentGeneratorServiceStub(channel)
         
         # Создаём тестовый запрос
