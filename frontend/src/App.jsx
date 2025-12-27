@@ -84,7 +84,7 @@ function App() {
     <>
       {!hideNavbar && <Navbar />}
       {!hideNavbar && <NewTicketsBanner />}
-      <div>
+      <div className={!hideNavbar ? 'content-wrapper' : ''}>
         <Routes>
           <Route path="/auth" element={isAuthenticated ? <Navigate to="/" replace /> : <Auth />} />
           <Route path="/tickets" element={<Tickets />} />

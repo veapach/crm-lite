@@ -162,8 +162,8 @@ body {
 
 /* Контейнер контента */
 .content-wrapper {
-  padding-top: 80px;
-  min-height: calc(100vh - 80px);
+  padding-top: 90px;
+  min-height: calc(100vh - 90px);
   transition: padding var(--transition-normal);
 }
 
@@ -308,32 +308,46 @@ body {
 
 /* Таблицы */
 .table {
-  background: var(--bg-card);
+  background: var(--bg-card) !important;
   border-radius: var(--border-radius-md);
   overflow: hidden;
+  --bs-table-bg: var(--bg-card);
+  --bs-table-color: var(--text-primary);
+  --bs-table-border-color: var(--border-color);
+  --bs-table-striped-bg: var(--bg-hover);
+  --bs-table-striped-color: var(--text-primary);
+  --bs-table-hover-bg: var(--bg-hover);
+  --bs-table-hover-color: var(--text-primary);
 }
 
 .table thead th {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
+  background: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
   font-weight: 600;
   border: none;
+  border-bottom: 1px solid var(--border-color) !important;
   padding: 1rem;
 }
 
 .table tbody td {
-  color: var(--text-primary);
-  border-color: var(--border-color);
+  color: var(--text-primary) !important;
+  background: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
   padding: 0.875rem 1rem;
   vertical-align: middle;
+}
+
+.table-striped>tbody>tr:nth-of-type(odd)>td {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
 }
 
 .table tbody tr {
   transition: background var(--transition-fast);
 }
 
-.table tbody tr:hover {
-  background: var(--bg-hover);
+.table tbody tr:hover>td {
+  background: var(--bg-hover) !important;
 }
 
 /* Badges */

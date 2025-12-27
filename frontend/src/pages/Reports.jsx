@@ -12,7 +12,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.j
 function Reports() {
   const { user } = useAuth();
   const isViewOnly = user?.phone === 'viewonlyuser';
-  
+
   const [reports, setReports] = useState([]);
   const [users, setUsers] = useState({});
   const [error, setError] = useState('');
@@ -90,11 +90,11 @@ function Reports() {
     if (loadingRef.current) {
       return;
     }
-    
+
     loadingRef.current = true;
     setIsLoading(true);
     const requestId = ++activeRequestRef.current;
-    
+
     try {
       let url = `/api/reports?onlyMine=${showOnlyMine}&page=${pageToLoad}&pageSize=${pageSize}`;
       if (sortOrder) {
@@ -106,19 +106,19 @@ function Reports() {
       if (searchTerm) {
         url += `&search=${encodeURIComponent(searchTerm)}`;
       }
-      
+
       const response = await axios.get(url);
-      
+
       // Если пришел неактуальный ответ (устаревший запрос) — игнорируем
       if (requestId !== activeRequestRef.current) {
         return;
       }
-      
+
       const newData = response.data.reports || [];
       const totalPages = response.data.totalPages || 1;
-      
+
       setHasMore(pageToLoad < totalPages);
-      
+
       if (replace) {
         setReports(newData);
         currentPageRef.current = pageToLoad;
@@ -126,10 +126,10 @@ function Reports() {
         setReports(prev => {
           // Создаем Set существующих ID для быстрой проверки
           const existingIds = new Set(prev.map(r => r.id));
-          
+
           // Фильтруем только новые отчеты (которых еще нет)
           const newReports = newData.filter(r => !existingIds.has(r.id));
-          
+
           // Добавляем новые отчеты в конец массива
           // Сервер уже вернул их в правильном порядке
           return [...prev, ...newReports];
@@ -339,7 +339,7 @@ function Reports() {
     fetchReports(1, true);
     fetchUsers();
     fetchReportsCount();
-  // fetchReports стабилен по зависимостям выше
+    // fetchReports стабилен по зависимостям выше
   }, [fetchUsers, fetchReportsCount, fetchReports]);
 
   useEffect(() => {
@@ -369,7 +369,7 @@ function Reports() {
   // IntersectionObserver для бесконечной прокрутки
   useEffect(() => {
     if (!sentinelRef.current) return;
-    
+
     const observer = new IntersectionObserver((entries) => {
       const first = entries[0];
       if (first.isIntersecting && hasMore && !loadingRef.current) {
@@ -377,7 +377,7 @@ function Reports() {
         fetchReports(nextPage, false);
       }
     }, { threshold: 0.1, rootMargin: '100px' });
-    
+
     observer.observe(sentinelRef.current);
     return () => observer.disconnect();
   }, [hasMore, fetchReports]);
@@ -412,7 +412,7 @@ function Reports() {
         <span>ПНР: {isDateFiltered ? classificationStats.filteredPnr || 0 : classificationStats.pnr || 0} | </span>
         <span>Прочие ТО: {isDateFiltered ? classificationStats.filteredTo || 0 : classificationStats.to || 0}</span>
       </div>
-      
+
       {error && <p className="text-danger">{error}</p>}
 
       <div className="row">
@@ -433,8 +433,8 @@ function Reports() {
         </div>
         <div className="col-md-3">
           {isDateFiltered ? (
-            <button 
-              className="btn btn-secondary w-100" 
+            <button
+              className="btn btn-secondary w-100"
               onClick={() => {
                 setIsDateFiltered(false);
                 setDateRange({ startDate: '', endDate: '' });
@@ -477,12 +477,12 @@ function Reports() {
 
       <div className="row">
         {reports.map((report) => (
-          <div 
-            key={report.id} 
+          <div
+            key={report.id}
             id={`report-${report.id}`}
             className={`col-md-4 mb-4 ${report.id === highlightedReportId ? 'highlight-card' : ''} ${selectedReports.includes(report.id) ? 'selected' : ''}`}
           >
-            <div 
+            <div
               className={`card shadow-sm ${selectedReports.includes(report.id) ? 'border-primary' : ''}`}
               onClick={(e) => {
                 if (!['BUTTON', 'INPUT'].includes(e.target.tagName)) {
@@ -501,10 +501,10 @@ function Reports() {
                 <h5 className="card-title">Объект: {report.address}</h5>
                 <div className="card-text d-flex justify-content-between align-items-center">
                   <span>Дата: {formatDate(report.date)}</span>
-                  <span style={{ color: '#666', fontSize: '0.95em', textAlign: 'right', minWidth: '90px' }}>{report.classification}</span>
+                  <span className="text-secondary" style={{ fontSize: '0.95em', textAlign: 'right', minWidth: '90px' }}>{report.classification}</span>
                 </div>
-                
-                <p className="card-text" style={{ fontSize: '0.9em', color: 'gray' }}>
+
+                <p className="card-text text-muted" style={{ fontSize: '0.9em' }}>
                   {getUserFullName(report.userId || report.user_id)}
                 </p>
                 <div className="d-flex justify-content-between mt-3">
@@ -527,12 +527,12 @@ function Reports() {
         {/* Sentinel */}
         <div ref={sentinelRef} style={{ height: 1, width: '100%' }} />
         {isLoading && (
-          <div className="col-12 text-center mb-3" style={{color: '#666'}}>
+          <div className="col-12 text-center mb-3 text-muted">
             Загрузка...
           </div>
         )}
         {!isLoading && !hasMore && reports.length > 0 && (
-          <div className="col-12 text-center mb-3" style={{color: '#666'}}>
+          <div className="col-12 text-center mb-3 text-muted">
             Все отчеты загружены
           </div>
         )}
@@ -551,7 +551,7 @@ function Reports() {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <div 
+          <div
             ref={viewerRef}
             style={{
               maxHeight: '70vh',
@@ -592,14 +592,14 @@ function Reports() {
           </div>
         </Modal.Body>
         <Modal.Footer>
-          <button 
-            className="btn btn-secondary" 
+          <button
+            className="btn btn-secondary"
             onClick={() => setShowDatePicker(false)}
           >
             Отмена
           </button>
-          <button 
-            className="btn btn-primary" 
+          <button
+            className="btn btn-primary"
             onClick={() => {
               if (dateRange.startDate && dateRange.endDate) {
                 setIsDateFiltered(true);

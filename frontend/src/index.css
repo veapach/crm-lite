@@ -111,3 +111,326 @@ body {
   background: var(--accent-primary);
   color: white;
 }
+
+/* ========== Bootstrap Dark Theme Overrides ========== */
+
+/* Cards */
+.card {
+  background-color: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+.card-body {
+  background-color: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+}
+
+.card-title {
+  color: var(--text-primary) !important;
+}
+
+.card-text {
+  color: var(--text-primary) !important;
+}
+
+/* Dark theme specific overrides for inline styles */
+[data-theme="dark"] .card-text[style*="color: gray"],
+[data-theme="dark"] .card-text[style*="color: 'gray'"],
+[data-theme="dark"] p[style*="color: gray"],
+[data-theme="dark"] span[style*="color: gray"],
+[data-theme="dark"] span[style*="color: '#666'"],
+[data-theme="dark"] span[style*="color: #666"] {
+  color: var(--text-secondary) !important;
+}
+
+/* Force override inline styles in dark mode */
+[data-theme="dark"] .card-body span[style],
+[data-theme="dark"] .card-body p[style] {
+  color: var(--text-secondary) !important;
+}
+
+/* Text utilities */
+.text-muted {
+  color: var(--text-muted) !important;
+}
+
+.text-secondary {
+  color: var(--text-secondary) !important;
+}
+
+/* Form controls */
+.form-control,
+.form-select {
+  background-color: var(--bg-secondary) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+.form-control:focus,
+.form-select:focus {
+  background-color: var(--bg-secondary) !important;
+  border-color: var(--accent-primary) !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 0 0 3px rgba(45, 190, 100, 0.15) !important;
+}
+
+.form-control::placeholder {
+  color: var(--text-muted) !important;
+}
+
+/* Form labels and text */
+.form-label,
+label {
+  color: var(--text-primary) !important;
+}
+
+.form-text {
+  color: var(--text-muted) !important;
+}
+
+/* Modal */
+.modal-content {
+  background-color: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+.modal-header {
+  border-bottom-color: var(--border-color) !important;
+}
+
+.modal-header .modal-title {
+  color: var(--text-primary) !important;
+}
+
+.modal-header .btn-close {
+  filter: var(--bs-btn-close-white-filter, none);
+}
+
+[data-theme="dark"] .modal-header .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+.modal-body {
+  color: var(--text-primary) !important;
+}
+
+.modal-footer {
+  border-top-color: var(--border-color) !important;
+}
+
+/* Dropdown */
+.dropdown-menu {
+  background-color: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
+}
+
+.dropdown-item {
+  color: var(--text-primary) !important;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background-color: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+}
+
+/* List groups */
+.list-group-item {
+  background-color: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+.list-group-item:hover {
+  background-color: var(--bg-hover) !important;
+}
+
+/* Alerts */
+.alert {
+  border: none !important;
+}
+
+/* Headings in containers */
+.container h1,
+.container h2,
+.container h3,
+.container h4,
+.container h5,
+.container h6 {
+  color: var(--text-primary) !important;
+}
+
+/* Paragraphs and general text */
+.container p {
+  color: var(--text-primary);
+}
+
+/* Strong text */
+strong {
+  color: var(--text-primary);
+}
+
+/* Input group */
+.input-group-text {
+  background-color: var(--bg-tertiary) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Nav tabs and pills */
+.nav-tabs {
+  border-bottom-color: var(--border-color) !important;
+}
+
+.nav-tabs .nav-link {
+  color: var(--text-primary) !important;
+}
+
+.nav-tabs .nav-link:hover {
+  border-color: var(--border-color) !important;
+}
+
+.nav-tabs .nav-link.active {
+  background-color: var(--bg-card) !important;
+  border-color: var(--border-color) var(--border-color) var(--bg-card) !important;
+  color: var(--accent-primary) !important;
+}
+
+/* Pagination */
+.page-link {
+  background-color: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+.page-link:hover {
+  background-color: var(--bg-hover) !important;
+  color: var(--accent-primary) !important;
+}
+
+.page-item.active .page-link {
+  background-color: var(--accent-primary) !important;
+  border-color: var(--accent-primary) !important;
+}
+
+/* Breadcrumb */
+.breadcrumb {
+  background-color: var(--bg-card) !important;
+}
+
+.breadcrumb-item a {
+  color: var(--accent-primary) !important;
+}
+
+.breadcrumb-item.active {
+  color: var(--text-muted) !important;
+}
+
+/* Toast */
+.toast {
+  background-color: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Accordion */
+.accordion-item {
+  background-color: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
+}
+
+.accordion-button {
+  background-color: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+}
+
+.accordion-button:not(.collapsed) {
+  background-color: var(--bg-hover) !important;
+  color: var(--accent-primary) !important;
+}
+
+.accordion-body {
+  background-color: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+}
+
+/* ========== Statistics Page Fixes ========== */
+.statistics-page {
+  color: var(--text-primary);
+}
+
+.statistics-page .statistics-class-buttons {
+  color: var(--text-primary) !important;
+}
+
+.statistics-page .statistics-total-count {
+  color: var(--text-secondary) !important;
+}
+
+.statistics-page ul li {
+  border-bottom-color: var(--border-color) !important;
+  color: var(--text-primary);
+}
+
+.statistics-page ul li span[style*="color: #888"],
+.statistics-page span[style*="color: '#888'"] {
+  color: var(--text-secondary) !important;
+}
+
+/* ========== Schedule Page Fixes ========== */
+.schedule-page [style*="color: '#333'"],
+.schedule-page [style*="color: #333"] {
+  color: var(--text-primary) !important;
+}
+
+/* ========== Profile Page Fixes ========== */
+.container .card p strong {
+  color: var(--text-primary);
+}
+
+/* ========== HR Styling ========== */
+hr {
+  background-color: var(--border-color) !important;
+  opacity: 1;
+}
+
+/* ========== General inline style overrides for dark theme ========== */
+[data-theme="dark"] [style*="color: #333"],
+[data-theme="dark"] [style*="color: '#333'"],
+[data-theme="dark"] [style*="color:#333"] {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] [style*="color: #666"],
+[data-theme="dark"] [style*="color: '#666'"],
+[data-theme="dark"] [style*="color:#666"] {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] [style*="color: #888"],
+[data-theme="dark"] [style*="color: '#888'"],
+[data-theme="dark"] [style*="color:#888"] {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] [style*="color: gray"],
+[data-theme="dark"] [style*="color: 'gray'"],
+[data-theme="dark"] [style*="color:gray"] {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] [style*="border-bottom: 1px solid #eee"] {
+  border-bottom-color: var(--border-color) !important;
+}
+
+/* ========== InnerTickets Cells with colored backgrounds ========== */
+[data-theme="dark"] td[style*="background-color: #ff9999"] {
+  background-color: rgba(255, 59, 48, 0.3) !important;
+}
+
+[data-theme="dark"] td[style*="background-color: #d0e7ff"],
+[data-theme="dark"] td[style*="backgroundColor: #d0e7ff"] {
+  background-color: rgba(45, 130, 255, 0.25) !important;
+}
