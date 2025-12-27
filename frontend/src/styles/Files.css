@@ -1,79 +1,115 @@
+/* ========== Modern Files Page Styles ========== */
+
+.files-page {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.files-header {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius-lg);
+}
+
 /* Общие стили для контейнера */
 .container {
-    padding: 10px;
+  padding: 12px;
+}
+
+/* Адаптация таблицы для мобильных устройств */
+.table-responsive {
+  overflow-x: auto;
+  background: var(--bg-card);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--border-color);
+}
+
+/* Уменьшение отступов и размеров на мобильных устройствах */
+@media (max-width: 768px) {
+  .files-page {
+    padding: 16px;
   }
-  
-  /* Адаптация таблицы для мобильных устройств */
+
+  .container {
+    padding: 8px;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  h3 {
+    font-size: 1.15rem;
+  }
+
+  .form-control {
+    font-size: 14px;
+  }
+
+  .btn {
+    font-size: 14px;
+    padding: 8px 12px;
+  }
+
+  .table td,
+  .table th {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  .table img {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--border-radius-sm);
+  }
+
   .table-responsive {
-    overflow-x: auto;
+    width: 100%;
+    margin-bottom: 1rem;
+    overflow-y: hidden;
+    -ms-overflow-style: -ms-autohiding-scrollbar;
   }
-  
-  /* Уменьшение отступов и размеров на мобильных устройствах */
-  @media (max-width: 768px) {
-    .container {
-      padding: 5px;
-    }
-  
-    h1 {
-      font-size: 24px;
-    }
-  
-    h3 {
-      font-size: 20px;
-    }
-  
-    .form-control {
-      font-size: 14px;
-    }
-  
-    .btn {
-      font-size: 14px;
-      padding: 5px 10px;
-    }
-  
-    .table td, .table th {
-      padding: 8px;
-      font-size: 14px;
-    }
-  
-    .table img {
-      width: 40px;
-      height: 40px;
-    }
-  
-    .table-responsive {
-      width: 100%;
-      margin-bottom: 15px;
-      overflow-y: hidden;
-      -ms-overflow-style: -ms-autohiding-scrollbar;
-      border: 1px solid #ddd;
-    }
-  
-    .table-responsive > .table {
-      margin-bottom: 0;
-    }
-  
-    .table-responsive > .table > thead > tr > th,
-    .table-responsive > .table > tbody > tr > th,
-    .table-responsive > .table > tfoot > tr > th,
-    .table-responsive > .table > thead > tr > td,
-    .table-responsive > .table > tbody > tr > td,
-    .table-responsive > .table > tfoot > tr > td {
-      white-space: nowrap;
-    }
+
+  .table-responsive>.table {
+    margin-bottom: 0;
   }
+
+  .table-responsive>.table>thead>tr>th,
+  .table-responsive>.table>tbody>tr>th,
+  .table-responsive>.table>tfoot>tr>th,
+  .table-responsive>.table>thead>tr>td,
+  .table-responsive>.table>tbody>tr>td,
+  .table-responsive>.table>tfoot>tr>td {
+    white-space: nowrap;
+  }
+}
 
 /* Добавляем стили для увеличенного изображения */
 .modal-body img {
   transition: transform 0.3s ease;
+  border-radius: var(--border-radius-md);
 }
 
 /* Стили для превью изображений */
 .table img {
   transition: all 0.2s ease;
+  border-radius: var(--border-radius-sm);
+  object-fit: cover;
+}
+
+.table img:hover {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-md);
 }
 
 .table img:active {
   transform: scale(2);
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-xl);
+  z-index: 100;
+  position: relative;
 }

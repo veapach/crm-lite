@@ -20,6 +20,7 @@ import InnerTickets from './pages/InnerTickets';
 import axios from "axios";
 import config from "./config";
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
@@ -81,24 +82,24 @@ function App() {
 
   return (
     <>
-      {!hideNavbar && <Navbar />}  
+      {!hideNavbar && <Navbar />}
       {!hideNavbar && <NewTicketsBanner />}
-      <div> 
+      <div>
         <Routes>
-            <Route path="/auth" element={isAuthenticated ? <Navigate to="/" replace /> : <Auth />} />
-            <Route path="/tickets" element={<Tickets />} />
-            <Route path="/" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <Dashboard />) : <Navigate to="/tickets" replace />} />
-            <Route path="/schedule" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <Schedule />) : <Navigate to="/auth" replace />} />
-            <Route path="/new-report" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <NewReport />) : <Navigate to="/auth" replace />} />
-            <Route path="/reports" element={isAuthenticated ? <Reports /> : <Navigate to="/auth" replace />} />
-            <Route path="/inner-tickets" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <InnerTickets />) : <Navigate to="/auth" replace />} />
-            <Route path="/files" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <Files />) : <Navigate to="/auth" replace />} />
-            <Route path="/inventory" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <Inventory />) : <Navigate to="/auth" replace />} />
-            <Route path="/travel-sheet" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <TravelSheet />) : <Navigate to="/auth" replace />} />
-            <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/auth" replace />} />
-            <Route path="/statistics" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <Statistics />) : <Navigate to="/auth" replace />} />
-            <Route path="/admin" element={isAuthenticated && isAdmin ? <Admin /> : <Navigate to="/" replace />} />
-            <Route path="*" element={<Navigate to="/tickets" replace />} />
+          <Route path="/auth" element={isAuthenticated ? <Navigate to="/" replace /> : <Auth />} />
+          <Route path="/tickets" element={<Tickets />} />
+          <Route path="/" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <Dashboard />) : <Navigate to="/tickets" replace />} />
+          <Route path="/schedule" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <Schedule />) : <Navigate to="/auth" replace />} />
+          <Route path="/new-report" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <NewReport />) : <Navigate to="/auth" replace />} />
+          <Route path="/reports" element={isAuthenticated ? <Reports /> : <Navigate to="/auth" replace />} />
+          <Route path="/inner-tickets" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <InnerTickets />) : <Navigate to="/auth" replace />} />
+          <Route path="/files" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <Files />) : <Navigate to="/auth" replace />} />
+          <Route path="/inventory" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <Inventory />) : <Navigate to="/auth" replace />} />
+          <Route path="/travel-sheet" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <TravelSheet />) : <Navigate to="/auth" replace />} />
+          <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/auth" replace />} />
+          <Route path="/statistics" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <Statistics />) : <Navigate to="/auth" replace />} />
+          <Route path="/admin" element={isAuthenticated && isAdmin ? <Admin /> : <Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/tickets" replace />} />
         </Routes>
       </div>
       <ToastContainer position="top-right" autoClose={3000} />
@@ -108,13 +109,15 @@ function App() {
 
 export default function WrappedApp() {
   return (
-    <AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
         <BrowserRouter>
           <NewTicketsProvider>
             <App />
           </NewTicketsProvider>
         </BrowserRouter>
-    </AuthProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

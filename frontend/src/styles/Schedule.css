@@ -1,8 +1,50 @@
-/* Горизонтальный скролл для таблиц на странице графика */
+/* ========== Modern Schedule Styles ========== */
+
+.schedule-page {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.schedule-header {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius-lg);
+}
+
+.schedule-header h1 {
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+/* Горизонтальный скролл для таблиц */
 .schedule-table-wrapper {
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  background: var(--bg-card);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--border-color);
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-primary) var(--bg-tertiary);
+}
+
+.schedule-table-wrapper::-webkit-scrollbar {
+  height: 8px;
+}
+
+.schedule-table-wrapper::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+.schedule-table-wrapper::-webkit-scrollbar-thumb {
+  background: var(--accent-primary);
+  border-radius: 4px;
 }
 
 .schedule-table-wrapper table {
@@ -10,7 +52,11 @@
   width: max-content;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+  .schedule-page {
+    padding: 16px;
+  }
+
   .schedule-table-wrapper table {
     min-width: 600px;
   }
