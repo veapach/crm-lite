@@ -130,6 +130,7 @@ export default function Tickets() {
         <div className={styles.gradientOrb1}></div>
         <div className={styles.gradientOrb2}></div>
         <div className={styles.gradientOrb3}></div>
+        <div className={styles.gradientOrb4}></div>
       </div>
 
       <div className={styles.ticketsCard}>
