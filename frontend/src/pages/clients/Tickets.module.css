@@ -666,22 +666,22 @@ body.tickets-no-scroll {
 /* ========== Кнопка входа для инженеров ========== */
 .engineerBtn {
   padding: 14px 26px;
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(200, 255, 220, 0.9);
-  border: 2px solid rgba(45, 190, 100, 0.3);
+  background: #ffffff;
+  color: var(--vv-green);
+  border: 2px solid var(--vv-green);
   border-radius: 12px;
   font-size: 0.95rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(45, 190, 100, 0.15);
 }
 
 .engineerBtn:hover {
-  border-color: var(--vv-green);
+  background: var(--vv-green);
   color: #fff;
-  background: rgba(45, 190, 100, 0.2);
-  box-shadow: 0 4px 20px rgba(45, 190, 100, 0.3);
+  box-shadow: 0 4px 16px rgba(45, 190, 100, 0.35);
+  transform: translateY(-2px);
 }
 
 /* ========== Попап успеха ========== */
