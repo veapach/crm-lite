@@ -10,6 +10,7 @@ const LOGO_SRC = '/assets/Логотип ВВ/ВкусВилл зеленый/Л
 export default function Tickets() {
   const { isAuthenticated, user, loading } = useAuth();
   const navigate = useNavigate();
+  const dropdownRef = useRef(null);
 
   // Если инженер — редирект на Dashboard
   useEffect(() => {
@@ -46,6 +47,19 @@ export default function Tickets() {
   // Получить адреса для автокомплита
   useEffect(() => {
     axios.get('/api/addresses').then(res => setAddresses(res.data || []));
+  }, []);
+
+  // Закрытие выпадающего списка при клике вне его
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowAddressList(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
   // Обработка изменения полей
@@ -110,32 +124,28 @@ export default function Tickets() {
   }
 
   return (
-    <div className="tickets-bg-gradient min-vh-100 d-flex align-items-center justify-content-center">
-      <div className="container" style={{ maxWidth: 600, background: 'rgba(255,255,255,0.97)', borderRadius: 18, boxShadow: '0 2px 16px 0 rgba(45,190,100,0.10)', position: 'relative' }}>
+    <div className={styles.ticketsPageWrapper} data-theme="light">
+      {/* Анимированный градиентный фон */}
+      <div className={styles.animatedBg}>
+        <div className={styles.gradientOrb1}></div>
+        <div className={styles.gradientOrb2}></div>
+        <div className={styles.gradientOrb3}></div>
+      </div>
+
+      <div className={styles.ticketsCard}>
         <div className="text-center mb-3">
-          <img src={LOGO_SRC} alt="ВкусВилл" style={{ maxWidth: 180, height: '150px' }} />
+          <img src={LOGO_SRC} alt="ВкусВилл" className={styles.logo} />
         </div>
-        <h2 className="mb-4" style={{ color: '#2dbe64', fontFamily: 'Villula, Euclide Circular B, Arial', fontWeight: 600 }}>Заявка для клиентов</h2>
+        <h2 className={styles.ticketsTitle}>Заявка для клиентов</h2>
         {success && (
           <>
-            <div
-              style={{
-                position: 'fixed',
-                left: 0,
-                top: 0,
-                width: '100vw',
-                height: '100vh',
-                background: 'rgba(45,190,100,0.12)',
-                backdropFilter: 'blur(4px)',
-                zIndex: 999,
-              }}
-            />
-            <div className={styles.successPopup} style={{ zIndex: 1000 }}>
+            <div className={styles.successOverlay} />
+            <div className={styles.successPopup}>
+              <div className={styles.successIcon}>✓</div>
               <b>Заявка отправлена!</b>
-              <div style={{ marginTop: 8 }}>Спасибо, мы свяжемся с вами.</div>
+              <div style={{ marginTop: 8, color: '#666' }}>Спасибо, мы свяжемся с вами.</div>
               <button
-                className="btn btn-success mt-3"
-                style={{ background: '#2dbe64', borderColor: '#2dbe64' }}
+                className={styles.successBtn}
                 onClick={() => setSuccess(false)}
               >
                 Новая заявка
@@ -143,86 +153,107 @@ export default function Tickets() {
             </div>
           </>
         )}
-        <form className="row g-3" onSubmit={handleSubmit} autoComplete="off" style={success ? { filter: 'blur(2px)', pointerEvents: 'none' } : {}}>
+        <form className={`row g-3 ${styles.ticketsForm}`} onSubmit={handleSubmit} autoComplete="off" style={success ? { filter: 'blur(2px)', pointerEvents: 'none' } : {}}>
           <div className="col-12 col-md-6">
-            <label className="form-label">ФИО *</label>
-            <input className="form-control" name="fullName" value={form.fullName} onChange={handleChange} required maxLength={64} placeholder="Введите ФИО" />
+            <label className={styles.formLabel}>ФИО *</label>
+            <input className={styles.formInput} name="fullName" value={form.fullName} onChange={handleChange} required maxLength={64} placeholder="Введите ФИО" />
           </div>
           <div className="col-12 col-md-6">
-            <label className="form-label">Должность *</label>
-            <input className="form-control" name="position" value={form.position} onChange={handleChange} required maxLength={64} placeholder="Ваша должность" />
+            <label className={styles.formLabel}>Должность *</label>
+            <input className={styles.formInput} name="position" value={form.position} onChange={handleChange} required maxLength={64} placeholder="Ваша должность" />
           </div>
           <div className="col-12 col-md-6">
-            <label className="form-label">Контакт (телефон/email, по желанию)</label>
-            <input className="form-control" name="contact" value={form.contact} onChange={handleChange} maxLength={64} placeholder="+7... или email" />
+            <label className={styles.formLabel}>Контакт (телефон/email)</label>
+            <input className={styles.formInput} name="contact" value={form.contact} onChange={handleChange} maxLength={64} placeholder="+7... или email" />
           </div>
-          <div className="col-12 col-md-6 position-relative">
-            <label className="form-label">Номер объекта (адрес) *</label>
-            <div className="input-group">
+          <div className="col-12 col-md-6 position-relative" ref={dropdownRef}>
+            <label className={styles.formLabel}>Номер объекта (адрес) *</label>
+            <div className={styles.inputGroup}>
               <input
-                className="form-control"
+                className={styles.formInput}
                 name="address"
                 value={form.address}
                 onChange={handleChange}
                 required
-                placeholder="Введите адрес или выберите из списка"
+                placeholder="Введите адрес"
                 ref={addressInputRef}
                 autoComplete="off"
                 onFocus={() => form.address && setShowAddressList(filteredAddresses.length > 0)}
               />
               <button
                 type="button"
-                className="btn btn-outline-secondary"
+                className={styles.dropdownBtn}
                 tabIndex={-1}
-                style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0, borderLeft: 'none', fontWeight: 600, background: 'none', display: 'flex', alignItems: 'center' }}
                 onClick={() => {
-                  setFilteredAddresses(addresses.map(a => a.address));
-                  setShowAddressList(addresses.length > 0);
-                  addressInputRef.current && addressInputRef.current.focus();
+                  if (showAddressList) {
+                    setShowAddressList(false);
+                  } else {
+                    setFilteredAddresses(addresses.map(a => a.address));
+                    setShowAddressList(addresses.length > 0);
+                    addressInputRef.current && addressInputRef.current.focus();
+                  }
                 }}
                 title="Показать все адреса"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#888" viewBox="0 0 16 16"><path d="M1.646 5.646a.5.5 0 0 1 .708 0L8 11.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z" /></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16" style={{ transform: showAddressList ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+                  <path d="M1.646 5.646a.5.5 0 0 1 .708 0L8 11.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z" />
+                </svg>
               </button>
             </div>
             {showAddressList && (
-              <div className="position-absolute w-100 mt-1 border rounded shadow-sm dropdown-suggestions" style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}>
+              <div className={styles.addressDropdownList}>
                 {filteredAddresses.length > 0 ? filteredAddresses.map((a, i) => (
-                  <div key={i} className="p-2 border-bottom dropdown-suggestion-item" style={{ cursor: 'pointer' }} onClick={() => handleAddressSelect(a)}>{a}</div>
-                )) : <div className="p-2 text-muted">Нет совпадений</div>}
+                  <div key={i} className={styles.addressDropdownItem} onClick={() => handleAddressSelect(a)}>{a}</div>
+                )) : <div className={styles.addressDropdownEmpty}>Нет совпадений</div>}
               </div>
             )}
           </div>
           <div className="col-12">
-            <label className="form-label">Описание поломки *</label>
-            <textarea className="form-control" name="description" value={form.description} onChange={handleChange} required rows={3} maxLength={500} placeholder="Опишите проблему" />
+            <label className={styles.formLabel}>Описание поломки *</label>
+            <textarea className={styles.formTextarea} name="description" value={form.description} onChange={handleChange} required rows={3} maxLength={500} placeholder="Опишите проблему" />
           </div>
           <div className="col-12">
             <input type="file" accept="image/*" multiple onChange={handleFileChange} style={{ display: 'none' }} id="file-upload" />
-            <label htmlFor="file-upload" className="btn btn-success mb-2" style={{ fontWeight: 600, background: '#2dbe64', color: '#fff', borderColor: '#2dbe64', margin: 0, cursor: 'pointer', letterSpacing: '0.02em' }}>Загрузить файлы</label>
-            <div style={{ height: 10 }}></div>
-            <label className="form-label">Фото (до 5 файлов)</label>
-            <div className="d-flex gap-2 flex-wrap">
-              {form.files.map((file, idx) => (
-                <div key={idx} className={styles.filePreview}>
-                  {file.type.startsWith('image') ? (
-                    <img src={URL.createObjectURL(file)} alt="preview" />
-                  ) : file.type.startsWith('video') ? (
-                    <video src={URL.createObjectURL(file)} controls style={{ width: '100%', height: '100%' }} />
-                  ) : null}
-                  <button type="button" className={styles.removeFileBtn} onClick={() => handleRemoveFile(idx)}>&times;</button>
-                </div>
-              ))}
-            </div>
+            <label htmlFor="file-upload" className={styles.uploadBtn}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16" style={{ marginRight: 8 }}>
+                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z" />
+                <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z" />
+              </svg>
+              Загрузить фото
+            </label>
+            <span className={styles.fileHint}>До 5 файлов</span>
+            {form.files.length > 0 && (
+              <div className={styles.filePreviewList}>
+                {form.files.map((file, idx) => (
+                  <div key={idx} className={styles.filePreview}>
+                    {file.type.startsWith('image') ? (
+                      <img src={URL.createObjectURL(file)} alt="preview" />
+                    ) : file.type.startsWith('video') ? (
+                      <video src={URL.createObjectURL(file)} />
+                    ) : null}
+                    <button type="button" className={styles.removeFileBtn} onClick={() => handleRemoveFile(idx)}>&times;</button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-          {error && <div className="col-12"><div className="alert alert-danger py-2">{error}</div></div>}
-          <div className="col-12 d-grid mt-2">
-            <button className="btn btn-success btn-lg" type="submit" disabled={sending}>{sending ? 'Отправка...' : 'Отправить заявку'}</button>
+          {error && <div className="col-12"><div className={styles.errorAlert}>{error}</div></div>}
+          <div className="col-12 mt-2">
+            <button className={styles.submitBtn} type="submit" disabled={sending}>
+              {sending ? (
+                <>
+                  <span className={styles.spinner}></span>
+                  Отправка...
+                </>
+              ) : 'Отправить заявку'}
+            </button>
           </div>
         </form>
         {!isAuthenticated && (
           <div className="text-center mt-4">
-            <button className="btn btn-danger btn-lg" onClick={() => navigate('/auth')}>Вход для инженеров</button>
+            <button className={styles.engineerBtn} onClick={() => navigate('/auth')}>
+              Вход для инженеров
+            </button>
           </div>
         )}
       </div>

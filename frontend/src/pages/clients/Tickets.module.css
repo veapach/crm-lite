@@ -1,229 +1,567 @@
-/* Tickets.module.css — стилизация для страницы заявок клиентов (ВкусВилл, mobile first)
-   Цвета: #2dbe64 (зеленый), #d7144b (ягодный), #333 (графит)
-   Шрифты: Villula, Euclide Circular B, fallback: sans-serif */
+/* Tickets.module.css — Современная страница заявок для клиентов
+   Изолированная светлая тема с анимированным градиентным фоном */
 
-
+/* ========== Переменные ========== */
 :root {
   --vv-green: #2dbe64;
+  --vv-green-light: #4fd080;
+  --vv-green-dark: #25a557;
   --vv-berry: #d7144b;
   --vv-graphite: #333333;
-  --vv-radius: 18px;
-  --vv-shadow: 0 2px 12px rgba(45,190,100,0.08);
+  --vv-gray: #666666;
+  --vv-light-gray: #f5f7fa;
+  --vv-border: #e0e4e8;
+  --vv-radius: 16px;
+  --vv-shadow: 0 8px 32px rgba(45, 190, 100, 0.12);
 }
 
+/* Блокировка скролла */
 body.tickets-no-scroll {
   overflow: hidden !important;
   overscroll-behavior: none !important;
 }
 
-
-.tickets-bg-gradient {
-  min-height: 100vh;
-  min-height: 100dvh;
+/* ========== Главный контейнер ========== */
+.ticketsPageWrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
   height: 100vh;
   height: 100dvh;
-  width: 100vw;
-  background: linear-gradient(135deg, #2dbe64 0%, #e8e8e8 100%);
   display: flex;
-  align-items: stretch;
-  justify-content: center;
-  padding: 0;
-  margin: 0;
-  overflow: hidden;
-}
-
-.tickets-fullscreen-container {
-  width: 100vw;
-  max-width: 100vw;
-  height: 100vh;
-  height: 100dvh;
-  min-height: 100vh;
-  min-height: 100dvh;
-  background: rgba(255,255,255,0.97);
-  border-radius: 0;
-  box-shadow: none;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
   align-items: center;
-  padding: 0 0 24px 0;
-  overflow-y: auto;
+  justify-content: center;
+  padding: 20px;
+  overflow: hidden;
+  /* Принудительно светлая тема */
+  background: #f0f2f5;
+  color: #333;
 }
 
+/* ========== Анимированный фон ========== */
+.animatedBg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 0;
+  background: linear-gradient(135deg, #f0f4f0 0%, #e8f5e9 50%, #f5f5f5 100%);
+}
+
+.gradientOrb1,
+.gradientOrb2,
+.gradientOrb3 {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.6;
+  animation: float 20s ease-in-out infinite;
+}
+
+.gradientOrb1 {
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(45, 190, 100, 0.4) 0%, transparent 70%);
+  top: -200px;
+  left: -100px;
+  animation-delay: 0s;
+}
+
+.gradientOrb2 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(200, 200, 200, 0.5) 0%, transparent 70%);
+  bottom: -150px;
+  right: -100px;
+  animation-delay: -7s;
+  animation-duration: 25s;
+}
+
+.gradientOrb3 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(45, 190, 100, 0.3) 0%, transparent 70%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation-delay: -14s;
+  animation-duration: 30s;
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  25% {
+    transform: translate(30px, -30px) scale(1.05);
+  }
+
+  50% {
+    transform: translate(-20px, 20px) scale(0.95);
+  }
+
+  75% {
+    transform: translate(-30px, -20px) scale(1.02);
+  }
+}
+
+/* ========== Карточка формы ========== */
+.ticketsCard {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 580px;
+  max-height: calc(100vh - 40px);
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: var(--vv-radius);
+  box-shadow: var(--vv-shadow);
+  padding: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.ticketsCard::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ticketsCard::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ticketsCard::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+/* ========== Логотип ========== */
 .logo {
   display: block;
-  margin: 0 auto 18px auto;
-  max-width: 180px;
+  margin: 0 auto 16px auto;
+  max-width: 160px;
   height: auto;
 }
 
+/* ========== Заголовок ========== */
 .ticketsTitle {
   text-align: center;
   color: var(--vv-green);
-  font-family: 'Villula', 'Euclide Circular B', Arial, sans-serif;
-  font-size: 2rem;
-  margin-bottom: 12px;
+  font-family: 'Villula', 'Inter', Arial, sans-serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 24px;
+  letter-spacing: -0.02em;
 }
 
-.form {
+/* ========== Форма ========== */
+.ticketsForm {
   display: flex;
-  flex-direction: column;
-  gap: 14px;
+  flex-wrap: wrap;
 }
 
-.input,
-.textarea {
-  border: 1.5px solid #e0e0e0;
-  border-radius: 12px;
-  padding: 12px 14px;
-  font-size: 1rem;
-  font-family: inherit;
-  background: #fafafa;
-  transition: border 0.2s;
-}
-.input:focus,
-.textarea:focus {
-  border-color: var(--vv-green);
-  outline: none;
-}
-
-.label {
-  font-size: 1rem;
+.formLabel {
+  display: block;
+  font-size: 0.9rem;
   color: var(--vv-graphite);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   font-weight: 500;
 }
 
-.addressDropdown {
-  position: relative;
-}
-.addressList {
-  position: absolute;
-  left: 0; right: 0;
-  top: 100%;
-  background: #fff;
-  border: 1px solid #e0e0e0;
-  border-radius: 0 0 12px 12px;
-  box-shadow: 0 2px 8px rgba(45,190,100,0.07);
-  z-index: 10;
-  max-height: 180px;
-  overflow-y: auto;
-}
-.addressItem {
-  padding: 10px 14px;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.addressItem:hover {
-  background: #f2fff7;
+.formInput,
+.formTextarea {
+  width: 100%;
+  border: 2px solid var(--vv-border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 1rem;
+  font-family: inherit;
+  background: #ffffff;
+  color: var(--vv-graphite);
+  transition: all 0.2s ease;
 }
 
-.fileInput {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.formInput:focus,
+.formTextarea:focus {
+  border-color: var(--vv-green);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(45, 190, 100, 0.15);
 }
+
+.formInput::placeholder,
+.formTextarea::placeholder {
+  color: #aaa;
+}
+
+.formTextarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* ========== Input Group с кнопкой ========== */
+.inputGroup {
+  display: flex;
+  gap: 0;
+}
+
+.inputGroup .formInput {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: none;
+}
+
+.dropdownBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  background: #f8f9fa;
+  border: 2px solid var(--vv-border);
+  border-left: none;
+  border-radius: 0 12px 12px 0;
+  cursor: pointer;
+  color: #888;
+  transition: all 0.2s ease;
+}
+
+.dropdownBtn:hover {
+  background: #f0f0f0;
+  color: var(--vv-green);
+}
+
+/* ========== Выпадающий список адресов ========== */
+.addressDropdownList {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: #ffffff;
+  border: 2px solid var(--vv-border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+.addressDropdownItem {
+  padding: 12px 16px;
+  cursor: pointer;
+  color: var(--vv-graphite);
+  transition: background 0.15s ease;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.addressDropdownItem:last-child {
+  border-bottom: none;
+}
+
+.addressDropdownItem:hover {
+  background: #f0fff5;
+  color: var(--vv-green);
+}
+
+.addressDropdownEmpty {
+  padding: 12px 16px;
+  color: #999;
+  text-align: center;
+}
+
+/* ========== Кнопка загрузки файлов ========== */
+.uploadBtn {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, var(--vv-green) 0%, var(--vv-green-light) 100%);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(45, 190, 100, 0.25);
+}
+
+.uploadBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(45, 190, 100, 0.35);
+}
+
+.fileHint {
+  display: inline-block;
+  margin-left: 12px;
+  font-size: 0.85rem;
+  color: #999;
+}
+
+/* ========== Превью файлов ========== */
 .filePreviewList {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
+  margin-top: 12px;
 }
+
 .filePreview {
   position: relative;
-  width: 64px;
-  height: 64px;
+  width: 72px;
+  height: 72px;
   border-radius: 10px;
   overflow: hidden;
-  background: #f2fff7;
-  border: 1px solid #e0e0e0;
+  background: #f5f5f5;
+  border: 2px solid var(--vv-border);
 }
+
 .filePreview img,
 .filePreview video {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
+
 .removeFileBtn {
   position: absolute;
-  top: 2px;
-  right: 2px;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
   background: var(--vv-berry);
   color: #fff;
   border: none;
   border-radius: 50%;
-  width: 22px;
-  height: 22px;
-  font-size: 1rem;
+  font-size: 14px;
+  line-height: 1;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: transform 0.15s ease;
 }
 
+.removeFileBtn:hover {
+  transform: scale(1.1);
+}
+
+/* ========== Сообщение об ошибке ========== */
+.errorAlert {
+  background: #fff5f5;
+  border: 1px solid #ffcdd2;
+  color: #c62828;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+}
+
+/* ========== Кнопка отправки ========== */
 .submitBtn {
-  background: var(--vv-green);
+  width: 100%;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, var(--vv-green) 0%, var(--vv-green-dark) 100%);
   color: #fff;
   border: none;
   border-radius: 12px;
-  padding: 14px 0;
   font-size: 1.1rem;
-  font-family: inherit;
   font-weight: 600;
-  margin-top: 10px;
-  box-shadow: 0 2px 8px rgba(45,190,100,0.08);
-  transition: background 0.2s;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(45, 190, 100, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
-.submitBtn:active {
-  background: #249c50;
+
+.submitBtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(45, 190, 100, 0.4);
+}
+
+.submitBtn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.submitBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ========== Кнопка входа для инженеров ========== */
+.engineerBtn {
+  padding: 12px 24px;
+  background: transparent;
+  color: var(--vv-gray);
+  border: 2px solid var(--vv-border);
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.engineerBtn:hover {
+  border-color: var(--vv-berry);
+  color: var(--vv-berry);
+}
+
+/* ========== Попап успеха ========== */
+.successOverlay {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(45, 190, 100, 0.08);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 999;
 }
 
 .successPopup {
   position: fixed;
   left: 50%;
-  top: 18%;
-  transform: translate(-50%, 0);
-  background: #fff;
-  border: 2px solid var(--vv-green);
-  color: var(--vv-green);
-  border-radius: 18px;
-  padding: 32px 24px;
-  font-size: 1.2rem;
-  font-family: 'Villula', 'Euclide Circular B', Arial, sans-serif;
-  box-shadow: 0 4px 24px rgba(45,190,100,0.13);
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 40px 32px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(45, 190, 100, 0.2);
   z-index: 1000;
-  animation: popupIn 0.5s cubic-bezier(.7,-0.2,.3,1.4);
-}
-@keyframes popupIn {
-  0% { opacity: 0; transform: translate(-50%, -30px) scale(0.95); }
-  100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  animation: popupIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  min-width: 280px;
 }
 
-@media (max-width: 600px) {
-  .ticketsContainer {
-    max-width: 100vw;
-    border-radius: 0;
-    padding: 8px 0 32px 0;
-    box-shadow: none;
+.successIcon {
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(135deg, var(--vv-green) 0%, var(--vv-green-light) 100%);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  margin: 0 auto 16px auto;
+}
+
+.successPopup b {
+  display: block;
+  font-size: 1.3rem;
+  color: var(--vv-green);
+  margin-bottom: 8px;
+}
+
+.successBtn {
+  margin-top: 20px;
+  padding: 12px 28px;
+  background: linear-gradient(135deg, var(--vv-green) 0%, var(--vv-green-dark) 100%);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.successBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(45, 190, 100, 0.35);
+}
+
+@keyframes popupIn {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
   }
+
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* ========== Адаптивность ========== */
+@media (max-width: 600px) {
+  .ticketsPageWrapper {
+    padding: 12px;
+  }
+
+  .ticketsCard {
+    padding: 20px 16px;
+    border-radius: 12px;
+    max-height: calc(100vh - 24px);
+    max-height: calc(100dvh - 24px);
+  }
+
   .logo {
     max-width: 120px;
   }
+
   .ticketsTitle {
     font-size: 1.4rem;
-  }
-  .form {
-    gap: 10px;
+    margin-bottom: 20px;
   }
 
-  .tickets-fullscreen-container {
-    width: 100vw;
-    max-width: 100vw;
-    height: 100vh;
-    height: 100dvh;
-    min-height: 100vh;
-    min-height: 100dvh;
-    border-radius: 0;
-    box-shadow: none;
-    padding: 0 0 24px 0;
+  .formInput,
+  .formTextarea {
+    padding: 10px 14px;
+    font-size: 16px;
+    /* Предотвращает зум на iOS */
   }
+
+  .submitBtn {
+    padding: 14px 20px;
+    font-size: 1rem;
+  }
+
+  .gradientOrb1 {
+    width: 300px;
+    height: 300px;
+  }
+
+  .gradientOrb2 {
+    width: 250px;
+    height: 250px;
+  }
+
+  .gradientOrb3 {
+    width: 200px;
+    height: 200px;
+  }
+}
+
+/* Принудительно переопределяем любые глобальные темные стили */
+.ticketsPageWrapper,
+.ticketsPageWrapper * {
+  --bg-primary: #f0f2f5 !important;
+  --bg-secondary: #ffffff !important;
+  --bg-card: #ffffff !important;
+  --text-primary: #333333 !important;
+  --text-secondary: #666666 !important;
+  --border-color: #e0e4e8 !important;
 }
