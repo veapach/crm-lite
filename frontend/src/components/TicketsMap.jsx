@@ -16,7 +16,7 @@ function TicketsMap({ tickets }) {
     for (const ticket of tickets) {
       // Получаем данные адреса из маппинга
       const addressData = getAddressData(ticket.address);
-      
+
       if (addressData && addressData.coordinates) {
         ticketsWithCoordinates.push({
           ...ticket,
@@ -27,7 +27,7 @@ function TicketsMap({ tickets }) {
     }
 
     setTicketsWithCoords(ticketsWithCoordinates);
-    
+
     // Если есть координаты, центрируем карту на первой точке
     if (ticketsWithCoordinates.length > 0) {
       setMapCenter(ticketsWithCoordinates[0].coordinates);
@@ -135,14 +135,12 @@ function TicketsMap({ tickets }) {
       </Modal>
 
       {/* Легенда */}
-      <div style={{
+      <div className="map-legend" style={{
         position: 'absolute',
         bottom: '20px',
         right: '20px',
-        backgroundColor: 'white',
         padding: '10px',
         borderRadius: '8px',
-        boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
         zIndex: 1000
       }}>
         <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>Легенда:</div>

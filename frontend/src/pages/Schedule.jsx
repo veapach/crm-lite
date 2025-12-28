@@ -51,20 +51,20 @@ function Schedule() {
 
   // Fetch addresses, users, and schedule (requests)
 
-useEffect(() => {
-  axios.get('/api/addresses').then(r => setAddresses(r.data || []));
-  axios.get('/api/users').then(r => setUsers(r.data || []));
-  // fetchSchedules(); // убираем отсюда
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, []);
+  useEffect(() => {
+    axios.get('/api/addresses').then(r => setAddresses(r.data || []));
+    axios.get('/api/users').then(r => setUsers(r.data || []));
+    // fetchSchedules(); // убираем отсюда
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-// После загрузки пользователей, обновить график
-useEffect(() => {
-  if (users.length > 0) {
-    fetchSchedules();
-  }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [users]);
+  // После загрузки пользователей, обновить график
+  useEffect(() => {
+    if (users.length > 0) {
+      fetchSchedules();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [users]);
 
   // Получить график (requests)
   const fetchSchedules = async () => {
@@ -232,13 +232,13 @@ useEffect(() => {
   const handleFinish = async (row) => {
     try {
       await axios.put(`/api/requests/${row.id}`, { ...row, status: 'Завершено' });
-      
+
       // Получаем актуальные данные из БД после обновления
       const updatedResponse = await axios.get(`/api/requests/${row.id}`);
       const updatedRow = updatedResponse.data;
-      
+
       await fetchSchedules();
-      
+
       // Redirect to new report with prefilled data
       // Передаем все нужные поля через query string
       const params = new URLSearchParams({
@@ -326,38 +326,38 @@ useEffect(() => {
           </div>
           <div className="schedule-table-wrapper">
             <table className="table table-bordered align-middle mb-0">
-            <thead>
-              <tr>
-                <th style={{ width: 40 }}>№</th>
-                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('date', 'other')}>дата {sortConfig.key === 'date' && sortConfig.context === 'other' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
-                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('departTime', 'other')}>время выезда {sortConfig.key === 'departTime' && sortConfig.context === 'other' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
-                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('address', 'other')}>объект {sortConfig.key === 'address' && sortConfig.context === 'other' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
-                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('classification', 'other')}>классификация {sortConfig.key === 'classification' && sortConfig.context === 'other' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
-                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('user', 'other')}>исполнитель {sortConfig.key === 'user' && sortConfig.context === 'other' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredFinishedSchedules.length === 0 && (
-                <tr><td colSpan="7" className="text-center text-muted">Нет завершённых выездов</td></tr>
-              )}
-              {sortedFinishedSchedules
-                .filter(row => filteredFinishedSchedules.includes(row))
-                .map((row, idx) => (
-                <tr key={row.id} style={{ background: '#f0fff0' }}>
-                  <td>{idx + 1}</td>
-                  <td>{row.date && row.date.split('-').reverse().join('.')}</td>
-                  <td>{row.departTime}</td>
-                  <td>{row.address}</td>
-                  <td>{row.type}</td>
-                  <td>{row.user ? `${row.user.lastName} ${row.user.firstName ? row.user.firstName[0] + '.' : ''}` : ''}</td>
-                  <td>
-                    <button className="btn btn-success btn-sm me-2" onClick={e => { e.stopPropagation(); handleReturn(row); }}>вернуть</button>
-                    <button className="btn btn-danger btn-sm" onClick={e => { e.stopPropagation(); handleDelete(row); }}>удалить</button>
-                  </td>
+              <thead>
+                <tr>
+                  <th style={{ width: 40 }}>№</th>
+                  <th style={{ cursor: 'pointer' }} onClick={() => handleSort('date', 'other')}>дата {sortConfig.key === 'date' && sortConfig.context === 'other' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+                  <th style={{ cursor: 'pointer' }} onClick={() => handleSort('departTime', 'other')}>время выезда {sortConfig.key === 'departTime' && sortConfig.context === 'other' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+                  <th style={{ cursor: 'pointer' }} onClick={() => handleSort('address', 'other')}>объект {sortConfig.key === 'address' && sortConfig.context === 'other' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+                  <th style={{ cursor: 'pointer' }} onClick={() => handleSort('classification', 'other')}>классификация {sortConfig.key === 'classification' && sortConfig.context === 'other' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+                  <th style={{ cursor: 'pointer' }} onClick={() => handleSort('user', 'other')}>исполнитель {sortConfig.key === 'user' && sortConfig.context === 'other' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+                  <th></th>
                 </tr>
-              ))}
-            </tbody>
+              </thead>
+              <tbody>
+                {filteredFinishedSchedules.length === 0 && (
+                  <tr><td colSpan="7" className="text-center text-muted">Нет завершённых выездов</td></tr>
+                )}
+                {sortedFinishedSchedules
+                  .filter(row => filteredFinishedSchedules.includes(row))
+                  .map((row, idx) => (
+                    <tr key={row.id} style={{ background: '#f0fff0' }}>
+                      <td>{idx + 1}</td>
+                      <td>{row.date && row.date.split('-').reverse().join('.')}</td>
+                      <td>{row.departTime}</td>
+                      <td>{row.address}</td>
+                      <td>{row.type}</td>
+                      <td>{row.user ? `${row.user.lastName} ${row.user.firstName ? row.user.firstName[0] + '.' : ''}` : ''}</td>
+                      <td>
+                        <button className="btn btn-success btn-sm me-2" onClick={e => { e.stopPropagation(); handleReturn(row); }}>вернуть</button>
+                        <button className="btn btn-danger btn-sm" onClick={e => { e.stopPropagation(); handleDelete(row); }}>удалить</button>
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
             </table>
           </div>
         </div>
@@ -389,9 +389,9 @@ useEffect(() => {
                       <button type="button" className="btn btn-outline-secondary" onClick={() => { setFilteredAddresses(addresses.map(a => a.address)); setShowAddressSuggestions(true); }}><FaChevronDown /></button>
                     </div>
                     {showAddressSuggestions && (
-                      <div className="position-absolute w-100 mt-1 bg-white border rounded shadow-sm" style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}>
+                      <div className="position-absolute w-100 mt-1 border rounded shadow-sm dropdown-suggestions" style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}>
                         {filteredAddresses.length > 0 ? filteredAddresses.map((address, idx) => (
-                          <div key={idx} className="p-2 border-bottom" style={{ cursor: 'pointer' }} onClick={() => handleAddressSelect(address)} onMouseOver={e => e.target.style.backgroundColor = '#f8f9fa'} onMouseOut={e => e.target.style.backgroundColor = ''}>{address}</div>
+                          <div key={idx} className="p-2 border-bottom dropdown-suggestion-item" style={{ cursor: 'pointer' }} onClick={() => handleAddressSelect(address)}>{address}</div>
                         )) : <div className="p-2 text-muted">Нет подходящих адресов</div>}
                       </div>
                     )}
@@ -419,7 +419,7 @@ useEffect(() => {
                       ))}
                     </select>
                   </div>
-                  
+
                 </div>
                 <div className="modal-footer">
                   <button type="button" className="btn btn-secondary" onClick={closeModal}>Отмена</button>
@@ -437,46 +437,46 @@ useEffect(() => {
           <div className="mb-2" style={{ fontWeight: 'bold', color: '#0d6efd' }}>Сегодняшние выезды</div>
           <div className="schedule-table-wrapper">
             <table className="table table-bordered align-middle mb-0">
-            <thead>
-              <tr>
-                <th style={{ width: 40 }}>№</th>
-                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('date', 'today')}>дата {sortConfig.key === 'date' && sortConfig.context === 'today' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
-                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('departTime', 'today')}>время выезда {sortConfig.key === 'departTime' && sortConfig.context === 'today' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
-                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('address', 'today')}>объект {sortConfig.key === 'address' && sortConfig.context === 'today' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
-                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('classification', 'today')}>классификация {sortConfig.key === 'classification' && sortConfig.context === 'today' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
-                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('user', 'today')}>исполнитель {sortConfig.key === 'user' && sortConfig.context === 'today' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedTodaySchedules.map((row, idx) => (
-                <tr key={row.id} style={{ cursor: 'pointer', background: '#eaf4ff' }} onClick={e => {
-                  if (e.target.tagName !== 'BUTTON') {
-                    setForm({
-                      id: row.id,
-                      date: row.date,
-                      departTime: row.departTime || '',
-                      address: row.address,
-                      classification: row.type === 'АВ' ? 'Аварийный вызов' : (['ТО Китчен', 'ТО Пекарня', 'ПНР', 'Аварийный вызов'].includes(row.type) ? row.type : 'Другое'),
-                      customClass: !['ТО Китчен', 'ТО Пекарня', 'ПНР', 'Аварийный вызов'].includes(row.type) ? row.type : '',
-                      userId: row.engineerId ? String(row.engineerId) : (users.find(u => u.lastName === row.user?.lastName && u.firstName[0] === row.user?.firstName[0])?.id || ''),
-                    });
-                    setShowModal(true);
-                  }
-                }}>
-                  <td>{idx + 1}</td>
-                  <td>{row.date && row.date.split('-').reverse().join('.')}</td>
-                  <td>{row.departTime}</td>
-                  <td>{row.address}</td>
-                  <td>{row.type}</td>
-                  <td>{row.user ? `${row.user.lastName} ${row.user.firstName ? row.user.firstName[0] + '.' : ''}` : ''}</td>
-                  <td>
-                    <button className="btn btn-primary btn-sm me-2" onClick={e => { e.stopPropagation(); handleFinish(row); }}>завершить</button>
-                    <button className="btn btn-danger btn-sm" onClick={e => { e.stopPropagation(); handleDelete(row); }}>удалить</button>
-                  </td>
+              <thead>
+                <tr>
+                  <th style={{ width: 40 }}>№</th>
+                  <th style={{ cursor: 'pointer' }} onClick={() => handleSort('date', 'today')}>дата {sortConfig.key === 'date' && sortConfig.context === 'today' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+                  <th style={{ cursor: 'pointer' }} onClick={() => handleSort('departTime', 'today')}>время выезда {sortConfig.key === 'departTime' && sortConfig.context === 'today' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+                  <th style={{ cursor: 'pointer' }} onClick={() => handleSort('address', 'today')}>объект {sortConfig.key === 'address' && sortConfig.context === 'today' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+                  <th style={{ cursor: 'pointer' }} onClick={() => handleSort('classification', 'today')}>классификация {sortConfig.key === 'classification' && sortConfig.context === 'today' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+                  <th style={{ cursor: 'pointer' }} onClick={() => handleSort('user', 'today')}>исполнитель {sortConfig.key === 'user' && sortConfig.context === 'today' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+                  <th></th>
                 </tr>
-              ))}
-            </tbody>
+              </thead>
+              <tbody>
+                {sortedTodaySchedules.map((row, idx) => (
+                  <tr key={row.id} style={{ cursor: 'pointer', background: '#eaf4ff' }} onClick={e => {
+                    if (e.target.tagName !== 'BUTTON') {
+                      setForm({
+                        id: row.id,
+                        date: row.date,
+                        departTime: row.departTime || '',
+                        address: row.address,
+                        classification: row.type === 'АВ' ? 'Аварийный вызов' : (['ТО Китчен', 'ТО Пекарня', 'ПНР', 'Аварийный вызов'].includes(row.type) ? row.type : 'Другое'),
+                        customClass: !['ТО Китчен', 'ТО Пекарня', 'ПНР', 'Аварийный вызов'].includes(row.type) ? row.type : '',
+                        userId: row.engineerId ? String(row.engineerId) : (users.find(u => u.lastName === row.user?.lastName && u.firstName[0] === row.user?.firstName[0])?.id || ''),
+                      });
+                      setShowModal(true);
+                    }
+                  }}>
+                    <td>{idx + 1}</td>
+                    <td>{row.date && row.date.split('-').reverse().join('.')}</td>
+                    <td>{row.departTime}</td>
+                    <td>{row.address}</td>
+                    <td>{row.type}</td>
+                    <td>{row.user ? `${row.user.lastName} ${row.user.firstName ? row.user.firstName[0] + '.' : ''}` : ''}</td>
+                    <td>
+                      <button className="btn btn-primary btn-sm me-2" onClick={e => { e.stopPropagation(); handleFinish(row); }}>завершить</button>
+                      <button className="btn btn-danger btn-sm" onClick={e => { e.stopPropagation(); handleDelete(row); }}>удалить</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
             </table>
           </div>
         </div>
@@ -485,46 +485,46 @@ useEffect(() => {
       {/* Остальные выезды */}
       <div className="schedule-table-wrapper">
         <table className="table table-bordered align-middle">
-        <thead>
-          <tr>
-            <th style={{ width: 40 }}>№</th>
-            <th style={{ cursor: 'pointer' }} onClick={() => handleSort('date', 'other')}>дата {sortConfig.key === 'date' && sortConfig.context === 'other' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
-            <th style={{ cursor: 'pointer' }} onClick={() => handleSort('departTime', 'other')}>время выезда {sortConfig.key === 'departTime' && sortConfig.context === 'other' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
-            <th style={{ cursor: 'pointer' }} onClick={() => handleSort('address', 'other')}>объект {sortConfig.key === 'address' && sortConfig.context === 'other' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
-            <th style={{ cursor: 'pointer' }} onClick={() => handleSort('classification', 'other')}>классификация {sortConfig.key === 'classification' && sortConfig.context === 'other' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
-            <th style={{ cursor: 'pointer' }} onClick={() => handleSort('user', 'other')}>исполнитель {sortConfig.key === 'user' && sortConfig.context === 'other' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {sortedSchedules.map((row, idx) => (
-            <tr key={row.id} style={{ cursor: 'pointer' }} onClick={e => {
-              if (e.target.tagName !== 'BUTTON') {
-                setForm({
-                  id: row.id,
-                  date: row.date,
-                  departTime: row.departTime || '',
-                  address: row.address,
-                  classification: row.type === 'АВ' ? 'Аварийный вызов' : (['ТО Китчен', 'ТО Пекарня', 'ПНР', 'Аварийный вызов'].includes(row.type) ? row.type : 'Другое'),
-                  customClass: !['ТО Китчен', 'ТО Пекарня', 'ПНР', 'Аварийный вызов'].includes(row.type) ? row.type : '',
-                  userId: row.engineerId ? String(row.engineerId) : (users.find(u => u.lastName === row.user?.lastName && u.firstName[0] === row.user?.firstName[0])?.id || ''),
-                });
-                setShowModal(true);
-              }
-            }}>
-              <td>{idx + 1}</td>
-              <td>{row.date && row.date.split('-').reverse().join('.')}</td>
-              <td>{row.departTime}</td>
-              <td>{row.address}</td>
-              <td>{row.type}</td>
-              <td>{row.user ? `${row.user.lastName} ${row.user.firstName ? row.user.firstName[0] + '.' : ''}` : ''}</td>
-              <td>
-                <button className="btn btn-primary btn-sm me-2" onClick={e => { e.stopPropagation(); handleFinish(row); }}>завершить</button>
-                <button className="btn btn-danger btn-sm" onClick={e => { e.stopPropagation(); handleDelete(row); }}>удалить</button>
-              </td>
+          <thead>
+            <tr>
+              <th style={{ width: 40 }}>№</th>
+              <th style={{ cursor: 'pointer' }} onClick={() => handleSort('date', 'other')}>дата {sortConfig.key === 'date' && sortConfig.context === 'other' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+              <th style={{ cursor: 'pointer' }} onClick={() => handleSort('departTime', 'other')}>время выезда {sortConfig.key === 'departTime' && sortConfig.context === 'other' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+              <th style={{ cursor: 'pointer' }} onClick={() => handleSort('address', 'other')}>объект {sortConfig.key === 'address' && sortConfig.context === 'other' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+              <th style={{ cursor: 'pointer' }} onClick={() => handleSort('classification', 'other')}>классификация {sortConfig.key === 'classification' && sortConfig.context === 'other' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+              <th style={{ cursor: 'pointer' }} onClick={() => handleSort('user', 'other')}>исполнитель {sortConfig.key === 'user' && sortConfig.context === 'other' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}</th>
+              <th></th>
             </tr>
-          ))}
-        </tbody>
+          </thead>
+          <tbody>
+            {sortedSchedules.map((row, idx) => (
+              <tr key={row.id} style={{ cursor: 'pointer' }} onClick={e => {
+                if (e.target.tagName !== 'BUTTON') {
+                  setForm({
+                    id: row.id,
+                    date: row.date,
+                    departTime: row.departTime || '',
+                    address: row.address,
+                    classification: row.type === 'АВ' ? 'Аварийный вызов' : (['ТО Китчен', 'ТО Пекарня', 'ПНР', 'Аварийный вызов'].includes(row.type) ? row.type : 'Другое'),
+                    customClass: !['ТО Китчен', 'ТО Пекарня', 'ПНР', 'Аварийный вызов'].includes(row.type) ? row.type : '',
+                    userId: row.engineerId ? String(row.engineerId) : (users.find(u => u.lastName === row.user?.lastName && u.firstName[0] === row.user?.firstName[0])?.id || ''),
+                  });
+                  setShowModal(true);
+                }
+              }}>
+                <td>{idx + 1}</td>
+                <td>{row.date && row.date.split('-').reverse().join('.')}</td>
+                <td>{row.departTime}</td>
+                <td>{row.address}</td>
+                <td>{row.type}</td>
+                <td>{row.user ? `${row.user.lastName} ${row.user.firstName ? row.user.firstName[0] + '.' : ''}` : ''}</td>
+                <td>
+                  <button className="btn btn-primary btn-sm me-2" onClick={e => { e.stopPropagation(); handleFinish(row); }}>завершить</button>
+                  <button className="btn btn-danger btn-sm" onClick={e => { e.stopPropagation(); handleDelete(row); }}>удалить</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
         </table>
       </div>
     </div>

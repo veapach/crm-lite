@@ -151,7 +151,7 @@ function Inventory() {
   return (
     <div className="container mt-5 mb-5">
       <h2>Список ЗИП</h2>
-      <form className="d-flex mb-3 flex-wrap gap-2 position-relative" onSubmit={handleAdd} style={{zIndex: 2}}>
+      <form className="d-flex mb-3 flex-wrap gap-2 position-relative" onSubmit={handleAdd} style={{ zIndex: 2 }}>
         <div style={{ position: 'relative', maxWidth: 320, flex: '1 1 320px' }}>
           <input
             type="text"
@@ -187,16 +187,14 @@ function Inventory() {
             ▼
           </button>
           {showAddressSuggestions && (
-            <div className="position-absolute w-100 mt-1 bg-white border rounded shadow-sm" style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}>
+            <div className="position-absolute w-100 mt-1 border rounded shadow-sm dropdown-suggestions" style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}>
               {filteredAddresses.length > 0 ? (
                 filteredAddresses.map((address, index) => (
                   <div
                     key={index}
-                    className="p-2 border-bottom cursor-pointer hover-bg-light"
+                    className="p-2 border-bottom cursor-pointer dropdown-suggestion-item"
                     onClick={() => handleAddressSelect(address)}
                     style={{ cursor: 'pointer' }}
-                    onMouseOver={e => e.target.style.backgroundColor = '#f8f9fa'}
-                    onMouseOut={e => e.target.style.backgroundColor = ''}
                   >
                     {address}
                   </div>
@@ -329,7 +327,7 @@ function Inventory() {
         </table>
       </div>
       {editId !== null && (
-        <div className="position-fixed top-0 start-50 translate-middle-x bg-white border rounded shadow-lg p-4" style={{ zIndex: 1050, maxWidth: 400, width: '100%' }}>
+        <div className="position-fixed top-0 start-50 translate-middle-x border rounded shadow-lg p-4 edit-modal-popup" style={{ zIndex: 1050, maxWidth: 400, width: '100%' }}>
           <h5 className="mb-3">Редактировать ЗИП</h5>
           <div className="mb-3">
             <label className="form-label">Номер объекта (адрес)</label>

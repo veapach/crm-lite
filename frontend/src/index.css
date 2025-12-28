@@ -434,3 +434,43 @@ hr {
 [data-theme="dark"] td[style*="backgroundColor: #d0e7ff"] {
   background-color: rgba(45, 130, 255, 0.25) !important;
 }
+
+/* ========== Dropdown Suggestions (Address, Equipment lists) ========== */
+.dropdown-suggestions {
+  background-color: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
+}
+
+.dropdown-suggestion-item {
+  color: var(--text-primary) !important;
+  background-color: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
+  transition: background-color var(--transition-fast);
+}
+
+.dropdown-suggestion-item:hover {
+  background-color: var(--bg-hover) !important;
+}
+
+/* ========== Map Legend ========== */
+.map-legend {
+  background-color: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+  box-shadow: var(--shadow-lg) !important;
+  border: 1px solid var(--border-color);
+}
+
+.map-legend span {
+  color: var(--text-primary) !important;
+}
+
+/* ========== Edit Modal Popup ========== */
+.edit-modal-popup {
+  background-color: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+  margin-top: 100px;
+}
+
+.edit-modal-popup h5 {
+  color: var(--text-primary) !important;
+}

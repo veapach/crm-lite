@@ -95,7 +95,9 @@
 }
 
 /* Make bootstrap tab nav look like pill tabs and always visible */
-.tickets-tabs .nav {
+.tickets-tabs.nav-tabs,
+.tickets-tabs .nav-tabs,
+.tickets-tabs>.nav {
     display: flex !important;
     gap: 16px;
     align-items: center;
@@ -103,34 +105,43 @@
     padding: 1rem;
     background: var(--bg-card);
     border-radius: var(--border-radius-lg);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-color) !important;
     margin-bottom: 1.5rem;
 }
 
-.tickets-tabs .nav-link {
-    background: var(--bg-tertiary);
-    color: var(--tab-inactive-color);
-    border-radius: var(--border-radius-md);
-    padding: 10px 18px;
-    border: 1px solid var(--border-color);
+/* Target Bootstrap generated nav-link elements */
+.tickets-tabs .nav-link,
+.tickets-tabs .nav-item .nav-link {
+    background: var(--bg-tertiary) !important;
+    color: var(--tab-inactive-color) !important;
+    border-radius: var(--border-radius-md) !important;
+    padding: 10px 24px !important;
+    border: 1px solid var(--border-color) !important;
     box-shadow: var(--shadow-sm);
     transition: all var(--transition-fast);
-    margin-bottom: 0;
+    margin-bottom: 0 !important;
+    margin-right: 0 !important;
     font-weight: 500;
+    text-decoration: none;
 }
 
 .tickets-tabs .nav-link:hover,
-.tickets-tabs .nav-link:focus {
+.tickets-tabs .nav-link:focus,
+.tickets-tabs .nav-item .nav-link:hover,
+.tickets-tabs .nav-item .nav-link:focus {
     transform: translateY(-2px);
-    color: var(--accent-primary);
-    border-color: var(--accent-primary);
+    color: var(--accent-primary) !important;
+    border-color: var(--accent-primary) !important;
+    background: var(--bg-tertiary) !important;
 }
 
-.tickets-tabs .nav-link.active {
+.tickets-tabs .nav-link.active,
+.tickets-tabs .nav-item .nav-link.active,
+.tickets-tabs .nav-item.show .nav-link {
     background: linear-gradient(135deg, var(--accent-primary), var(--accent-primary-hover)) !important;
-    color: var(--tab-active-color) !important;
+    color: #ffffff !important;
     box-shadow: 0 4px 15px rgba(45, 190, 100, 0.3);
-    border-color: transparent;
+    border-color: transparent !important;
 }
 
 /* Make tab content switch with a subtle fade/slide */

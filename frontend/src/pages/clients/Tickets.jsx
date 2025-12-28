@@ -111,11 +111,11 @@ export default function Tickets() {
 
   return (
     <div className="tickets-bg-gradient min-vh-100 d-flex align-items-center justify-content-center">
-      <div className="container" style={{maxWidth: 600, background: 'rgba(255,255,255,0.97)', borderRadius: 18, boxShadow: '0 2px 16px 0 rgba(45,190,100,0.10)', position: 'relative'}}>
+      <div className="container" style={{ maxWidth: 600, background: 'rgba(255,255,255,0.97)', borderRadius: 18, boxShadow: '0 2px 16px 0 rgba(45,190,100,0.10)', position: 'relative' }}>
         <div className="text-center mb-3">
-          <img src={LOGO_SRC} alt="ВкусВилл" style={{maxWidth: 180, height: '150px'}} />
+          <img src={LOGO_SRC} alt="ВкусВилл" style={{ maxWidth: 180, height: '150px' }} />
         </div>
-        <h2 className="mb-4" style={{color:'#2dbe64', fontFamily:'Villula, Euclide Circular B, Arial', fontWeight:600}}>Заявка для клиентов</h2>
+        <h2 className="mb-4" style={{ color: '#2dbe64', fontFamily: 'Villula, Euclide Circular B, Arial', fontWeight: 600 }}>Заявка для клиентов</h2>
         {success && (
           <>
             <div
@@ -130,12 +130,12 @@ export default function Tickets() {
                 zIndex: 999,
               }}
             />
-            <div className={styles.successPopup} style={{zIndex: 1000}}>
+            <div className={styles.successPopup} style={{ zIndex: 1000 }}>
               <b>Заявка отправлена!</b>
-              <div style={{marginTop:8}}>Спасибо, мы свяжемся с вами.</div>
+              <div style={{ marginTop: 8 }}>Спасибо, мы свяжемся с вами.</div>
               <button
                 className="btn btn-success mt-3"
-                style={{background:'#2dbe64', borderColor:'#2dbe64'}}
+                style={{ background: '#2dbe64', borderColor: '#2dbe64' }}
                 onClick={() => setSuccess(false)}
               >
                 Новая заявка
@@ -143,7 +143,7 @@ export default function Tickets() {
             </div>
           </>
         )}
-        <form className="row g-3" onSubmit={handleSubmit} autoComplete="off" style={success ? {filter: 'blur(2px)', pointerEvents: 'none'} : {}}>
+        <form className="row g-3" onSubmit={handleSubmit} autoComplete="off" style={success ? { filter: 'blur(2px)', pointerEvents: 'none' } : {}}>
           <div className="col-12 col-md-6">
             <label className="form-label">ФИО *</label>
             <input className="form-control" name="fullName" value={form.fullName} onChange={handleChange} required maxLength={64} placeholder="Введите ФИО" />
@@ -174,7 +174,7 @@ export default function Tickets() {
                 type="button"
                 className="btn btn-outline-secondary"
                 tabIndex={-1}
-                style={{borderTopLeftRadius:0, borderBottomLeftRadius:0, borderLeft:'none', fontWeight:600, background:'none', display:'flex', alignItems:'center'}}
+                style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0, borderLeft: 'none', fontWeight: 600, background: 'none', display: 'flex', alignItems: 'center' }}
                 onClick={() => {
                   setFilteredAddresses(addresses.map(a => a.address));
                   setShowAddressList(addresses.length > 0);
@@ -182,13 +182,13 @@ export default function Tickets() {
                 }}
                 title="Показать все адреса"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#888" viewBox="0 0 16 16"><path d="M1.646 5.646a.5.5 0 0 1 .708 0L8 11.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#888" viewBox="0 0 16 16"><path d="M1.646 5.646a.5.5 0 0 1 .708 0L8 11.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z" /></svg>
               </button>
             </div>
             {showAddressList && (
-              <div className="position-absolute w-100 mt-1 bg-white border rounded shadow-sm" style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}>
+              <div className="position-absolute w-100 mt-1 border rounded shadow-sm dropdown-suggestions" style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}>
                 {filteredAddresses.length > 0 ? filteredAddresses.map((a, i) => (
-                  <div key={i} className="p-2 border-bottom" style={{cursor:'pointer'}} onClick={() => handleAddressSelect(a)}>{a}</div>
+                  <div key={i} className="p-2 border-bottom dropdown-suggestion-item" style={{ cursor: 'pointer' }} onClick={() => handleAddressSelect(a)}>{a}</div>
                 )) : <div className="p-2 text-muted">Нет совпадений</div>}
               </div>
             )}
@@ -198,9 +198,9 @@ export default function Tickets() {
             <textarea className="form-control" name="description" value={form.description} onChange={handleChange} required rows={3} maxLength={500} placeholder="Опишите проблему" />
           </div>
           <div className="col-12">
-            <input type="file" accept="image/*" multiple onChange={handleFileChange} style={{display:'none'}} id="file-upload" />
-            <label htmlFor="file-upload" className="btn btn-success mb-2" style={{fontWeight:600, background:'#2dbe64', color:'#fff', borderColor:'#2dbe64', margin:0, cursor:'pointer', letterSpacing:'0.02em'}}>Загрузить файлы</label>
-            <div style={{height:10}}></div>
+            <input type="file" accept="image/*" multiple onChange={handleFileChange} style={{ display: 'none' }} id="file-upload" />
+            <label htmlFor="file-upload" className="btn btn-success mb-2" style={{ fontWeight: 600, background: '#2dbe64', color: '#fff', borderColor: '#2dbe64', margin: 0, cursor: 'pointer', letterSpacing: '0.02em' }}>Загрузить файлы</label>
+            <div style={{ height: 10 }}></div>
             <label className="form-label">Фото (до 5 файлов)</label>
             <div className="d-flex gap-2 flex-wrap">
               {form.files.map((file, idx) => (
@@ -208,7 +208,7 @@ export default function Tickets() {
                   {file.type.startsWith('image') ? (
                     <img src={URL.createObjectURL(file)} alt="preview" />
                   ) : file.type.startsWith('video') ? (
-                    <video src={URL.createObjectURL(file)} controls style={{width:'100%',height:'100%'}} />
+                    <video src={URL.createObjectURL(file)} controls style={{ width: '100%', height: '100%' }} />
                   ) : null}
                   <button type="button" className={styles.removeFileBtn} onClick={() => handleRemoveFile(idx)}>&times;</button>
                 </div>
@@ -222,7 +222,7 @@ export default function Tickets() {
         </form>
         {!isAuthenticated && (
           <div className="text-center mt-4">
-            <button className="btn btn-danger btn-lg" onClick={()=>navigate('/auth')}>Вход для инженеров</button>
+            <button className="btn btn-danger btn-lg" onClick={() => navigate('/auth')}>Вход для инженеров</button>
           </div>
         )}
       </div>

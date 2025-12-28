@@ -199,7 +199,7 @@ function NewReport() {
           .map(addr => addr.address);
         setFilteredAddresses(filtered);
         setShowAddressSuggestions(filtered.length > 0);
-        
+
         // Если есть классификация, загружаем запомненное оборудование для нового адреса
         if (formData.classification) {
           fetchEquipmentMemory(value, formData.classification);
@@ -312,55 +312,55 @@ function NewReport() {
     e.preventDefault();
     setError('');
     setSuccess('');
-  
+
     // Проверяем обязательные поля
     const errors = {
       date: !formData.date,
       address: !formData.address
     };
-  
+
     setValidationErrors(errors);
-  
+
     if (errors.date || errors.address) {
       setError('Пожалуйста, заполните обязательные поля (дата и объект)');
       return;
     }
-  
+
     // Если выбрана классификация "Другое", заменяем значение
-  let dataToSend = { ...formData };
-  // Добавляем выбранного исполнителя
-  dataToSend.userId = parseInt(selectedUserId, 10);
+    let dataToSend = { ...formData };
+    // Добавляем выбранного исполнителя
+    dataToSend.userId = parseInt(selectedUserId, 10);
     if (dataToSend.classification === 'Другое') {
       dataToSend.classification = dataToSend.customClass;
     } else if (dataToSend.classification === 'Аварийный вызов') {
       dataToSend.classification = 'АВ';
     }
-  
+
     // Показываем индикатор загрузки и скрываем форму
     setIsLoading(true);
-  
+
     try {
-  const response = await axios.post('/api/report', dataToSend, {
+      const response = await axios.post('/api/report', dataToSend, {
         headers: { 'Content-Type': 'application/json' },
       });
       const newReportId = response.data.id;
       setSuccess('Отчет успешно создан');
       fetchAddresses();
-  
-    // Если оборудование не найдено в списке, добавляем его
-    const machineName = dataToSend.machine_name?.trim();
-    if (
-      machineName &&
-      !equipmentList.some(eq => (eq.equipment || '').toLowerCase() === machineName.toLowerCase())
-    ) {
-      try {
-        await axios.post('/api/equipment', { equipment: machineName });
-        fetchEquipment();
-      } catch (err) {
-        // Не критично, просто логируем
-        console.error('Ошибка при добавлении оборудования:', err);
+
+      // Если оборудование не найдено в списке, добавляем его
+      const machineName = dataToSend.machine_name?.trim();
+      if (
+        machineName &&
+        !equipmentList.some(eq => (eq.equipment || '').toLowerCase() === machineName.toLowerCase())
+      ) {
+        try {
+          await axios.post('/api/equipment', { equipment: machineName });
+          fetchEquipment();
+        } catch (err) {
+          // Не критично, просто логируем
+          console.error('Ошибка при добавлении оборудования:', err);
+        }
       }
-    }
 
       // Добавить ЗИП в список покупок
       const address = dataToSend.address;
@@ -374,15 +374,15 @@ function NewReport() {
           });
         }
       }
-  
+
       // Перенаправляем на страницу путевого листа после успешного создания
-  setTimeout(() => navigate('/travel-sheet'), 2000);
+      setTimeout(() => navigate('/travel-sheet'), 2000);
     } catch (err) {
       setError(err.response?.data?.error || 'Ошибка при создании отчета');
       setIsLoading(false);
     }
   };
-  
+
 
   // Определяем стиль для полей ввода в зависимости от валидации
   const getInputStyle = (fieldName) => {
@@ -459,9 +459,9 @@ function NewReport() {
               required
               autoComplete="off"
             />
-            <button 
-              type="button" 
-              className="btn btn-outline-secondary" 
+            <button
+              type="button"
+              className="btn btn-outline-secondary"
               onClick={toggleAddressList}
               title="Показать все адреса"
             >
@@ -469,16 +469,14 @@ function NewReport() {
             </button>
           </div>
           {showAddressSuggestions && (
-            <div className="position-absolute w-100 mt-1 bg-white border rounded shadow-sm" style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}>
+            <div className="position-absolute w-100 mt-1 border rounded shadow-sm dropdown-suggestions" style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}>
               {filteredAddresses.length > 0 ? (
                 filteredAddresses.map((address, index) => (
-                  <div 
-                    key={index} 
-                    className="p-2 border-bottom cursor-pointer hover-bg-light"
+                  <div
+                    key={index}
+                    className="p-2 border-bottom cursor-pointer dropdown-suggestion-item"
                     onClick={() => handleAddressSelect(address)}
                     style={{ cursor: 'pointer' }}
-                    onMouseOver={(e) => e.target.style.backgroundColor = '#f8f9fa'}
-                    onMouseOut={(e) => e.target.style.backgroundColor = ''}
                   >
                     {address}
                   </div>
@@ -536,16 +534,14 @@ function NewReport() {
             </button>
           </div>
           {showEquipmentSuggestions && (
-            <div className="position-absolute w-100 mt-1 bg-white border rounded shadow-sm" style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}>
+            <div className="position-absolute w-100 mt-1 border rounded shadow-sm dropdown-suggestions" style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}>
               {filteredEquipment.length > 0 ? (
                 filteredEquipment.map((name, index) => (
                   <div
                     key={index}
-                    className="p-2 border-bottom cursor-pointer hover-bg-light"
+                    className="p-2 border-bottom cursor-pointer dropdown-suggestion-item"
                     onClick={() => handleEquipmentSelect(name)}
                     style={{ cursor: 'pointer' }}
-                    onMouseOver={e => e.target.style.backgroundColor = '#f8f9fa'}
-                    onMouseOut={e => e.target.style.backgroundColor = ''}
                   >
                     {name}
                   </div>
