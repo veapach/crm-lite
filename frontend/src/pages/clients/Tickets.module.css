@@ -58,7 +58,6 @@ body.tickets-no-scroll {
   position: absolute;
   border-radius: 50%;
   filter: blur(80px);
-  animation: floatOrb 25s ease-in-out infinite;
   will-change: transform, opacity;
 }
 
@@ -68,8 +67,7 @@ body.tickets-no-scroll {
   background: radial-gradient(circle, rgba(45, 190, 100, 0.5) 0%, rgba(45, 190, 100, 0.2) 40%, transparent 70%);
   top: -200px;
   left: -150px;
-  animation-delay: 0s;
-  animation-duration: 25s;
+  animation: floatOrb1 28s ease-in-out infinite;
 }
 
 .gradientOrb2 {
@@ -78,8 +76,7 @@ body.tickets-no-scroll {
   background: radial-gradient(circle, rgba(45, 190, 100, 0.45) 0%, rgba(30, 160, 80, 0.15) 40%, transparent 70%);
   bottom: -150px;
   right: -100px;
-  animation-delay: -8s;
-  animation-duration: 30s;
+  animation: floatOrb2 32s ease-in-out infinite;
 }
 
 .gradientOrb3 {
@@ -88,8 +85,7 @@ body.tickets-no-scroll {
   background: radial-gradient(circle, rgba(79, 208, 128, 0.4) 0%, rgba(45, 190, 100, 0.1) 50%, transparent 70%);
   top: 30%;
   left: 55%;
-  animation-delay: -16s;
-  animation-duration: 35s;
+  animation: floatOrb3 25s ease-in-out infinite;
 }
 
 .gradientOrb4 {
@@ -98,31 +94,125 @@ body.tickets-no-scroll {
   background: radial-gradient(circle, rgba(45, 220, 110, 0.35) 0%, transparent 60%);
   top: 60%;
   left: 10%;
-  animation-delay: -4s;
-  animation-duration: 22s;
+  animation: floatOrb4 22s ease-in-out infinite;
 }
 
-@keyframes floatOrb {
-
-  0%,
-  100% {
+/* Разные траектории движения для каждого орба */
+@keyframes floatOrb1 {
+  0% {
     transform: translate(0, 0) scale(1);
     opacity: 0.7;
   }
 
-  25% {
-    transform: translate(50px, -40px) scale(1.15);
+  20% {
+    transform: translate(120px, 80px) scale(1.1);
+    opacity: 0.9;
+  }
+
+  40% {
+    transform: translate(200px, -50px) scale(0.95);
+    opacity: 0.6;
+  }
+
+  60% {
+    transform: translate(80px, 150px) scale(1.15);
     opacity: 1;
   }
 
+  80% {
+    transform: translate(-60px, 100px) scale(1.05);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.7;
+  }
+}
+
+@keyframes floatOrb2 {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.6;
+  }
+
+  15% {
+    transform: translate(-150px, -100px) scale(1.2);
+    opacity: 0.9;
+  }
+
+  35% {
+    transform: translate(-80px, -200px) scale(0.9);
+    opacity: 0.7;
+  }
+
+  55% {
+    transform: translate(-200px, -80px) scale(1.1);
+    opacity: 1;
+  }
+
+  75% {
+    transform: translate(-100px, 50px) scale(1.05);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.6;
+  }
+}
+
+@keyframes floatOrb3 {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.5;
+  }
+
+  25% {
+    transform: translate(-100px, 120px) scale(1.15);
+    opacity: 0.8;
+  }
+
   50% {
-    transform: translate(-40px, 50px) scale(0.9);
+    transform: translate(-180px, -60px) scale(0.85);
     opacity: 0.6;
   }
 
   75% {
-    transform: translate(-50px, -30px) scale(1.1);
+    transform: translate(50px, -100px) scale(1.1);
     opacity: 0.9;
+  }
+
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.5;
+  }
+}
+
+@keyframes floatOrb4 {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.6;
+  }
+
+  30% {
+    transform: translate(150px, -80px) scale(1.2);
+    opacity: 1;
+  }
+
+  50% {
+    transform: translate(100px, 100px) scale(0.9);
+    opacity: 0.5;
+  }
+
+  70% {
+    transform: translate(-50px, 60px) scale(1.1);
+    opacity: 0.85;
+  }
+
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.6;
   }
 }
 
@@ -179,6 +269,11 @@ body.tickets-no-scroll {
   max-height: calc(100vh - 40px);
   max-height: calc(100dvh - 40px);
   overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE/Edge */
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 255, 250, 0.92) 100%);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -221,17 +316,8 @@ body.tickets-no-scroll {
 }
 
 .ticketsCard::-webkit-scrollbar {
-  width: 6px;
-}
-
-.ticketsCard::-webkit-scrollbar-track {
-  background: rgba(45, 190, 100, 0.05);
-  border-radius: 3px;
-}
-
-.ticketsCard::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, var(--vv-green), var(--vv-green-dark));
-  border-radius: 3px;
+  display: none;
+  /* Chrome, Safari, Opera */
 }
 
 /* ========== Логотип ========== */
@@ -580,9 +666,9 @@ body.tickets-no-scroll {
 /* ========== Кнопка входа для инженеров ========== */
 .engineerBtn {
   padding: 14px 26px;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.7);
-  border: 2px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(200, 255, 220, 0.9);
+  border: 2px solid rgba(45, 190, 100, 0.3);
   border-radius: 12px;
   font-size: 0.95rem;
   font-weight: 500;
@@ -592,10 +678,10 @@ body.tickets-no-scroll {
 }
 
 .engineerBtn:hover {
-  border-color: rgba(255, 255, 255, 0.4);
+  border-color: var(--vv-green);
   color: #fff;
-  background: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  background: rgba(45, 190, 100, 0.2);
+  box-shadow: 0 4px 20px rgba(45, 190, 100, 0.3);
 }
 
 /* ========== Попап успеха ========== */
