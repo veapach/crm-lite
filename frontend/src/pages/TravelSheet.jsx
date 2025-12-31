@@ -7,9 +7,7 @@ import { useNavigate } from 'react-router-dom';
 function TravelSheet() {
   const [travelRecords, setTravelRecords] = useState([]);
   const [addresses, setAddresses] = useState([]);
-  const [filteredStartAddresses, setFilteredStartAddresses] = useState([]);
   const [filteredEndAddresses, setFilteredEndAddresses] = useState([]);
-  const [showStartAddressSuggestions, setShowStartAddressSuggestions] = useState(false);
   const [showEndAddressSuggestions, setShowEndAddressSuggestions] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState('');
@@ -27,7 +25,6 @@ function TravelSheet() {
 
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
-    startPoint: '',
     endPoint: '',
     distance: ''
   });
@@ -89,19 +86,6 @@ function TravelSheet() {
       [name]: value
     }));
 
-    if (name === 'startPoint') {
-      if (value.trim() === '') {
-        setFilteredStartAddresses([]);
-        setShowStartAddressSuggestions(false);
-      } else {
-        const filtered = addresses
-          .filter(addr => (addr.address || '').toLowerCase().includes(value.toLowerCase()))
-          .map(addr => addr.address);
-        setFilteredStartAddresses(filtered);
-        setShowStartAddressSuggestions(filtered.length > 0);
-      }
-    }
-
     if (name === 'endPoint') {
       if (value.trim() === '') {
         setFilteredEndAddresses([]);
@@ -118,36 +102,22 @@ function TravelSheet() {
 
   const handleAddressSelect = (address, field) => {
     setFormData(prev => ({ ...prev, [field]: address }));
-    if (field === 'startPoint') {
-      setShowStartAddressSuggestions(false);
-    } else {
+    setShowEndAddressSuggestions(false);
+  };
+
+  const toggleAddressList = () => {
+    if (showEndAddressSuggestions) {
       setShowEndAddressSuggestions(false);
-    }
-  };
-
-  const toggleAddressList = (field) => {
-    if (field === 'startPoint') {
-      if (showStartAddressSuggestions) {
-        setShowStartAddressSuggestions(false);
-      } else {
-        setFilteredStartAddresses(addresses.map(addr => addr.address));
-        setShowStartAddressSuggestions(true);
-      }
     } else {
-      if (showEndAddressSuggestions) {
-        setShowEndAddressSuggestions(false);
-      } else {
-        setFilteredEndAddresses(addresses.map(addr => addr.address));
-        setShowEndAddressSuggestions(true);
-      }
+      setFilteredEndAddresses(addresses.map(addr => addr.address));
+      setShowEndAddressSuggestions(true);
     }
   };
 
-  const handleSetHomeAddress = (field) => {
+  const handleSetHomeAddress = () => {
     if (homeAddress && homeAddress.trim() !== '') {
-      setFormData(prev => ({ ...prev, [field]: homeAddress }));
-      if (field === 'startPoint') setShowStartAddressSuggestions(false);
-      if (field === 'endPoint') setShowEndAddressSuggestions(false);
+      setFormData(prev => ({ ...prev, endPoint: homeAddress }));
+      setShowEndAddressSuggestions(false);
     } else {
       if (window.confirm('У вас не заполнен домашний адрес. Перейти к редактированию профиля?')) {
         navigate('/profile');
@@ -162,7 +132,7 @@ function TravelSheet() {
     setSuccess('');
 
     try {
-      if (!formData.date || !formData.startPoint || !formData.endPoint || !formData.distance) {
+      if (!formData.date || !formData.endPoint || !formData.distance) {
         setError('Все поля обязательны для заполнения');
         return;
       }
@@ -173,12 +143,18 @@ function TravelSheet() {
         return;
       }
 
-      await axios.post('/api/travel-sheet', formData);
+      // Автоматически определяем начальную точку
+      const autoStartPoint = getAutoStartPoint();
+      const submitData = {
+        ...formData,
+        startPoint: autoStartPoint
+      };
+
+      await axios.post('/api/travel-sheet', submitData);
 
       setSuccess('Запись успешно добавлена');
       setFormData({
         date: new Date().toISOString().split('T')[0],
-        startPoint: '',
         endPoint: '',
         distance: ''
       });
@@ -312,6 +288,25 @@ function TravelSheet() {
     });
   };
 
+  // Функция для определения начальной точки
+  const getAutoStartPoint = () => {
+    // Фильтруем записи за выбранную дату
+    const recordsForDate = travelRecords.filter(
+      record => record.date.split('T')[0] === formData.date
+    );
+
+    if (recordsForDate.length === 0) {
+      // Если это первая запись за день - возвращаем "дом"
+      return homeAddress || 'дом';
+    }
+
+    // Сортируем по ID (порядок добавления) и берем последнюю
+    const sortedRecords = [...recordsForDate].sort((a, b) => a.id - b.id);
+    const lastRecord = sortedRecords[sortedRecords.length - 1];
+
+    return lastRecord.endPoint;
+  };
+
   return (
     <div className="travel-sheet-container">
       <div className="travel-sheet-header">
@@ -374,42 +369,15 @@ function TravelSheet() {
                 <div className="address-input-container">
                   <input
                     type="text"
-                    name="startPoint"
-                    value={formData.startPoint}
-                    onChange={handleChange}
+                    value={getAutoStartPoint()}
                     className="form-control"
-                    placeholder="Введите адрес или выберите из списка"
-                    required
+                    disabled
+                    style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
                   />
-                  <button
-                    type="button"
-                    className="address-dropdown-btn"
-                    onClick={() => toggleAddressList('startPoint')}
-                  >
-                    <FaChevronDown />
-                  </button>
-                  <button
-                    type="button"
-                    className="address-home-btn"
-                    onClick={() => handleSetHomeAddress('startPoint')}
-                    style={{ background: '#1976d2', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 12px', marginLeft: 8, cursor: 'pointer' }}
-                  >
-                    Дом
-                  </button>
                 </div>
-                {showStartAddressSuggestions && (
-                  <div className="address-suggestions">
-                    {filteredStartAddresses.map((address, index) => (
-                      <div
-                        key={index}
-                        className="address-suggestion"
-                        onClick={() => handleAddressSelect(address, 'startPoint')}
-                      >
-                        {address}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <small style={{ color: '#666', marginTop: '4px', display: 'block' }}>
+                  Определяется автоматически
+                </small>
               </div>
               <div className="form-group address-group">
                 <label>Конечная точка:</label>
@@ -426,14 +394,14 @@ function TravelSheet() {
                   <button
                     type="button"
                     className="address-dropdown-btn"
-                    onClick={() => toggleAddressList('endPoint')}
+                    onClick={() => toggleAddressList()}
                   >
                     <FaChevronDown />
                   </button>
                   <button
                     type="button"
                     className="address-home-btn"
-                    onClick={() => handleSetHomeAddress('endPoint')}
+                    onClick={() => handleSetHomeAddress()}
                     style={{ background: '#1976d2', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 12px', marginLeft: 8, cursor: 'pointer' }}
                   >
                     Дом
