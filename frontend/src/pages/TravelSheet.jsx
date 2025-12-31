@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { FaChevronDown } from 'react-icons/fa';
+import { FaChevronDown, FaCopy, FaCheck } from 'react-icons/fa';
 import '../styles/TravelSheet.css';
 import { useNavigate } from 'react-router-dom';
 
@@ -22,6 +22,7 @@ function TravelSheet() {
   const [sortField, setSortField] = useState('date');
   const [sortDirection, setSortDirection] = useState('desc');
   const [homeAddress, setHomeAddress] = useState('');
+  const [copiedDate, setCopiedDate] = useState(null);
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -256,6 +257,61 @@ function TravelSheet() {
     return sortDirection === 'asc' ? '↑' : '↓';
   };
 
+  // Группировка записей по датам
+  const getGroupedRecordsByDate = () => {
+    const sorted = getSortedRecords();
+    const grouped = {};
+
+    sorted.forEach(record => {
+      const dateKey = record.date.split('T')[0];
+      if (!grouped[dateKey]) {
+        grouped[dateKey] = {
+          records: [],
+          totalDistance: 0
+        };
+      }
+      grouped[dateKey].records.push(record);
+      grouped[dateKey].totalDistance += parseFloat(record.distance) || 0;
+    });
+
+    // Сортируем даты по убыванию (новые сверху)
+    const sortedDates = Object.keys(grouped).sort((a, b) => {
+      if (sortField === 'date') {
+        return sortDirection === 'desc'
+          ? new Date(b) - new Date(a)
+          : new Date(a) - new Date(b);
+      }
+      return new Date(b) - new Date(a);
+    });
+
+    return { grouped, sortedDates };
+  };
+
+  // Копирование адресов за день (кроме первой начальной точки)
+  const handleCopyDayAddresses = async (dateKey, records) => {
+    // Собираем все конечные точки (endPoint) за день
+    // Первую начальную точку пропускаем, но берём все конечные
+    const addresses = records.map(record => record.endPoint);
+    const addressString = addresses.join(', ');
+
+    try {
+      await navigator.clipboard.writeText(addressString);
+      setCopiedDate(dateKey);
+      setTimeout(() => setCopiedDate(null), 2000);
+    } catch (err) {
+      console.error('Ошибка копирования:', err);
+    }
+  };
+
+  const formatDateHeader = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ru-RU', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  };
+
   return (
     <div className="travel-sheet-container">
       <div className="travel-sheet-header">
@@ -431,65 +487,70 @@ function TravelSheet() {
       {error && <div className="alert alert-danger">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
 
-      <div className="scroll-hint">
-        ← Прокрутите таблицу для просмотра всех столбцов →
-      </div>
-      <div className="table-container">
-        <table className="table table-striped">
-          <thead>
-            <tr>
-              <th
-                className="sortable-header"
-                onClick={() => handleSort('date')}
-              >
-                Дата {getSortIcon('date')}
-              </th>
-              <th
-                className="sortable-header"
-                onClick={() => handleSort('startPoint')}
-              >
-                Начальная точка {getSortIcon('startPoint')}
-              </th>
-              <th
-                className="sortable-header"
-                onClick={() => handleSort('endPoint')}
-              >
-                Конечная точка {getSortIcon('endPoint')}
-              </th>
-              <th
-                className="sortable-header"
-                onClick={() => handleSort('distance')}
-              >
-                Километраж {getSortIcon('distance')}
-              </th>
-              <th>Действия</th>
-            </tr>
-          </thead>
-          <tbody>
-            {travelRecords.length === 0 ? (
-              <tr>
-                <td colSpan="5" className="text-center">Записей не найдено</td>
-              </tr>
-            ) : (
-              getSortedRecords().map((record) => (
-                <tr key={record.id}>
-                  <td>{formatDate(record.date)}</td>
-                  <td>{record.startPoint}</td>
-                  <td>{record.endPoint}</td>
-                  <td>{record.distance} км</td>
-                  <td>
-                    <button
-                      className="btn btn-sm btn-danger"
-                      onClick={() => handleDelete(record.id)}
-                    >
-                      Удалить
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="travel-records-grouped">
+        {travelRecords.length === 0 ? (
+          <div className="no-records-message">
+            <p>Записей не найдено</p>
+          </div>
+        ) : (
+          (() => {
+            const { grouped, sortedDates } = getGroupedRecordsByDate();
+            return sortedDates.map(dateKey => (
+              <div key={dateKey} className="day-group">
+                <div className="day-group-header">
+                  <div className="day-group-title">
+                    <span className="day-group-date">Километраж за {formatDateHeader(dateKey)}</span>
+                    <span className="day-group-distance">— {grouped[dateKey].totalDistance.toFixed(1)} км</span>
+                  </div>
+                  <button
+                    className={`copy-route-btn ${copiedDate === dateKey ? 'copied' : ''}`}
+                    onClick={() => handleCopyDayAddresses(dateKey, grouped[dateKey].records)}
+                    title="Скопировать путь за день"
+                  >
+                    {copiedDate === dateKey ? (
+                      <>
+                        <FaCheck /> Скопировано
+                      </>
+                    ) : (
+                      <>
+                        <FaCopy /> Скопировать путь
+                      </>
+                    )}
+                  </button>
+                </div>
+                <div className="day-group-content">
+                  <table className="day-records-table">
+                    <thead>
+                      <tr>
+                        <th>Начальная точка</th>
+                        <th>Конечная точка</th>
+                        <th>Километраж</th>
+                        <th>Действия</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {grouped[dateKey].records.map((record) => (
+                        <tr key={record.id}>
+                          <td>{record.startPoint}</td>
+                          <td>{record.endPoint}</td>
+                          <td>{record.distance} км</td>
+                          <td>
+                            <button
+                              className="btn btn-sm btn-danger"
+                              onClick={() => handleDelete(record.id)}
+                            >
+                              Удалить
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ));
+          })()
+        )}
       </div>
     </div>
   );

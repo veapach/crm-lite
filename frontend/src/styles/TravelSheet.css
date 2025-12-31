@@ -385,3 +385,183 @@
   margin-bottom: 10px;
   border-radius: 4px;
 }
+
+/* ========== Группировка записей по датам ========== */
+
+.travel-records-grouped {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.no-records-message {
+  text-align: center;
+  padding: 40px;
+  background: var(--bg-card);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.day-group {
+  background: var(--bg-card);
+  border-radius: var(--border-radius-lg);
+  border: 2px solid var(--border-color);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+}
+
+.day-group:hover {
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-md);
+}
+
+.day-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.day-group-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.day-group-date {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.day-group-distance {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+}
+
+.copy-route-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.copy-route-btn:hover {
+  background: var(--accent-secondary);
+  border-color: var(--accent-secondary);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.copy-route-btn.copied {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: white;
+}
+
+.copy-route-btn svg {
+  font-size: 14px;
+}
+
+.day-group-content {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-primary) var(--bg-tertiary);
+}
+
+.day-group-content::-webkit-scrollbar {
+  height: 6px;
+}
+
+.day-group-content::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+}
+
+.day-group-content::-webkit-scrollbar-thumb {
+  background: var(--accent-primary);
+  border-radius: 3px;
+}
+
+.day-records-table {
+  width: 100%;
+  min-width: 600px;
+  border-collapse: collapse;
+}
+
+.day-records-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.day-records-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.day-records-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.day-records-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+.day-records-table tbody tr:nth-child(even) {
+  background: var(--bg-secondary);
+}
+
+.day-records-table tbody tr:nth-child(even):hover {
+  background: var(--bg-hover);
+}
+
+/* Адаптивность для группировки */
+@media (max-width: 768px) {
+  .day-group-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+  }
+
+  .copy-route-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .day-group-title {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .day-records-table th,
+  .day-records-table td {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+}
