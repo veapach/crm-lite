@@ -259,10 +259,9 @@ function TravelSheet() {
 
   // Группировка записей по датам
   const getGroupedRecordsByDate = () => {
-    const sorted = getSortedRecords();
     const grouped = {};
 
-    sorted.forEach(record => {
+    travelRecords.forEach(record => {
       const dateKey = record.date.split('T')[0];
       if (!grouped[dateKey]) {
         grouped[dateKey] = {
@@ -274,13 +273,13 @@ function TravelSheet() {
       grouped[dateKey].totalDistance += parseFloat(record.distance) || 0;
     });
 
+    // Сортируем записи внутри каждого дня по ID (порядок добавления)
+    Object.keys(grouped).forEach(dateKey => {
+      grouped[dateKey].records.sort((a, b) => a.id - b.id);
+    });
+
     // Сортируем даты по убыванию (новые сверху)
     const sortedDates = Object.keys(grouped).sort((a, b) => {
-      if (sortField === 'date') {
-        return sortDirection === 'desc'
-          ? new Date(b) - new Date(a)
-          : new Date(a) - new Date(b);
-      }
       return new Date(b) - new Date(a);
     });
 
@@ -289,9 +288,10 @@ function TravelSheet() {
 
   // Копирование адресов за день (кроме первой начальной точки)
   const handleCopyDayAddresses = async (dateKey, records) => {
-    // Собираем все конечные точки (endPoint) за день
-    // Первую начальную точку пропускаем, но берём все конечные
-    const addresses = records.map(record => record.endPoint);
+    // Сортируем записи по ID (порядок добавления) по возрастанию
+    const sortedByOrder = [...records].sort((a, b) => a.id - b.id);
+    // Собираем все конечные точки (endPoint) за день в правильном порядке
+    const addresses = sortedByOrder.map(record => record.endPoint);
     const addressString = addresses.join(', ');
 
     try {
