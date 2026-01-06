@@ -2,9 +2,13 @@ package clients
 
 import (
 	"backend/internal/db"
+	"backend/internal/storage"
+	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -588,14 +592,24 @@ func ClientPreviewReport(c *gin.Context) {
 		return
 	}
 
-	// Отдаём файл
-	filePath := "uploads/reports/" + filename
-	if _, err := os.Stat(filePath); err == nil {
-		c.File(filePath)
+	// Пробуем S3
+	if storage.IsS3Enabled() {
+		obj, info, err := storage.GetReportObject(context.Background(), "reports/"+filename)
+		if err == nil && obj != nil {
+			defer obj.Close()
+			c.Header("Content-Type", info.ContentType)
+			c.Status(http.StatusOK)
+			io.Copy(c.Writer, obj)
+			return
+		}
+	}
+
+	// Пробуем локальное хранилище
+	localPath := filepath.Join("uploads", "reports", filename)
+	if _, err := os.Stat(localPath); err == nil {
+		c.File(localPath)
 		return
 	}
 
-	// Пробуем S3
-	// (упрощённо - если нет локально, возвращаем ошибку)
 	c.JSON(http.StatusNotFound, gin.H{"error": "файл не найден"})
 }

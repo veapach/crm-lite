@@ -1,10 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Table, Button, Modal, Tabs, Tab, Fade, Form } from 'react-bootstrap';
+import * as pdfjsLib from 'pdfjs-dist';
 import TicketsMap from '../components/TicketsMap';
 import '../styles/Schedule.css';
 import '../styles/InnerTickets.css';
+
+// Устанавливаем worker для PDF.js
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 function InnerTickets() {
   const [tickets, setTickets] = useState([]);
@@ -19,6 +23,11 @@ function InnerTickets() {
   const [availableReports, setAvailableReports] = useState([]);
   const [selectedReportId, setSelectedReportId] = useState('');
   const navigate = useNavigate();
+  
+  // Состояние для предпросмотра PDF
+  const [showPdfPreview, setShowPdfPreview] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const pdfViewerRef = useRef(null);
 
   useEffect(() => {
     const fetchTickets = async () => {
@@ -95,6 +104,70 @@ function InnerTickets() {
       await fetchTicketReports(selectedTicket.id);
     } catch (error) {
       console.error('Ошибка отвязки отчёта:', error);
+    }
+  };
+
+  // Предпросмотр PDF отчёта
+  const handlePreviewReport = async (report) => {
+    setShowPdfPreview(true);
+    setPdfLoading(true);
+    
+    try {
+      const response = await axios.get(`/api/reports/preview/${encodeURIComponent(report.filename)}`, {
+        responseType: 'arraybuffer',
+        withCredentials: true,
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const container = pdfViewerRef.current;
+      if (!container) {
+        setPdfLoading(false);
+        return;
+      }
+      container.innerHTML = '';
+      
+      const loadingTask = pdfjsLib.getDocument({ data: response.data });
+      const pdf = await loadingTask.promise;
+      const isMobile = window.innerWidth <= 768;
+      const baseScale = isMobile ? 1.2 : 1.5;
+      
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        let currentScale = baseScale;
+        
+        if (isMobile) {
+          const containerWidth = container.clientWidth - 12;
+          const defaultViewport = page.getViewport({ scale: baseScale });
+          const ratio = containerWidth / defaultViewport.width;
+          currentScale = baseScale * ratio;
+        }
+        
+        const viewport = page.getViewport({ scale: currentScale });
+        const canvas = document.createElement('canvas');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        canvas.style.display = 'block';
+        canvas.style.margin = '0 auto 20px';
+        const context = canvas.getContext('2d');
+        await page.render({ canvasContext: context, viewport }).promise;
+        container.appendChild(canvas);
+      }
+    } catch (err) {
+      console.error('Ошибка загрузки PDF:', err);
+      if (pdfViewerRef.current) {
+        pdfViewerRef.current.innerHTML = '<p style="color: red; text-align: center; padding: 20px;">Ошибка загрузки документа</p>';
+      }
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  // Закрытие предпросмотра PDF
+  const closePdfPreview = () => {
+    setShowPdfPreview(false);
+    if (pdfViewerRef.current) {
+      pdfViewerRef.current.innerHTML = '';
     }
   };
 
@@ -353,14 +426,21 @@ function InnerTickets() {
                   <div className="list-group">
                     {ticketReports.map(report => (
                       <div key={report.id} className="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                          <a 
-                            href={`/uploads/reports/${report.filename}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                        <div style={{ flex: 1 }}>
+                          <button 
+                            onClick={() => handlePreviewReport(report)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#0d6efd',
+                              cursor: 'pointer',
+                              padding: 0,
+                              textAlign: 'left',
+                              textDecoration: 'underline'
+                            }}
                           >
                             📄 {report.date} - {report.classification}
-                          </a>
+                          </button>
                           <small className="d-block text-muted">{report.address}</small>
                         </div>
                         <Button 
@@ -434,6 +514,29 @@ function InnerTickets() {
           </Button>
           <Button variant="primary" onClick={() => handleConfirmReport(true)}>
             Завершить заявку
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Модальное окно предпросмотра PDF */}
+      <Modal show={showPdfPreview} onHide={closePdfPreview} size="lg" centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Просмотр отчёта</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ maxHeight: '70vh', overflow: 'auto', background: '#f5f5f5' }}>
+          {pdfLoading && (
+            <div style={{ textAlign: 'center', padding: '40px' }}>
+              <div className="spinner-border text-success" role="status">
+                <span className="visually-hidden">Загрузка...</span>
+              </div>
+              <p className="mt-2">Загрузка документа...</p>
+            </div>
+          )}
+          <div ref={pdfViewerRef}></div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={closePdfPreview}>
+            Закрыть
           </Button>
         </Modal.Footer>
       </Modal>
