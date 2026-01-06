@@ -1306,13 +1306,228 @@
 
 .pdfContent {
   flex: 1;
-  overflow: hidden;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  background: #f0f0f0;
+}
+
+.pdfViewer {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.pdfViewer canvas {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  max-width: 100%;
+  height: auto !important;
+}
+
+.pdfLoading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: #6b7280;
+}
+
+.pdfLoading .spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #2dbe64;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .pdfFrame {
   width: 100%;
   height: 100%;
   border: none;
+}
+
+/* ========== Меню настроек ========== */
+.settingsWrapper {
+  position: relative;
+}
+
+.settingsBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settingsBtn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: rotate(45deg);
+}
+
+.settingsMenu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  min-width: 200px;
+  overflow: hidden;
+  z-index: 1000;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.settingsMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 16px;
+  border: none;
+  background: none;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.settingsMenuItem:hover {
+  background: #f3f4f6;
+  color: #2dbe64;
+}
+
+.settingsMenuItem:not(:last-child) {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Тёмная тема для меню настроек */
+.dark .settingsBtn {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dark .settingsBtn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.dark .settingsMenu {
+  background: #1a1a2e;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+}
+
+.dark .settingsMenuItem {
+  color: #e5e7eb;
+}
+
+.dark .settingsMenuItem:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #2dbe64;
+}
+
+.dark .settingsMenuItem:not(:last-child) {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ========== Форма профиля ========== */
+.profileForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.profileActions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.cancelBtn {
+  padding: 12px 24px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancelBtn:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.disabledInput {
+  background: #f3f4f6 !important;
+  color: #9ca3af !important;
+  cursor: not-allowed;
+}
+
+.fieldHint {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.createSuccess {
+  padding: 12px;
+  background: #d1fae5;
+  border: 1px solid #10b981;
+  border-radius: 8px;
+  color: #065f46;
+  font-size: 14px;
+  text-align: center;
+}
+
+.dark .cancelBtn {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #e5e7eb;
+}
+
+.dark .cancelBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dark .disabledInput {
+  background: rgba(255, 255, 255, 0.02) !important;
+  color: #6b7280 !important;
+}
+
+.dark .createSuccess {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #34d399;
 }
 
 /* Тёмная тема для PDF модалки */
@@ -1337,5 +1552,17 @@
 .dark .pdfCloseBtn:hover {
   background: rgba(255, 255, 255, 0.15);
   color: #f1f1f1;
+}
+
+.dark .pdfContent {
+  background: #0f0f23;
+}
+
+.dark .pdfLoading {
+  color: #9ca3af;
+}
+
+.dark .pdfViewer canvas {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 

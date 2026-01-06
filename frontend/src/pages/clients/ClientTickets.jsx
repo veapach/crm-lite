@@ -1,9 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import * as pdfjsLib from 'pdfjs-dist';
 import { useClientAuth } from '../../context/ClientAuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import styles from './ClientTickets.module.css';
+
+// Устанавливаем worker для PDF.js
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 const LOGO_SRC = '/assets/Логотип ВВ/ВкусВилл зеленый/Лого-ВкусВилл-зеленый.png';
 
@@ -41,12 +45,37 @@ export default function ClientTickets() {
   
   // Состояние для предпросмотра PDF
   const [previewPdf, setPreviewPdf] = useState(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const viewerRef = useRef(null);
+  
+  // Состояние для меню настроек
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    fullName: '',
+    email: '',
+    phone: ''
+  });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileError, setProfileError] = useState('');
+  const [profileSuccess, setProfileSuccess] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       navigate('/client/auth');
     }
   }, [authLoading, isAuthenticated, navigate]);
+
+  // Закрытие меню настроек при клике вне его
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (showSettingsMenu && !e.target.closest(`.${styles.settingsWrapper}`)) {
+        setShowSettingsMenu(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showSettingsMenu]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -106,6 +135,115 @@ export default function ClientTickets() {
   const handleLogout = async () => {
     await logout();
     navigate('/tickets');
+  };
+
+  // Обработчик предпросмотра PDF
+  const handlePreviewPdf = async (url) => {
+    setPreviewPdf(url);
+    setPdfLoading(true);
+    
+    try {
+      const response = await axios.get(url, {
+        responseType: 'arraybuffer',
+        withCredentials: true,
+      });
+      const arrayBuffer = response.data;
+      
+      // Ждём пока ref будет доступен
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const container = viewerRef.current;
+      if (!container) {
+        setPdfLoading(false);
+        return;
+      }
+      container.innerHTML = '';
+      
+      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+      const pdf = await loadingTask.promise;
+      const isMobile = window.innerWidth <= 768;
+      const baseScale = isMobile ? 1.2 : 1.5;
+      
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        let currentScale = baseScale;
+        
+        if (isMobile) {
+          const containerWidth = container.clientWidth - 12;
+          const defaultViewport = page.getViewport({ scale: baseScale });
+          const ratio = containerWidth / defaultViewport.width;
+          currentScale = baseScale * ratio;
+        }
+        
+        const viewport = page.getViewport({ scale: currentScale });
+        const canvas = document.createElement('canvas');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        canvas.style.display = 'block';
+        canvas.style.margin = '0 auto';
+        const context = canvas.getContext('2d');
+        await page.render({ canvasContext: context, viewport }).promise;
+        container.appendChild(canvas);
+        
+        if (pageNum < pdf.numPages) {
+          const spacer = document.createElement('div');
+          spacer.style.height = '20px';
+          container.appendChild(spacer);
+        }
+      }
+    } catch (err) {
+      console.error('Ошибка загрузки PDF:', err);
+      if (viewerRef.current) {
+        viewerRef.current.innerHTML = '<p style="color: red; text-align: center; padding: 20px;">Ошибка загрузки документа</p>';
+      }
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  // Закрытие PDF
+  const closePdfPreview = () => {
+    setPreviewPdf(null);
+    if (viewerRef.current) {
+      viewerRef.current.innerHTML = '';
+    }
+  };
+
+  // Открытие модального окна редактирования профиля
+  const openEditProfile = () => {
+    setProfileForm({
+      fullName: client?.fullName || '',
+      email: client?.email || '',
+      phone: client?.phone || ''
+    });
+    setShowSettingsMenu(false);
+    setShowEditProfile(true);
+    setProfileError('');
+    setProfileSuccess(false);
+  };
+
+  // Сохранение профиля
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    setProfileSaving(true);
+    setProfileError('');
+    setProfileSuccess(false);
+    
+    try {
+      await axios.put('/api/client/profile', {
+        fullName: profileForm.fullName,
+        email: profileForm.email
+      });
+      setProfileSuccess(true);
+      // Обновляем данные клиента через перезагрузку страницы через 1 секунду
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (err) {
+      setProfileError(err.response?.data?.error || 'Ошибка сохранения профиля');
+    } finally {
+      setProfileSaving(false);
+    }
   };
 
   // Обработчики формы создания заявки
@@ -225,11 +363,28 @@ export default function ClientTickets() {
             </button>
             <div className={styles.userInfo}>
               <span className={styles.userName}>{client?.fullName}</span>
-              <span className={styles.userEmail}>{client?.email}</span>
+              <span className={styles.userEmail}>{client?.email || client?.phone}</span>
             </div>
-            <button onClick={handleLogout} className={styles.logoutBtn}>
-              Выйти
-            </button>
+            {/* Кнопка настроек */}
+            <div className={styles.settingsWrapper}>
+              <button 
+                onClick={() => setShowSettingsMenu(!showSettingsMenu)} 
+                className={styles.settingsBtn}
+                title="Настройки"
+              >
+                ⚙️
+              </button>
+              {showSettingsMenu && (
+                <div className={styles.settingsMenu}>
+                  <button onClick={openEditProfile} className={styles.settingsMenuItem}>
+                    ✏️ Редактировать профиль
+                  </button>
+                  <button onClick={handleLogout} className={styles.settingsMenuItem}>
+                    🚪 Выйти
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -369,7 +524,7 @@ export default function ClientTickets() {
                       {ticket.reports.map(report => (
                         <button 
                           key={report.id}
-                          onClick={() => setPreviewPdf(`/api/uploads/reports/${report.filename}`)}
+                          onClick={() => handlePreviewPdf(`/api/reports/preview/${encodeURIComponent(report.filename)}`)}
                           className={styles.reportLink}
                           type="button"
                         >
@@ -603,21 +758,13 @@ export default function ClientTickets() {
 
       {/* Модальное окно предпросмотра PDF */}
       {previewPdf && (
-        <div className={styles.pdfOverlay} onClick={() => setPreviewPdf(null)}>
+        <div className={styles.pdfOverlay} onClick={closePdfPreview}>
           <div className={styles.pdfModal} onClick={e => e.stopPropagation()}>
             <div className={styles.pdfHeader}>
               <h3>Просмотр отчёта</h3>
               <div className={styles.pdfActions}>
-                <a 
-                  href={previewPdf} 
-                  download 
-                  className={styles.pdfDownloadBtn}
-                  onClick={e => e.stopPropagation()}
-                >
-                  ⬇ Скачать
-                </a>
                 <button 
-                  onClick={() => setPreviewPdf(null)} 
+                  onClick={closePdfPreview} 
                   className={styles.pdfCloseBtn}
                 >
                   ×
@@ -625,11 +772,91 @@ export default function ClientTickets() {
               </div>
             </div>
             <div className={styles.pdfContent}>
-              <iframe
-                src={previewPdf}
-                title="PDF Preview"
-                className={styles.pdfFrame}
-              />
+              {pdfLoading && (
+                <div className={styles.pdfLoading}>
+                  <div className={styles.spinner}></div>
+                  <p>Загрузка документа...</p>
+                </div>
+              )}
+              <div ref={viewerRef} className={styles.pdfViewer}></div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно редактирования профиля */}
+      {showEditProfile && (
+        <div className={styles.modalOverlay} onClick={() => setShowEditProfile(false)}>
+          <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2>Редактирование профиля</h2>
+              <button 
+                onClick={() => setShowEditProfile(false)} 
+                className={styles.modalClose}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className={styles.modalBody}>
+              <form onSubmit={handleSaveProfile} className={styles.profileForm}>
+                <div className={styles.formGroup}>
+                  <label>ФИО</label>
+                  <input
+                    type="text"
+                    value={profileForm.fullName}
+                    onChange={e => setProfileForm({...profileForm, fullName: e.target.value})}
+                    placeholder="Иванов Иван Иванович"
+                    required
+                  />
+                </div>
+                
+                <div className={styles.formGroup}>
+                  <label>Email</label>
+                  <input
+                    type="email"
+                    value={profileForm.email}
+                    onChange={e => setProfileForm({...profileForm, email: e.target.value})}
+                    placeholder="email@example.com"
+                  />
+                </div>
+                
+                <div className={styles.formGroup}>
+                  <label>Телефон</label>
+                  <input
+                    type="text"
+                    value={profileForm.phone}
+                    disabled
+                    className={styles.disabledInput}
+                  />
+                  <small className={styles.fieldHint}>Телефон изменить нельзя</small>
+                </div>
+
+                {profileError && (
+                  <div className={styles.createError}>{profileError}</div>
+                )}
+                
+                {profileSuccess && (
+                  <div className={styles.createSuccess}>✅ Профиль сохранён!</div>
+                )}
+
+                <div className={styles.profileActions}>
+                  <button 
+                    type="button" 
+                    onClick={() => setShowEditProfile(false)}
+                    className={styles.cancelBtn}
+                  >
+                    Отмена
+                  </button>
+                  <button 
+                    type="submit" 
+                    className={styles.createSubmitBtn}
+                    disabled={profileSaving}
+                  >
+                    {profileSaving ? 'Сохранение...' : 'Сохранить'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

@@ -273,6 +273,7 @@ func ClientUpdateProfile(c *gin.Context) {
 
 	var input struct {
 		FullName string `json:"fullName"`
+		Email    string `json:"email"`
 		Phone    string `json:"phone"`
 		Position string `json:"position"`
 		Password string `json:"password,omitempty"`
@@ -285,6 +286,7 @@ func ClientUpdateProfile(c *gin.Context) {
 
 	updates := map[string]interface{}{
 		"full_name": strings.TrimSpace(input.FullName),
+		"email":     strings.TrimSpace(input.Email),
 		"phone":     strings.TrimSpace(input.Phone),
 		"position":  strings.TrimSpace(input.Position),
 	}
