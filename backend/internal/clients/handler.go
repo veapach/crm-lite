@@ -559,32 +559,22 @@ func ClientPreviewReport(c *gin.Context) {
 		return
 	}
 
-	// Проверяем, что отчёт привязан к заявке клиента
-	hasAccess := false
+	// Проверяем доступ одним оптимизированным запросом
+	// Проверяем есть ли привязка отчёта к заявкам клиента
+	var count int64
+	db.DB.Model(&db.TicketReport{}).
+		Joins("JOIN client_tickets ON client_tickets.id = ticket_reports.ticket_id").
+		Where("ticket_reports.report_id = ? AND client_tickets.client_id = ?", report.ID, clientID).
+		Count(&count)
 
-	// Проверяем привязку через заявки
-	var ticketReports []db.TicketReport
-	db.DB.Where("report_id = ?", report.ID).Find(&ticketReports)
-	for _, tr := range ticketReports {
-		var ticket db.ClientTicket
-		if db.DB.First(&ticket, tr.TicketID).Error == nil {
-			if ticket.ClientID != nil && *ticket.ClientID == clientID.(uint) {
-				hasAccess = true
-				break
-			}
-		}
-	}
+	hasAccess := count > 0
 
-	// Если не нашли через заявки, проверяем по адресам заявок клиента
+	// Если не нашли через привязки, проверяем по адресу
 	if !hasAccess {
-		var clientTickets []db.ClientTicket
-		db.DB.Where("client_id = ?", clientID).Find(&clientTickets)
-		for _, t := range clientTickets {
-			if report.Address == t.Address {
-				hasAccess = true
-				break
-			}
-		}
+		db.DB.Model(&db.ClientTicket{}).
+			Where("client_id = ? AND address = ?", clientID, report.Address).
+			Count(&count)
+		hasAccess = count > 0
 	}
 
 	if !hasAccess {
@@ -592,7 +582,14 @@ func ClientPreviewReport(c *gin.Context) {
 		return
 	}
 
-	// Пробуем S3
+	// Сначала проверяем локальное хранилище (быстрее)
+	localPath := filepath.Join("uploads", "reports", filename)
+	if _, err := os.Stat(localPath); err == nil {
+		c.File(localPath)
+		return
+	}
+
+	// Потом пробуем S3
 	if storage.IsS3Enabled() {
 		obj, info, err := storage.GetReportObject(context.Background(), "reports/"+filename)
 		if err == nil && obj != nil {
@@ -602,13 +599,6 @@ func ClientPreviewReport(c *gin.Context) {
 			io.Copy(c.Writer, obj)
 			return
 		}
-	}
-
-	// Пробуем локальное хранилище
-	localPath := filepath.Join("uploads", "reports", filename)
-	if _, err := os.Stat(localPath); err == nil {
-		c.File(localPath)
-		return
 	}
 
 	c.JSON(http.StatusNotFound, gin.H{"error": "файл не найден"})
