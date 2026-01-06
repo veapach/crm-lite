@@ -137,8 +137,16 @@ export default function ClientTickets() {
     navigate('/tickets');
   };
 
+  // Получение имени превью PNG из имени PDF
+  const getPreviewName = (filename) => {
+    return filename.replace(/\.pdf$/i, '.png');
+  };
+
   // Обработчик предпросмотра отчёта (загружаем готовое PNG превью)
-  const handlePreviewPdf = async (url) => {
+  const handlePreviewPdf = async (filename) => {
+    const previewName = getPreviewName(filename);
+    const url = `/client/reports/preview/${encodeURIComponent(previewName)}`;
+    setPreviewPdf(url);
     setPreviewPdf(url);
     setPdfLoading(true);
     
@@ -549,7 +557,7 @@ export default function ClientTickets() {
                       {ticket.reports.map(report => (
                         <button 
                           key={report.id}
-                          onClick={() => handlePreviewPdf(`/api/client/reports/preview/${encodeURIComponent(report.filename)}`)}
+                          onClick={() => handlePreviewPdf(report.filename)}
                           className={styles.reportLink}
                           type="button"
                         >

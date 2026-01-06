@@ -161,67 +161,23 @@ function Reports() {
     setSelectedReport(report);
     setShowPreview(true);
     try {
-      const response = await axios.get(`/api/reports/preview/${encodeURIComponent(report.filename)}`, {
-        responseType: 'arraybuffer',
+      // Загружаем готовое PNG превью - это быстро!
+      const previewName = getPreviewName(report);
+      const response = await axios.get(`/reports/preview-image/${encodeURIComponent(previewName)}`, {
+        responseType: 'blob',
         withCredentials: true,
       });
-      const arrayBuffer = response.data;
+      const url = URL.createObjectURL(response.data);
       const container = viewerRef.current;
       container.innerHTML = '';
-      const isPdf = report.filename.toLowerCase().endsWith('.pdf');
-      if (isPdf) {
-        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-        const pdf = await loadingTask.promise;
-        const isMobile = window.innerWidth <= 768;
-        const baseScale = isMobile ? 1.2 : 1.5;
-        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-          const page = await pdf.getPage(pageNum);
-          let currentScale = baseScale;
-          if (isMobile) {
-            const containerWidth = container.clientWidth - 12;
-            const defaultViewport = page.getViewport({ scale: baseScale });
-            const ratio = containerWidth / defaultViewport.width;
-            currentScale = baseScale * ratio;
-          }
-          const viewport = page.getViewport({ scale: currentScale });
-          const canvas = document.createElement('canvas');
-          canvas.height = viewport.height;
-          canvas.width = viewport.width;
-          const context = canvas.getContext('2d');
-          await page.render({ canvasContext: context, viewport }).promise;
-          container.appendChild(canvas);
-          if (pageNum < pdf.numPages) {
-            const spacer = document.createElement('div');
-            spacer.style.height = '20px';
-            container.appendChild(spacer);
-          }
-        }
-        return;
-      }
-      setTimeout(() => {
-        renderAsync(arrayBuffer, viewerRef.current).catch(() => {
-          setError('Произошла ошибка при рендеринге документа');
-        });
-      }, 100);
-    } catch (primaryError) {
-      try {
-        const previewName = getPreviewName(report);
-        const imgResp = await axios.get(`/api/reports/preview-image/${encodeURIComponent(previewName)}`, {
-          responseType: 'blob',
-          withCredentials: true,
-        });
-        const url = URL.createObjectURL(imgResp.data);
-        const container = viewerRef.current;
-        container.innerHTML = '';
-        const img = document.createElement('img');
-        img.src = url;
-        img.style.maxWidth = '100%';
-        img.style.height = 'auto';
-        container.appendChild(img);
-      } catch (fallbackError) {
-        setError('Ошибка при загрузке документа');
-        console.error('Ошибка при загрузке документа:', fallbackError);
-      }
+      const img = document.createElement('img');
+      img.src = url;
+      img.style.maxWidth = '100%';
+      img.style.height = 'auto';
+      container.appendChild(img);
+    } catch (err) {
+      setError('Ошибка при загрузке документа');
+      console.error('Ошибка при загрузке документа:', err);
     }
   };
 

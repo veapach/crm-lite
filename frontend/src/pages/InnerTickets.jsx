@@ -103,10 +103,9 @@ function InnerTickets() {
     }
   };
 
-  // Получение имени превью из имени файла
+  // Получение имени превью PNG из имени PDF файла
   const getPreviewName = (filename) => {
-    const base = filename.replace(/\.pdf$/i, '');
-    return `${base}.png`;
+    return filename.replace(/\.pdf$/i, '.png');
   };
 
   // Предпросмотр отчёта (загружаем готовое PNG превью)
@@ -116,12 +115,10 @@ function InnerTickets() {
     
     try {
       const previewName = getPreviewName(report.filename);
-      const response = await axios.get(`/api/reports/preview-image/${encodeURIComponent(previewName)}`, {
+      const response = await axios.get(`/reports/preview-image/${encodeURIComponent(previewName)}`, {
         responseType: 'blob',
         withCredentials: true,
       });
-      
-      await new Promise(resolve => setTimeout(resolve, 50));
       
       const container = pdfViewerRef.current;
       if (!container) {
