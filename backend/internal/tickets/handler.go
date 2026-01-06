@@ -478,6 +478,48 @@ func DeleteClientTicket(c *gin.Context) {
 	go notifyUnassignedIfNeeded()
 }
 
+// GetTicketsByAddress возвращает заявки по адресу (для выбора при создании отчёта)
+func GetTicketsByAddress(c *gin.Context) {
+	address := c.Query("address")
+	if address == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Адрес не указан"})
+		return
+	}
+
+	var tickets []db.ClientTicket
+	// Ищем заявки по адресу, кроме отменённых, сортируем по дате (новые первые)
+	if err := db.DB.Where("address = ? AND status != ?", address, "Отменено").
+		Order("date DESC, id DESC").
+		Find(&tickets).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения заявок"})
+		return
+	}
+
+	// Формируем краткий ответ с нужными полями
+	type TicketShort struct {
+		ID          uint   `json:"id"`
+		Date        string `json:"date"`
+		Status      string `json:"status"`
+		Description string `json:"description"`
+	}
+
+	result := make([]TicketShort, 0, len(tickets))
+	for _, t := range tickets {
+		desc := t.Description
+		if len(desc) > 100 {
+			desc = desc[:100] + "..."
+		}
+		result = append(result, TicketShort{
+			ID:          t.ID,
+			Date:        t.Date,
+			Status:      t.Status,
+			Description: desc,
+		})
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
 func ServeTicketFile(c *gin.Context) {
 	filename := c.Param("filename")
 

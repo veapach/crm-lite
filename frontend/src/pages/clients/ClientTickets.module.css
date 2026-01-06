@@ -675,3 +675,462 @@
     gap: 8px;
   }
 }
+
+/* ========== Кнопка переключения темы ========== */
+.themeToggle {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(45, 190, 100, 0.1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  transition: all 0.2s ease;
+}
+
+.themeToggle:hover {
+  background: rgba(45, 190, 100, 0.2);
+  transform: scale(1.05);
+}
+
+/* ========== Темная тема ========== */
+.pageWrapper.dark {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+}
+
+.dark .animatedBg .gradientOrb1,
+.dark .animatedBg .gradientOrb2,
+.dark .animatedBg .gradientOrb3 {
+  opacity: 0.15;
+}
+
+.dark .header {
+  background: rgba(26, 26, 46, 0.95);
+  border-bottom-color: rgba(45, 190, 100, 0.2);
+}
+
+.dark .headerTitle h1 {
+  color: #f1f1f1;
+}
+
+.dark .headerTitle p {
+  color: #9ca3af;
+}
+
+.dark .userName {
+  color: #f1f1f1;
+}
+
+.dark .userEmail {
+  color: #9ca3af;
+}
+
+.dark .logoutBtn {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e5e7eb;
+}
+
+.dark .logoutBtn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.dark .themeToggle {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dark .themeToggle:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.dark .statCard {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .statValue {
+  color: #f1f1f1;
+}
+
+.dark .statLabel {
+  color: #9ca3af;
+}
+
+.dark .filterTab {
+  color: #9ca3af;
+}
+
+.dark .filterTab:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #f1f1f1;
+}
+
+.dark .filterTab.active {
+  background: rgba(45, 190, 100, 0.2);
+  color: #4ade80;
+}
+
+.dark .ticketCard {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .ticketCard:hover {
+  border-color: rgba(45, 190, 100, 0.3);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.dark .ticketId {
+  color: #9ca3af;
+}
+
+.dark .ticketAddress {
+  color: #f1f1f1;
+}
+
+.dark .ticketDescription {
+  color: #9ca3af;
+}
+
+.dark .ticketDate,
+.dark .ticketEngineer {
+  color: #9ca3af;
+}
+
+.dark .reportsLabel {
+  color: #9ca3af;
+}
+
+.dark .reportLink {
+  background: rgba(45, 190, 100, 0.1);
+  color: #4ade80;
+}
+
+.dark .reportLink:hover {
+  background: rgba(45, 190, 100, 0.2);
+}
+
+.dark .detailsBtn {
+  background: rgba(45, 190, 100, 0.1);
+  color: #4ade80;
+}
+
+.dark .detailsBtn:hover {
+  background: rgba(45, 190, 100, 0.2);
+}
+
+.dark .emptyState h3 {
+  color: #f1f1f1;
+}
+
+.dark .emptyState p {
+  color: #9ca3af;
+}
+
+.dark .modalContent {
+  background: #1a1a2e;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dark .modalHeader h2 {
+  color: #f1f1f1;
+}
+
+.dark .modalClose {
+  color: #9ca3af;
+}
+
+.dark .modalClose:hover {
+  color: #f1f1f1;
+}
+
+.dark .detailLabel {
+  color: #9ca3af;
+}
+
+.dark .detailValue {
+  color: #f1f1f1;
+}
+
+.dark .detailSection h4 {
+  color: #f1f1f1;
+}
+
+.dark .reportCard {
+  background: rgba(45, 190, 100, 0.1);
+  border-color: rgba(45, 190, 100, 0.2);
+}
+
+.dark .reportCard:hover {
+  background: rgba(45, 190, 100, 0.15);
+}
+
+.dark .reportDate,
+.dark .reportClass {
+  color: #e5e7eb;
+}
+
+.dark .downloadIcon {
+  color: #4ade80;
+}
+
+.dark .loadingWrapper,
+.dark .loadingState,
+.dark .errorState {
+  color: #f1f1f1;
+}
+
+/* ========== Модальное окно создания заявки ========== */
+.createModalContent {
+  background: #fff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+}
+
+.createSuccess {
+  padding: 40px;
+  text-align: center;
+}
+
+.createSuccess .successIcon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.createSuccess h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 8px 0;
+}
+
+.createSuccess p {
+  color: #666;
+  margin: 0 0 24px 0;
+}
+
+.successOkBtn {
+  padding: 12px 40px;
+  background: linear-gradient(135deg, #2dbe64 0%, #27a857 100%);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.successOkBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(45, 190, 100, 0.4);
+}
+
+.createForm {
+  padding: 24px;
+}
+
+.createFormGroup {
+  margin-bottom: 20px;
+}
+
+.createFormGroup label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.createInputWrapper {
+  position: relative;
+}
+
+.createFormGroup input,
+.createFormGroup textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 15px;
+  transition: border-color 0.2s;
+  background: #fff;
+  color: #1a1a1a;
+}
+
+.createFormGroup input:focus,
+.createFormGroup textarea:focus {
+  outline: none;
+  border-color: #2dbe64;
+}
+
+.createFormGroup textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.addressDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 10;
+}
+
+.addressItem {
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.addressItem:hover {
+  background: #f3f4f6;
+}
+
+.uploadBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #f3f4f6;
+  border: 2px dashed #d1d5db;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.uploadBtn:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+.filePreviewList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.filePreviewItem {
+  position: relative;
+  width: 70px;
+  height: 70px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.filePreviewItem img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.removeFileBtn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 20px;
+  height: 20px;
+  background: rgba(239, 68, 68, 0.9);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.createError {
+  padding: 12px;
+  background: #fef2f2;
+  color: #dc2626;
+  border-radius: 8px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.createSubmitBtn {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #2dbe64 0%, #27a857 100%);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.createSubmitBtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(45, 190, 100, 0.4);
+}
+
+.createSubmitBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Тёмная тема для модального окна создания */
+.dark .createModalContent {
+  background: #1a1a2e;
+}
+
+.dark .createSuccess h3 {
+  color: #f1f1f1;
+}
+
+.dark .createSuccess p {
+  color: #9ca3af;
+}
+
+.dark .createFormGroup label {
+  color: #e5e7eb;
+}
+
+.dark .createFormGroup input,
+.dark .createFormGroup textarea {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #f1f1f1;
+}
+
+.dark .createFormGroup input:focus,
+.dark .createFormGroup textarea:focus {
+  border-color: #2dbe64;
+}
+
+.dark .addressDropdown {
+  background: #1a1a2e;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .addressItem:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dark .uploadBtn {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #e5e7eb;
+}
+
+.dark .uploadBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+

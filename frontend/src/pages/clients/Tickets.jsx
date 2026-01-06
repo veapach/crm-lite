@@ -167,12 +167,24 @@ export default function Tickets() {
               <div className={styles.successIcon}>✓</div>
               <b>Заявка отправлена!</b>
               <div style={{ marginTop: 8, color: '#666' }}>Спасибо, мы свяжемся с вами.</div>
-              <button
-                className={styles.successBtn}
-                onClick={() => setSuccess(false)}
-              >
-                Новая заявка
-              </button>
+              {isClientAuth ? (
+                <button
+                  className={styles.successBtn}
+                  onClick={() => {
+                    setSuccess(false);
+                    navigate('/client/tickets');
+                  }}
+                >
+                  OK
+                </button>
+              ) : (
+                <button
+                  className={styles.successBtn}
+                  onClick={() => setSuccess(false)}
+                >
+                  Новая заявка
+                </button>
+              )}
             </div>
           </>
         )}

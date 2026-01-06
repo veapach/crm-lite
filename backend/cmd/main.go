@@ -215,6 +215,7 @@ func main() {
 	r.POST("/api/tickets/link-report", users.AuthMiddleware(), tickets.LinkReportToTicket)
 	r.DELETE("/api/tickets/:ticketId/reports/:reportId", users.AuthMiddleware(), tickets.UnlinkReportFromTicket)
 	r.GET("/api/tickets/:id/reports", users.AuthMiddleware(), tickets.GetTicketReports)
+	r.GET("/api/tickets/by-address", users.AuthMiddleware(), tickets.GetTicketsByAddress)
 
 	// Клиентский портал
 	r.POST("/api/client/register", clients.ClientRegister)

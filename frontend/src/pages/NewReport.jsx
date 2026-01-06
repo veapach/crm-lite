@@ -92,6 +92,11 @@ function NewReport() {
   const [filteredAddresses, setFilteredAddresses] = useState([]);
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
 
+  // Заявки по адресу для привязки
+  const [ticketsByAddress, setTicketsByAddress] = useState([]);
+  const [selectedTicketId, setSelectedTicketId] = useState(null);
+  const [loadingTickets, setLoadingTickets] = useState(false);
+
   // Equipment dropdown states
   const [equipmentList, setEquipmentList] = useState([]); // [{id, equipment}]
   const [filteredEquipment, setFilteredEquipment] = useState([]); // array of strings
@@ -147,10 +152,43 @@ function NewReport() {
     }
   };
 
+  // Загружаем заявки по адресу
+  const fetchTicketsByAddress = async (address) => {
+    if (!address) {
+      setTicketsByAddress([]);
+      setSelectedTicketId(null);
+      return;
+    }
+    setLoadingTickets(true);
+    try {
+      const response = await axios.get(`/api/tickets/by-address?address=${encodeURIComponent(address)}`);
+      const tickets = response.data || [];
+      setTicketsByAddress(tickets);
+      // По умолчанию выбираем первую (последнюю по дате) заявку
+      if (tickets.length > 0) {
+        setSelectedTicketId(tickets[0].id);
+      } else {
+        setSelectedTicketId(null);
+      }
+    } catch (error) {
+      console.error('Ошибка при загрузке заявок по адресу:', error);
+      setTicketsByAddress([]);
+      setSelectedTicketId(null);
+    } finally {
+      setLoadingTickets(false);
+    }
+  };
+
   // Используем эту функцию при монтировании компонента
   useEffect(() => {
     fetchAddresses();
     fetchEquipment();
+    // Если адрес уже заполнен (из query params), загружаем заявки
+    const params = new URLSearchParams(window.location.search);
+    const initialAddress = params.get('address');
+    if (initialAddress) {
+      fetchTicketsByAddress(initialAddress);
+    }
   }, []);
   // Выпадающий список для оборудования
 
@@ -252,11 +290,13 @@ function NewReport() {
       if (value.trim() === '') {
         setFilteredAddresses([]);
         setShowAddressSuggestions(false);
-        // Если адрес очищен, очищаем поля оборудования
+        // Если адрес очищен, очищаем поля оборудования и заявки
         setFormData(prev => ({
           ...prev,
           equipmentItems: [{ name: '', number: '', quantity: 1 }]
         }));
+        setTicketsByAddress([]);
+        setSelectedTicketId(null);
       } else {
         const filtered = addresses
           .filter(addr => (addr.address || '').toLowerCase().includes(value.toLowerCase()))
@@ -295,6 +335,8 @@ function NewReport() {
     setFormData(prev => ({ ...prev, address }));
     setShowAddressSuggestions(false);
     setValidationErrors(prev => ({ ...prev, address: false }));
+    // Загружаем заявки по выбранному адресу
+    fetchTicketsByAddress(address);
   };
 
   const handlePhotoChange = (e) => {
@@ -375,6 +417,10 @@ function NewReport() {
     delete dataToSend.equipmentItems;
     // Добавляем выбранного исполнителя
     dataToSend.userId = parseInt(selectedUserId, 10);
+    // Добавляем выбранную заявку для привязки (если есть)
+    if (selectedTicketId) {
+      dataToSend.ticketId = selectedTicketId;
+    }
     if (dataToSend.classification === 'Другое') {
       dataToSend.classification = dataToSend.customClass;
     } else if (dataToSend.classification === 'Аварийный вызов') {
@@ -776,6 +822,36 @@ function NewReport() {
             onChange={handleChange}
             rows="3"
           />
+        </div>
+
+        {/* Привязка к заявке */}
+        <div className="mb-3">
+          <label className="form-label fw-bold">Привязать к заявке</label>
+          {loadingTickets ? (
+            <div className="text-muted">Загрузка заявок...</div>
+          ) : ticketsByAddress.length > 0 ? (
+            <>
+              <select
+                className="form-select"
+                value={selectedTicketId || ''}
+                onChange={(e) => setSelectedTicketId(e.target.value ? parseInt(e.target.value, 10) : null)}
+              >
+                <option value="">Не привязывать</option>
+                {ticketsByAddress.map(ticket => (
+                  <option key={ticket.id} value={ticket.id}>
+                    #{ticket.id} от {ticket.date} — {ticket.status} — {ticket.description}
+                  </option>
+                ))}
+              </select>
+              <small className="text-muted">
+                По умолчанию выбрана последняя заявка по этому адресу
+              </small>
+            </>
+          ) : formData.address ? (
+            <div className="text-muted">Нет заявок по этому адресу</div>
+          ) : (
+            <div className="text-muted">Выберите адрес для просмотра доступных заявок</div>
+          )}
         </div>
 
         <button type="submit" className="btn btn-primary">

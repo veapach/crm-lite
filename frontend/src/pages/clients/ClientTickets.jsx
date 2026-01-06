@@ -2,19 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useClientAuth } from '../../context/ClientAuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import styles from './ClientTickets.module.css';
 
 const LOGO_SRC = '/assets/Логотип ВВ/ВкусВилл зеленый/Лого-ВкусВилл-зеленый.png';
+const LOGO_WHITE_SRC = '/assets/Логотип ВВ/ВкусВилл белый/Лого-ВкусВилл-белый.png';
 
 // Статусы и их стили
 const STATUS_CONFIG = {
   'Не назначено': { color: '#ef4444', bg: '#fef2f2', icon: '⏳' },
   'В работе': { color: '#f59e0b', bg: '#fffbeb', icon: '🔧' },
-  'Завершено': { color: '#22c55e', bg: '#f0fdf4', icon: '✓' }
+  'Завершено': { color: '#22c55e', bg: '#f0fdf4', icon: '✅' }
 };
 
 export default function ClientTickets() {
   const { client, isAuthenticated, loading: authLoading, logout } = useClientAuth();
+  const { theme, toggleTheme, isDark } = useTheme();
   const navigate = useNavigate();
   
   const [tickets, setTickets] = useState([]);
@@ -24,6 +27,18 @@ export default function ClientTickets() {
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
   const [fileUrls, setFileUrls] = useState({});
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    address: '',
+    description: '',
+    files: []
+  });
+  const [addresses, setAddresses] = useState([]);
+  const [filteredAddresses, setFilteredAddresses] = useState([]);
+  const [showAddressList, setShowAddressList] = useState(false);
+  const [createSending, setCreateSending] = useState(false);
+  const [createSuccess, setCreateSuccess] = useState(false);
+  const [createError, setCreateError] = useState('');
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -34,6 +49,8 @@ export default function ClientTickets() {
   useEffect(() => {
     if (isAuthenticated) {
       fetchTickets();
+      // Загружаем адреса для автокомплита
+      axios.get('/api/addresses').then(res => setAddresses(res.data || []));
     }
   }, [isAuthenticated]);
 
@@ -78,6 +95,70 @@ export default function ClientTickets() {
     navigate('/tickets');
   };
 
+  // Обработчики формы создания заявки
+  const handleCreateFormChange = (e) => {
+    const { name, value } = e.target;
+    setCreateForm(f => ({ ...f, [name]: value }));
+    if (name === 'address') {
+      if (!value.trim()) {
+        setFilteredAddresses([]);
+        setShowAddressList(false);
+      } else {
+        const filtered = addresses.filter(a => (a.address || '').toLowerCase().includes(value.toLowerCase())).map(a => a.address);
+        setFilteredAddresses(filtered);
+        setShowAddressList(filtered.length > 0);
+      }
+    }
+  };
+
+  const handleAddressSelect = (address) => {
+    setCreateForm(f => ({ ...f, address }));
+    setShowAddressList(false);
+  };
+
+  const handleCreateFileChange = (e) => {
+    let files = Array.from(e.target.files).filter(f => f.type.startsWith('image'));
+    if (createForm.files.length + files.length > 5) {
+      files = files.slice(0, 5 - createForm.files.length);
+    }
+    setCreateForm(f => ({ ...f, files: [...f.files, ...files] }));
+    e.target.value = '';
+  };
+
+  const handleRemoveCreateFile = (idx) => {
+    setCreateForm(f => ({ ...f, files: f.files.filter((_, i) => i !== idx) }));
+  };
+
+  const handleCreateSubmit = async (e) => {
+    e.preventDefault();
+    setCreateError('');
+    setCreateSending(true);
+    try {
+      const data = new FormData();
+      data.append('fullName', client?.fullName || '');
+      data.append('position', client?.position || '');
+      data.append('contact', client?.phone || client?.email || '');
+      data.append('address', createForm.address);
+      data.append('description', createForm.description);
+      createForm.files.forEach(f => data.append('files', f));
+      await axios.post('/api/client-tickets', data);
+      setCreateSuccess(true);
+      setCreateForm({ address: '', description: '', files: [] });
+      fetchTickets(); // Обновляем список заявок
+    } catch (e) {
+      setCreateError('Ошибка при отправке. Попробуйте ещё раз.');
+    } finally {
+      setCreateSending(false);
+    }
+  };
+
+  const handleCloseCreateModal = () => {
+    setShowCreateModal(false);
+    setCreateSuccess(false);
+    setCreateError('');
+    setCreateForm({ address: '', description: '', files: [] });
+  };
+
   const filteredTickets = tickets.filter(ticket => {
     if (filter === 'active') return ticket.status !== 'Завершено';
     if (filter === 'completed') return ticket.status === 'Завершено';
@@ -102,7 +183,7 @@ export default function ClientTickets() {
   }
 
   return (
-    <div className={styles.pageWrapper} data-theme="light">
+    <div className={`${styles.pageWrapper} ${isDark ? styles.dark : ''}`} data-theme={theme}>
       {/* Анимированный градиентный фон */}
       <div className={styles.animatedBg}>
         <div className={styles.gradientOrb1}></div>
@@ -114,13 +195,21 @@ export default function ClientTickets() {
       <header className={styles.header}>
         <div className={styles.headerContent}>
           <div className={styles.headerLeft}>
-            <img src={LOGO_SRC} alt="ВкусВилл" className={styles.logo} />
+            <img src={isDark ? LOGO_WHITE_SRC : LOGO_SRC} alt="ВкусВилл" className={styles.logo} />
             <div className={styles.headerTitle}>
               <h1>Личный кабинет</h1>
               <p>Управление заявками</p>
             </div>
           </div>
           <div className={styles.headerRight}>
+            {/* Кнопка переключения темы */}
+            <button 
+              onClick={toggleTheme} 
+              className={styles.themeToggle}
+              title={isDark ? 'Включить светлую тему' : 'Включить тёмную тему'}
+            >
+              {isDark ? '☀️' : '🌙'}
+            </button>
             <div className={styles.userInfo}>
               <span className={styles.userName}>{client?.fullName}</span>
               <span className={styles.userEmail}>{client?.email}</span>
@@ -162,7 +251,7 @@ export default function ClientTickets() {
             </div>
           </div>
           <div className={styles.statCard}>
-            <div className={styles.statIcon}>✓</div>
+            <div className={styles.statIcon}>✅</div>
             <div className={styles.statInfo}>
               <span className={styles.statValue}>
                 {tickets.filter(t => t.status === 'Завершено').length}
@@ -194,7 +283,7 @@ export default function ClientTickets() {
               Завершённые
             </button>
           </div>
-          <button onClick={() => navigate('/tickets')} className={styles.newTicketBtn}>
+          <button onClick={() => setShowCreateModal(true)} className={styles.newTicketBtn}>
             + Новая заявка
           </button>
         </div>
@@ -217,7 +306,7 @@ export default function ClientTickets() {
             <div className={styles.emptyIcon}>📭</div>
             <h3>Заявок пока нет</h3>
             <p>Создайте первую заявку, чтобы она появилась здесь</p>
-            <button onClick={() => navigate('/tickets')} className={styles.createBtn}>
+            <button onClick={() => setShowCreateModal(true)} className={styles.createBtn}>
               Создать заявку
             </button>
           </div>
@@ -267,7 +356,7 @@ export default function ClientTickets() {
                       {ticket.reports.map(report => (
                         <a 
                           key={report.id}
-                          href={`/uploads/reports/${report.filename}`}
+                          href={`/api/uploads/reports/${report.filename}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className={styles.reportLink}
@@ -373,7 +462,7 @@ export default function ClientTickets() {
                     {selectedTicket.reports.map(report => (
                       <a 
                         key={report.id}
-                        href={`/uploads/reports/${report.filename}`}
+                        href={`/api/uploads/reports/${report.filename}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className={styles.reportCard}
@@ -390,6 +479,114 @@ export default function ClientTickets() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно создания заявки */}
+      {showCreateModal && (
+        <div className={styles.modalOverlay} onClick={handleCloseCreateModal}>
+          <div className={styles.createModalContent} onClick={e => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2>Новая заявка</h2>
+              <button onClick={handleCloseCreateModal} className={styles.modalClose}>×</button>
+            </div>
+            
+            {createSuccess ? (
+              <div className={styles.createSuccess}>
+                <div className={styles.successIcon}>✅</div>
+                <h3>Заявка отправлена!</h3>
+                <p>Спасибо, мы свяжемся с вами.</p>
+                <button onClick={handleCloseCreateModal} className={styles.successOkBtn}>
+                  OK
+                </button>
+              </div>
+            ) : (
+              <form className={styles.createForm} onSubmit={handleCreateSubmit}>
+                <div className={styles.createFormGroup}>
+                  <label>Номер объекта (адрес) *</label>
+                  <div className={styles.createInputWrapper}>
+                    <input
+                      type="text"
+                      name="address"
+                      value={createForm.address}
+                      onChange={handleCreateFormChange}
+                      placeholder="Введите адрес"
+                      required
+                      autoComplete="off"
+                    />
+                    {showAddressList && filteredAddresses.length > 0 && (
+                      <div className={styles.addressDropdown}>
+                        {filteredAddresses.map((a, i) => (
+                          <div 
+                            key={i} 
+                            className={styles.addressItem}
+                            onClick={() => handleAddressSelect(a)}
+                          >
+                            {a}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className={styles.createFormGroup}>
+                  <label>Описание проблемы *</label>
+                  <textarea
+                    name="description"
+                    value={createForm.description}
+                    onChange={handleCreateFormChange}
+                    placeholder="Опишите проблему"
+                    required
+                    rows={4}
+                  />
+                </div>
+
+                <div className={styles.createFormGroup}>
+                  <label>Фото (до 5 файлов)</label>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    multiple 
+                    onChange={handleCreateFileChange}
+                    style={{ display: 'none' }}
+                    id="create-file-upload"
+                  />
+                  <label htmlFor="create-file-upload" className={styles.uploadBtn}>
+                    📷 Загрузить фото
+                  </label>
+                  {createForm.files.length > 0 && (
+                    <div className={styles.filePreviewList}>
+                      {createForm.files.map((file, idx) => (
+                        <div key={idx} className={styles.filePreviewItem}>
+                          <img src={URL.createObjectURL(file)} alt="preview" />
+                          <button 
+                            type="button" 
+                            onClick={() => handleRemoveCreateFile(idx)}
+                            className={styles.removeFileBtn}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {createError && (
+                  <div className={styles.createError}>{createError}</div>
+                )}
+
+                <button 
+                  type="submit" 
+                  className={styles.createSubmitBtn}
+                  disabled={createSending}
+                >
+                  {createSending ? 'Отправка...' : 'Отправить заявку'}
+                </button>
+              </form>
+            )}
           </div>
         </div>
       )}

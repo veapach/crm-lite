@@ -45,6 +45,7 @@ type ReportData struct {
 	FirstName        string                   `json:"firstName"`
 	LastName         string                   `json:"lastName"`
 	UserId           uint                     `json:"userId"`
+	TicketID         *uint                    `json:"ticketId"` // ID заявки для привязки (опционально)
 }
 
 func DeleteReport(c *gin.Context) {
@@ -105,40 +106,45 @@ func getUniqueS3FileName(ctx context.Context, prefix, baseName string) string { 
 	}
 }
 
-// autoLinkReportToTickets автоматически привязывает отчёт к заявкам по адресу
-// Ищет заявки с таким же адресом в статусах "В работе" или "Завершена" и привязывает отчёт
+// linkReportToTicket привязывает отчёт к конкретной заявке
+func linkReportToTicket(reportID uint, ticketID uint) {
+	// Проверяем, не привязан ли уже этот отчёт к этой заявке
+	var existing db.TicketReport
+	if err := db.DB.Where("ticket_id = ? AND report_id = ?", ticketID, reportID).First(&existing).Error; err == nil {
+		// Уже привязан
+		return
+	}
+
+	// Создаём связь
+	ticketReport := db.TicketReport{
+		TicketID:  ticketID,
+		ReportID:  reportID,
+		CreatedAt: time.Now().Format("2006-01-02 15:04:05"),
+	}
+	if err := db.DB.Create(&ticketReport).Error; err != nil {
+		log.Printf("Ошибка при привязке отчёта %d к заявке %d: %v", reportID, ticketID, err)
+	} else {
+		log.Printf("Отчёт %d привязан к заявке %d", reportID, ticketID)
+	}
+}
+
+// autoLinkReportToTickets автоматически привязывает отчёт к последней заявке по адресу
+// Используется только если ticketID не указан явно
 func autoLinkReportToTickets(reportID uint, address string) {
 	if address == "" {
 		return
 	}
 
-	// Ищем заявки с таким же адресом
-	var tickets []db.ClientTicket
-	if err := db.DB.Where("address = ? AND (status = ? OR status = ?)", address, "В работе", "Завершена").Find(&tickets).Error; err != nil {
-		log.Printf("Ошибка при поиске заявок для автопривязки: %v", err)
+	// Ищем последнюю заявку с таким же адресом (любой статус кроме отменённых)
+	var ticket db.ClientTicket
+	if err := db.DB.Where("address = ? AND status != ?", address, "Отменено").
+		Order("date DESC, id DESC").
+		First(&ticket).Error; err != nil {
+		log.Printf("Заявок по адресу %s не найдено для автопривязки", address)
 		return
 	}
 
-	for _, ticket := range tickets {
-		// Проверяем, не привязан ли уже этот отчёт к этой заявке
-		var existing db.TicketReport
-		if err := db.DB.Where("ticket_id = ? AND report_id = ?", ticket.ID, reportID).First(&existing).Error; err == nil {
-			// Уже привязан
-			continue
-		}
-
-		// Создаём связь
-		ticketReport := db.TicketReport{
-			TicketID:  ticket.ID,
-			ReportID:  reportID,
-			CreatedAt: time.Now().Format("2006-01-02 15:04:05"),
-		}
-		if err := db.DB.Create(&ticketReport).Error; err != nil {
-			log.Printf("Ошибка при автопривязке отчёта %d к заявке %d: %v", reportID, ticket.ID, err)
-		} else {
-			log.Printf("Отчёт %d автоматически привязан к заявке %d (адрес: %s)", reportID, ticket.ID, address)
-		}
-	}
+	linkReportToTicket(reportID, ticket.ID)
 }
 
 func CreateReport(c *gin.Context) {
@@ -245,8 +251,12 @@ func CreateReport(c *gin.Context) {
 						c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Ошибка при сохранении в БД: %v", result.Error)})
 						return
 					}
-					// Автоматическая привязка отчёта к заявкам по адресу
-					autoLinkReportToTickets(report.ID, reportData.Address)
+					// Привязка отчёта к заявке
+					if reportData.TicketID != nil && *reportData.TicketID > 0 {
+						linkReportToTicket(report.ID, *reportData.TicketID)
+					} else {
+						autoLinkReportToTickets(report.ID, reportData.Address)
+					}
 					respMap := gin.H{
 						"message":     "Отчет успешно создан",
 						"report":      report,
@@ -409,8 +419,12 @@ func CreateReport(c *gin.Context) {
 				return
 			}
 
-			// Автоматическая привязка отчёта к заявкам по адресу
-			autoLinkReportToTickets(report.ID, reportData.Address)
+			// Привязка отчёта к заявке
+			if reportData.TicketID != nil && *reportData.TicketID > 0 {
+				linkReportToTicket(report.ID, *reportData.TicketID)
+			} else {
+				autoLinkReportToTickets(report.ID, reportData.Address)
+			}
 
 			respMap := gin.H{
 				"message":     "Отчет успешно создан",
@@ -622,8 +636,12 @@ func CreateReport(c *gin.Context) {
 		return
 	}
 
-	// Автоматическая привязка отчёта к заявкам по адресу
-	autoLinkReportToTickets(report.ID, reportData.Address)
+	// Привязка отчёта к заявке
+	if reportData.TicketID != nil && *reportData.TicketID > 0 {
+		linkReportToTicket(report.ID, *reportData.TicketID)
+	} else {
+		autoLinkReportToTickets(report.ID, reportData.Address)
+	}
 
 	resp := gin.H{
 		"message":     "Отчет успешно создан",
