@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FaBars, FaTimes, FaSun, FaMoon, FaHome, FaCalendarAlt, FaFileAlt, FaClipboardList, FaTicketAlt, FaChartBar, FaFolder, FaBoxes, FaRoute, FaUser, FaCog } from 'react-icons/fa';
+import { FaBars, FaTimes, FaSun, FaMoon, FaHome, FaFileAlt, FaClipboardList, FaTicketAlt, FaChartBar, FaFolder, FaRoute, FaUser, FaCog } from 'react-icons/fa';
 import '../styles/Navbar.css';
 import { useAuth } from '../context/AuthContext';
 import { useNewTickets } from '../context/NewTicketsContext';
@@ -124,16 +124,6 @@ function Navbar() {
         )}
         <li className="nav-item">
           <Link
-            className={`nav-link ${location.pathname === '/schedule' ? 'active' : ''}`}
-            to="/schedule"
-            onClick={mobile ? toggleMenu : undefined}
-          >
-            {mobile && <FaCalendarAlt className="nav-icon" />}
-            <span>График</span>
-          </Link>
-        </li>
-        <li className="nav-item">
-          <Link
             className={`nav-link ${location.pathname === '/new-report' ? 'active' : ''}`}
             to="/new-report"
             onClick={mobile ? toggleMenu : undefined}
@@ -181,16 +171,6 @@ function Navbar() {
           >
             {mobile && <FaFolder className="nav-icon" />}
             <span>Файлы</span>
-          </Link>
-        </li>
-        <li className="nav-item">
-          <Link
-            className={`nav-link ${location.pathname === '/inventory' ? 'active' : ''}`}
-            to="/inventory"
-            onClick={mobile ? toggleMenu : undefined}
-          >
-            {mobile && <FaBoxes className="nav-icon" />}
-            <span>ЗИП</span>
           </Link>
         </li>
         <li className="nav-item">

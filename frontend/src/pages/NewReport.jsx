@@ -293,21 +293,6 @@ function NewReport() {
     fileInputRef.current.click();
   };
 
-  const [zipList, setZipList] = useState([{ zipName: '', quantity: 1 }]);
-
-  // Добавить новый ЗИП
-  const handleAddZip = () => {
-    setZipList([...zipList, { zipName: '', quantity: 1 }]);
-  };
-  // Удалить ЗИП
-  const handleRemoveZip = (idx) => {
-    setZipList(zipList.filter((_, i) => i !== idx));
-  };
-  // Изменить ЗИП
-  const handleZipChange = (idx, field, value) => {
-    setZipList(zipList.map((zip, i) => i === idx ? { ...zip, [field]: value } : zip));
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -359,19 +344,6 @@ function NewReport() {
         } catch (err) {
           // Не критично, просто логируем
           console.error('Ошибка при добавлении оборудования:', err);
-        }
-      }
-
-      // Добавить ЗИП в список покупок
-      const address = dataToSend.address;
-      for (const zip of zipList) {
-        if (zip.zipName && zip.quantity > 0) {
-          await axios.post('/api/inventory', {
-            objectNumber: address,
-            zipName: zip.zipName,
-            quantity: zip.quantity,
-            status: 'не куплено'
-          });
         }
       }
 
@@ -681,34 +653,6 @@ function NewReport() {
             onChange={handleChange}
             rows="3"
           />
-        </div>
-
-        <div className="mb-3">
-          <label className="form-label fw-bold">ЗИП (запасные части)</label>
-          {zipList.map((zip, idx) => (
-            <div key={idx} className="d-flex gap-2 mb-2 align-items-center">
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Наименование ЗИП"
-                value={zip.zipName}
-                onChange={e => handleZipChange(idx, 'zipName', e.target.value)}
-                style={{ maxWidth: 200 }}
-              />
-              <input
-                type="number"
-                min={1}
-                className="form-control"
-                style={{ maxWidth: 100 }}
-                value={zip.quantity}
-                onChange={e => handleZipChange(idx, 'quantity', Number(e.target.value))}
-              />
-              {zipList.length > 1 && (
-                <button type="button" className="btn btn-danger btn-sm" onClick={() => handleRemoveZip(idx)}>Удалить</button>
-              )}
-            </div>
-          ))}
-          <button type="button" className="btn btn-secondary btn-sm mt-2" onClick={handleAddZip}>Добавить ЗИП</button>
         </div>
 
         <button type="submit" className="btn btn-primary">

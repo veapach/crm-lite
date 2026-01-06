@@ -12,8 +12,6 @@ import Auth from './pages/Auth';
 import Admin from './pages/Admin';
 import MaintenancePage from './pages/MaintenancePage';
 import Statistics from './pages/Statistics';
-import Schedule from './pages/Schedule';
-import Inventory from './pages/Inventory';
 import TravelSheet from './pages/TravelSheet';
 import Tickets from './pages/clients/Tickets';
 import InnerTickets from './pages/InnerTickets';
@@ -89,12 +87,10 @@ function App() {
           <Route path="/auth" element={isAuthenticated ? <Navigate to="/" replace /> : <Auth />} />
           <Route path="/tickets" element={<Tickets />} />
           <Route path="/" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <Dashboard />) : <Navigate to="/tickets" replace />} />
-          <Route path="/schedule" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <Schedule />) : <Navigate to="/auth" replace />} />
           <Route path="/new-report" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <NewReport />) : <Navigate to="/auth" replace />} />
           <Route path="/reports" element={isAuthenticated ? <Reports /> : <Navigate to="/auth" replace />} />
           <Route path="/inner-tickets" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <InnerTickets />) : <Navigate to="/auth" replace />} />
           <Route path="/files" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <Files />) : <Navigate to="/auth" replace />} />
-          <Route path="/inventory" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <Inventory />) : <Navigate to="/auth" replace />} />
           <Route path="/travel-sheet" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <TravelSheet />) : <Navigate to="/auth" replace />} />
           <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/auth" replace />} />
           <Route path="/statistics" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <Statistics />) : <Navigate to="/auth" replace />} />
