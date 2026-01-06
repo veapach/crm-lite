@@ -115,7 +115,7 @@ function InnerTickets() {
     
     try {
       const previewName = getPreviewName(report.filename);
-      const response = await axios.get(`/reports/preview-image/${encodeURIComponent(previewName)}`, {
+      const response = await axios.get(`/api/reports/preview-image/${encodeURIComponent(previewName)}`, {
         responseType: 'blob',
         withCredentials: true,
       });

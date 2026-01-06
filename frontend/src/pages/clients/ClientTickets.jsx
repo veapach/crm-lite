@@ -145,7 +145,7 @@ export default function ClientTickets() {
   // Обработчик предпросмотра отчёта (загружаем готовое PNG превью)
   const handlePreviewPdf = async (filename) => {
     const previewName = getPreviewName(filename);
-    const url = `/client/reports/preview/${encodeURIComponent(previewName)}`;
+    const url = `/api/client/reports/preview/${encodeURIComponent(previewName)}`;
     setPreviewPdf(url);
     setPreviewPdf(url);
     setPdfLoading(true);
