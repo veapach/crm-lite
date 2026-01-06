@@ -2,13 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Table, Button, Modal, Tabs, Tab, Fade, Form } from 'react-bootstrap';
-import * as pdfjsLib from 'pdfjs-dist';
 import TicketsMap from '../components/TicketsMap';
 import '../styles/Schedule.css';
 import '../styles/InnerTickets.css';
-
-// Устанавливаем worker для PDF.js
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 function InnerTickets() {
   const [tickets, setTickets] = useState([]);
@@ -107,18 +103,25 @@ function InnerTickets() {
     }
   };
 
-  // Предпросмотр PDF отчёта
+  // Получение имени превью из имени файла
+  const getPreviewName = (filename) => {
+    const base = filename.replace(/\.pdf$/i, '');
+    return `${base}.png`;
+  };
+
+  // Предпросмотр отчёта (загружаем готовое PNG превью)
   const handlePreviewReport = async (report) => {
     setShowPdfPreview(true);
     setPdfLoading(true);
     
     try {
-      const response = await axios.get(`/api/reports/preview/${encodeURIComponent(report.filename)}`, {
-        responseType: 'arraybuffer',
+      const previewName = getPreviewName(report.filename);
+      const response = await axios.get(`/api/reports/preview-image/${encodeURIComponent(previewName)}`, {
+        responseType: 'blob',
         withCredentials: true,
       });
       
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 50));
       
       const container = pdfViewerRef.current;
       if (!container) {
@@ -127,38 +130,25 @@ function InnerTickets() {
       }
       container.innerHTML = '';
       
-      const loadingTask = pdfjsLib.getDocument({ data: response.data });
-      const pdf = await loadingTask.promise;
-      const isMobile = window.innerWidth <= 768;
-      const baseScale = isMobile ? 1.2 : 1.5;
-      
-      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-        const page = await pdf.getPage(pageNum);
-        let currentScale = baseScale;
-        
-        if (isMobile) {
-          const containerWidth = container.clientWidth - 12;
-          const defaultViewport = page.getViewport({ scale: baseScale });
-          const ratio = containerWidth / defaultViewport.width;
-          currentScale = baseScale * ratio;
-        }
-        
-        const viewport = page.getViewport({ scale: currentScale });
-        const canvas = document.createElement('canvas');
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-        canvas.style.display = 'block';
-        canvas.style.margin = '0 auto 20px';
-        const context = canvas.getContext('2d');
-        await page.render({ canvasContext: context, viewport }).promise;
-        container.appendChild(canvas);
-      }
+      // Создаём URL для изображения и показываем его
+      const imageUrl = URL.createObjectURL(response.data);
+      const img = document.createElement('img');
+      img.src = imageUrl;
+      img.style.maxWidth = '100%';
+      img.style.height = 'auto';
+      img.style.display = 'block';
+      img.style.margin = '0 auto';
+      img.onload = () => setPdfLoading(false);
+      img.onerror = () => {
+        container.innerHTML = '<p style="color: red; text-align: center; padding: 20px;">Ошибка загрузки превью</p>';
+        setPdfLoading(false);
+      };
+      container.appendChild(img);
     } catch (err) {
-      console.error('Ошибка загрузки PDF:', err);
+      console.error('Ошибка загрузки превью:', err);
       if (pdfViewerRef.current) {
         pdfViewerRef.current.innerHTML = '<p style="color: red; text-align: center; padding: 20px;">Ошибка загрузки документа</p>';
       }
-    } finally {
       setPdfLoading(false);
     }
   };
