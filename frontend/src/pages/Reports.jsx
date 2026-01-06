@@ -206,7 +206,8 @@ function Reports() {
     if (window.confirm('Вы уверены, что хотите удалить этот отчет?')) {
       try {
         await axios.delete(`/api/reports/${encodeURIComponent(filename)}`);
-        fetchReports();
+        fetchReports(1, true);
+        fetchReportsCount();
       } catch (error) {
         setError('Ошибка при удалении отчета');
         console.error('Ошибка при удалении отчета:', error);

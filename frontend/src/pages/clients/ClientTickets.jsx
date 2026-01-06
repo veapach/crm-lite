@@ -661,7 +661,7 @@ export default function ClientTickets() {
                     {selectedTicket.reports.map(report => (
                       <button 
                         key={report.id}
-                        onClick={() => setPreviewPdf(`/api/uploads/reports/${report.filename}`)}
+                        onClick={() => handlePreviewPdf(report.filename)}
                         className={styles.reportCard}
                         type="button"
                       >
