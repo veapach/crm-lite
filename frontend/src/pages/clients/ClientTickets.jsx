@@ -38,6 +38,9 @@ export default function ClientTickets() {
   const [createSending, setCreateSending] = useState(false);
   const [createSuccess, setCreateSuccess] = useState(false);
   const [createError, setCreateError] = useState('');
+  
+  // Состояние для предпросмотра PDF
+  const [previewPdf, setPreviewPdf] = useState(null);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -51,14 +54,14 @@ export default function ClientTickets() {
       // Загружаем адреса для автокомплита
       axios.get('/api/addresses').then(res => setAddresses(res.data || []));
       
-      // Polling для live-обновления заявок каждые 30 секунд
+      // Polling для live-обновления заявок каждые 10 секунд
       const pollInterval = setInterval(() => {
         axios.get('/api/client/my-tickets')
           .then(res => {
             setTickets(res.data.tickets || []);
           })
           .catch(err => console.error('Polling error:', err));
-      }, 30000);
+      }, 10000);
       
       return () => clearInterval(pollInterval);
     }
@@ -366,7 +369,7 @@ export default function ClientTickets() {
                       {ticket.reports.map(report => (
                         <button 
                           key={report.id}
-                          onClick={() => window.open(`/api/uploads/reports/${report.filename}`, '_blank')}
+                          onClick={() => setPreviewPdf(`/api/uploads/reports/${report.filename}`)}
                           className={styles.reportLink}
                           type="button"
                         >
@@ -409,8 +412,7 @@ export default function ClientTickets() {
               <div className={styles.detailRow}>
                 <span className={styles.detailLabel}>Статус:</span>
                 <span 
-                  className={styles.detailValue}
-                  style={getStatusStyle(selectedTicket.status)}
+                  className={`${styles.detailStatusBadge} ${styles['status' + selectedTicket.status.replace(/\s+/g, '')]}`}
                 >
                   {STATUS_CONFIG[selectedTicket.status]?.icon} {selectedTicket.status}
                 </span>
@@ -471,7 +473,7 @@ export default function ClientTickets() {
                     {selectedTicket.reports.map(report => (
                       <button 
                         key={report.id}
-                        onClick={() => window.open(`/api/uploads/reports/${report.filename}`, '_blank')}
+                        onClick={() => setPreviewPdf(`/api/uploads/reports/${report.filename}`)}
                         className={styles.reportCard}
                         type="button"
                       >
@@ -595,6 +597,40 @@ export default function ClientTickets() {
                 </button>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно предпросмотра PDF */}
+      {previewPdf && (
+        <div className={styles.pdfOverlay} onClick={() => setPreviewPdf(null)}>
+          <div className={styles.pdfModal} onClick={e => e.stopPropagation()}>
+            <div className={styles.pdfHeader}>
+              <h3>Просмотр отчёта</h3>
+              <div className={styles.pdfActions}>
+                <a 
+                  href={previewPdf} 
+                  download 
+                  className={styles.pdfDownloadBtn}
+                  onClick={e => e.stopPropagation()}
+                >
+                  ⬇ Скачать
+                </a>
+                <button 
+                  onClick={() => setPreviewPdf(null)} 
+                  className={styles.pdfCloseBtn}
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+            <div className={styles.pdfContent}>
+              <iframe
+                src={previewPdf}
+                title="PDF Preview"
+                className={styles.pdfFrame}
+              />
+            </div>
           </div>
         </div>
       )}

@@ -1179,3 +1179,163 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
+/* ========== Статус в модалке деталей ========== */
+.detailStatusBadge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.statusНеназначено {
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+.statusВработе {
+  color: #f59e0b;
+  background: #fffbeb;
+}
+
+.statusЗавершено {
+  color: #22c55e;
+  background: #f0fdf4;
+}
+
+/* Тёмная тема для статусов */
+.dark .statusНеназначено {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.dark .statusВработе {
+  color: #fcd34d;
+  background: rgba(245, 158, 11, 0.2);
+}
+
+.dark .statusЗавершено {
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.2);
+}
+
+/* ========== Модальное окно предпросмотра PDF ========== */
+.pdfOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+}
+
+.pdfModal {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 900px;
+  height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+}
+
+.pdfHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.pdfHeader h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.pdfActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pdfDownloadBtn {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #2dbe64 0%, #27a857 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pdfDownloadBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(45, 190, 100, 0.3);
+}
+
+.pdfCloseBtn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e5e7eb;
+  border: none;
+  border-radius: 8px;
+  font-size: 24px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pdfCloseBtn:hover {
+  background: #d1d5db;
+  color: #374151;
+}
+
+.pdfContent {
+  flex: 1;
+  overflow: hidden;
+}
+
+.pdfFrame {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* Тёмная тема для PDF модалки */
+.dark .pdfModal {
+  background: #1a1a2e;
+}
+
+.dark .pdfHeader {
+  background: #16213e;
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .pdfHeader h3 {
+  color: #f1f1f1;
+}
+
+.dark .pdfCloseBtn {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e5e7eb;
+}
+
+.dark .pdfCloseBtn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #f1f1f1;
+}
+

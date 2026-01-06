@@ -5,7 +5,32 @@ import styles from './ClientAuth.module.css';
 
 const LOGO_SRC = '/assets/Логотип ВВ/ВкусВилл зеленый/Лого-ВкусВилл-зеленый.png';
 
-// Функция нормализации телефона
+// Функция форматирования телефона при вводе: +7 (919) 762-77-70
+const formatPhoneInput = (value) => {
+  // Убираем всё кроме цифр
+  let digits = value.replace(/\D/g, '');
+  
+  // Если начинается с 8 или 7, заменяем на 7
+  if (digits.startsWith('8')) {
+    digits = '7' + digits.slice(1);
+  }
+  if (!digits.startsWith('7') && digits.length > 0) {
+    digits = '7' + digits;
+  }
+  
+  // Ограничиваем 11 цифрами
+  digits = digits.slice(0, 11);
+  
+  // Форматируем
+  if (digits.length === 0) return '';
+  if (digits.length <= 1) return '+' + digits;
+  if (digits.length <= 4) return '+' + digits[0] + ' (' + digits.slice(1);
+  if (digits.length <= 7) return '+' + digits[0] + ' (' + digits.slice(1, 4) + ') ' + digits.slice(4);
+  if (digits.length <= 9) return '+' + digits[0] + ' (' + digits.slice(1, 4) + ') ' + digits.slice(4, 7) + '-' + digits.slice(7);
+  return '+' + digits[0] + ' (' + digits.slice(1, 4) + ') ' + digits.slice(4, 7) + '-' + digits.slice(7, 9) + '-' + digits.slice(9, 11);
+};
+
+// Функция нормализации телефона (для отправки на сервер)
 const normalizePhone = (phone) => {
   const digits = phone.replace(/\D/g, '');
   if (digits.length === 11 && digits.startsWith('8')) {
@@ -77,14 +102,29 @@ export default function ClientAuth() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm({ ...form, [name]: value });
+    
+    // Форматирование телефона при вводе
+    let newValue = value;
+    if (name === 'phone') {
+      newValue = formatPhoneInput(value);
+    }
+    // Форматирование для поля login если вводится телефон
+    if (name === 'login') {
+      const digits = value.replace(/\D/g, '');
+      // Если начинается с цифры или +, форматируем как телефон
+      if (digits.length > 0 && (value.startsWith('+') || value.startsWith('7') || value.startsWith('8') || /^\d/.test(value))) {
+        newValue = formatPhoneInput(value);
+      }
+    }
+    
+    setForm({ ...form, [name]: newValue });
     setError('');
     
     // Валидация в реальном времени если поле уже было тронуто
     if (touched[name]) {
       setFieldErrors(prev => ({
         ...prev,
-        [name]: validateField(name, value)
+        [name]: validateField(name, newValue)
       }));
     }
   };
