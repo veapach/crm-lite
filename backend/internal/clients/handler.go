@@ -552,14 +552,19 @@ func ClientPreviewReport(c *gin.Context) {
 
 	filename := c.Param("filename")
 
-	// Преобразуем имя PDF в имя превью PNG
-	previewFilename := strings.TrimSuffix(filename, filepath.Ext(filename)) + ".png"
+	// Получаем базовое имя без расширения (приходит .png, в БД хранится .pdf)
+	baseName := strings.TrimSuffix(filename, filepath.Ext(filename))
+	previewFilename := baseName + ".png"
+	pdfFilename := baseName + ".pdf"
 
-	// Находим отчёт по имени файла
+	// Находим отчёт по имени PDF файла (в БД хранится путь к PDF)
 	var report db.Report
-	if err := db.DB.Where("filename LIKE ?", "%"+filename).First(&report).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "отчёт не найден"})
-		return
+	if err := db.DB.Where("filename LIKE ?", "%"+pdfFilename).First(&report).Error; err != nil {
+		// Также пробуем искать по базовому имени на случай другого формата
+		if err := db.DB.Where("filename LIKE ?", "%"+baseName+"%").First(&report).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "отчёт не найден"})
+			return
+		}
 	}
 
 	// Проверяем доступ одним оптимизированным запросом
@@ -584,15 +589,7 @@ func ClientPreviewReport(c *gin.Context) {
 		return
 	}
 
-	// Сначала проверяем локальное хранилище превью
-	localPath := filepath.Join("uploads", "previews", previewFilename)
-	if _, err := os.Stat(localPath); err == nil {
-		c.Header("Content-Type", "image/png")
-		c.File(localPath)
-		return
-	}
-
-	// Потом пробуем S3 превью
+	// Сначала проверяем S3 (основное хранилище)
 	if storage.IsS3Enabled() {
 		obj, info, err := storage.GetReportObject(context.Background(), "previews/"+previewFilename)
 		if err == nil && obj != nil {
@@ -606,6 +603,14 @@ func ClientPreviewReport(c *gin.Context) {
 			io.Copy(c.Writer, obj)
 			return
 		}
+	}
+
+	// Fallback на локальное хранилище
+	localPath := filepath.Join("uploads", "previews", previewFilename)
+	if _, err := os.Stat(localPath); err == nil {
+		c.Header("Content-Type", "image/png")
+		c.File(localPath)
+		return
 	}
 
 	c.JSON(http.StatusNotFound, gin.H{"error": "превью не найдено"})

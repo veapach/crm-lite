@@ -1303,12 +1303,8 @@ func PreviewReport(c *gin.Context) {
 
 func PreviewReportImage(c *gin.Context) {
 	filename := c.Param("filename")
-	filePath := filepath.Join("uploads", "previews", filename)
-	if _, err := os.Stat(filePath); err == nil {
-		c.Header("Content-Type", "image/png")
-		c.File(filePath)
-		return
-	}
+
+	// Сначала проверяем S3 (основное хранилище)
 	if storage.IsS3Enabled() {
 		obj, info, err := storage.GetReportObject(context.Background(), "previews/"+filename)
 		if err == nil && obj != nil {
@@ -1323,16 +1319,22 @@ func PreviewReportImage(c *gin.Context) {
 			return
 		}
 	}
+
+	// Fallback на локальное хранилище
+	filePath := filepath.Join("uploads", "previews", filename)
+	if _, err := os.Stat(filePath); err == nil {
+		c.Header("Content-Type", "image/png")
+		c.File(filePath)
+		return
+	}
+
 	c.JSON(http.StatusNotFound, gin.H{"error": "Файл превью не найден"})
 }
 
 func ServeReportFile(c *gin.Context) {
 	filename := c.Param("filename")
-	filePath := filepath.Join("uploads", "reports", filename)
-	if _, err := os.Stat(filePath); err == nil {
-		c.File(filePath)
-		return
-	}
+
+	// Сначала проверяем S3 (основное хранилище)
 	if storage.IsS3Enabled() {
 		obj, info, err := storage.GetReportObject(context.Background(), "reports/"+filename)
 		if err == nil && obj != nil {
@@ -1348,5 +1350,13 @@ func ServeReportFile(c *gin.Context) {
 			return
 		}
 	}
+
+	// Fallback на локальное хранилище
+	filePath := filepath.Join("uploads", "reports", filename)
+	if _, err := os.Stat(filePath); err == nil {
+		c.File(filePath)
+		return
+	}
+
 	c.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден"})
 }
