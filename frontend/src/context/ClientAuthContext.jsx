@@ -26,9 +26,9 @@ export const ClientAuthProvider = ({ children }) => {
         }
     };
 
-    const login = async (email, password) => {
+    const login = async (loginValue, password) => {
         try {
-            const response = await axios.post("/api/client/login", { email, password });
+            const response = await axios.post("/api/client/login", { login: loginValue, password });
             setIsAuthenticated(true);
             setClient(response.data.client);
             return { success: true };

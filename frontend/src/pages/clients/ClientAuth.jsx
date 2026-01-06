@@ -8,6 +8,7 @@ const LOGO_SRC = '/assets/Логотип ВВ/ВкусВилл зеленый/Л
 export default function ClientAuth() {
   const [isLogin, setIsLogin] = useState(true);
   const [form, setForm] = useState({
+    login: '',
     email: '',
     password: '',
     fullName: '',
@@ -32,7 +33,7 @@ export default function ClientAuth() {
     try {
       let result;
       if (isLogin) {
-        result = await login(form.email, form.password);
+        result = await login(form.login, form.password);
       } else {
         if (!form.email || !form.password || !form.fullName) {
           setError('Заполните обязательные поля');
@@ -58,6 +59,7 @@ export default function ClientAuth() {
     setIsLogin(!isLogin);
     setError('');
     setForm({
+      login: '',
       email: '',
       password: '',
       fullName: '',
@@ -134,18 +136,33 @@ export default function ClientAuth() {
             </>
           )}
 
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Email *</label>
-            <input
-              className={styles.formInput}
-              type="email"
-              name="email"
-              value={form.email}
-              onChange={handleChange}
-              placeholder="example@mail.ru"
-              required
-            />
-          </div>
+          {isLogin ? (
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>Телефон или Email *</label>
+              <input
+                className={styles.formInput}
+                type="text"
+                name="login"
+                value={form.login}
+                onChange={handleChange}
+                placeholder="+7... или example@mail.ru"
+                required
+              />
+            </div>
+          ) : (
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>Email *</label>
+              <input
+                className={styles.formInput}
+                type="email"
+                name="email"
+                value={form.email}
+                onChange={handleChange}
+                placeholder="example@mail.ru"
+                required
+              />
+            </div>
+          )}
 
           <div className={styles.formGroup}>
             <label className={styles.formLabel}>Пароль *</label>

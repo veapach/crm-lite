@@ -85,7 +85,7 @@
 .authCard {
   position: relative;
   z-index: 1;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.98) !important;
   backdrop-filter: blur(20px);
   border-radius: 24px;
   padding: 40px;
@@ -94,6 +94,12 @@
   box-shadow: 
     0 25px 50px -12px rgba(0, 0, 0, 0.1),
     0 0 0 1px rgba(45, 190, 100, 0.1);
+  color: #1a1a1a !important;
+}
+
+/* Принудительно светлая тема для всех элементов внутри карточки */
+.authCard * {
+  color-scheme: light;
 }
 
 .logo {
@@ -105,14 +111,14 @@
 .authTitle {
   font-size: 24px;
   font-weight: 700;
-  color: #1a1a1a;
+  color: #1a1a1a !important;
   text-align: center;
   margin: 0 0 8px 0;
 }
 
 .authSubtitle {
   font-size: 14px;
-  color: #666;
+  color: #666 !important;
   text-align: center;
   margin: 0 0 24px 0;
 }
@@ -139,7 +145,7 @@
 .formLabel {
   font-size: 13px;
   font-weight: 600;
-  color: #374151;
+  color: #374151 !important;
 }
 
 .formInput {
@@ -148,8 +154,8 @@
   border-radius: 12px;
   font-size: 15px;
   transition: all 0.2s ease;
-  background: #fff;
-  color: #1a1a1a;
+  background: #fff !important;
+  color: #1a1a1a !important;
 }
 
 .formInput:focus {

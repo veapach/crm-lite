@@ -38,6 +38,22 @@ func generateClientToken(clientID uint) (string, error) {
 	return token.SignedString(secretKey)
 }
 
+// normalizePhone нормализует номер телефона для поиска
+func normalizePhone(phone string) string {
+	// Убираем все кроме цифр
+	digits := ""
+	for _, r := range phone {
+		if r >= '0' && r <= '9' {
+			digits += string(r)
+		}
+	}
+	// Если начинается с 8, заменяем на 7
+	if len(digits) == 11 && digits[0] == '8' {
+		digits = "7" + digits[1:]
+	}
+	return digits
+}
+
 // ClientRegister - регистрация нового клиента
 func ClientRegister(c *gin.Context) {
 	var input struct {
@@ -113,7 +129,7 @@ func ClientRegister(c *gin.Context) {
 // ClientLogin - вход клиента
 func ClientLogin(c *gin.Context) {
 	var input struct {
-		Email    string `json:"email" binding:"required"`
+		Login    string `json:"login" binding:"required"`
 		Password string `json:"password" binding:"required"`
 	}
 
@@ -122,12 +138,23 @@ func ClientLogin(c *gin.Context) {
 		return
 	}
 
-	input.Email = strings.TrimSpace(strings.ToLower(input.Email))
+	login := strings.TrimSpace(strings.ToLower(input.Login))
 
+	// Поиск по email или телефону
 	var client db.Client
-	if err := db.DB.Where("email = ?", input.Email).First(&client).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Пользователь не найден"})
-		return
+	if strings.Contains(login, "@") {
+		// Поиск по email
+		if err := db.DB.Where("email = ?", login).First(&client).Error; err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Пользователь не найден"})
+			return
+		}
+	} else {
+		// Поиск по телефону - нормализуем номер
+		phone := normalizePhone(login)
+		if err := db.DB.Where("phone = ? OR phone = ? OR phone = ?", phone, login, "+"+login).First(&client).Error; err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Пользователь не найден"})
+			return
+		}
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(client.Password), []byte(input.Password)); err != nil {
