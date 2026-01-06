@@ -17,8 +17,7 @@ function NewReport() {
     return {
       date,
       address,
-      machine_name: '',
-      machine_number: '',
+      equipmentItems: [{ name: '', number: '', quantity: 1 }],
       inventory_number: '',
       classification,
       customClass,
@@ -112,15 +111,17 @@ function NewReport() {
       const response = await axios.get(`/api/equipment/memory?address=${encodeURIComponent(address)}&classification=${encodeURIComponent(classification)}`);
       setFormData(prev => ({
         ...prev,
-        machine_name: response.data.machineName || '',
-        machine_number: response.data.machineNumber || ''
+        equipmentItems: [{ 
+          name: response.data.machineName || '', 
+          number: response.data.machineNumber || '',
+          quantity: response.data.count || 1
+        }]
       }));
     } catch (error) {
       if (error.response?.status === 404) {
         setFormData(prev => ({
           ...prev,
-          machine_name: '',
-          machine_number: ''
+          equipmentItems: [{ name: '', number: '', quantity: 1 }]
         }));
       } else {
         console.error('Ошибка при загрузке запомненного оборудования:', error);
@@ -145,20 +146,72 @@ function NewReport() {
   }, []);
   // Выпадающий список для оборудования
 
+  // Индекс активного поля оборудования для выпадающего списка
+  const [activeEquipmentIndex, setActiveEquipmentIndex] = useState(null);
+
   // Открыть/закрыть выпадающий список оборудования
-  const toggleEquipmentList = () => {
-    if (showEquipmentSuggestions) {
+  const toggleEquipmentList = (index) => {
+    if (showEquipmentSuggestions && activeEquipmentIndex === index) {
       setShowEquipmentSuggestions(false);
+      setActiveEquipmentIndex(null);
     } else {
       setFilteredEquipment(equipmentList.map(eq => eq.equipment));
       setShowEquipmentSuggestions(true);
+      setActiveEquipmentIndex(index);
     }
   };
 
   // Выбор оборудования из выпадающего списка
-  const handleEquipmentSelect = (equipmentName) => {
-    setFormData(prev => ({ ...prev, machine_name: equipmentName }));
+  const handleEquipmentSelect = (equipmentName, index) => {
+    setFormData(prev => ({
+      ...prev,
+      equipmentItems: prev.equipmentItems.map((item, i) => 
+        i === index ? { ...item, name: equipmentName } : item
+      )
+    }));
     setShowEquipmentSuggestions(false);
+    setActiveEquipmentIndex(null);
+  };
+
+  // Добавить новое оборудование
+  const handleAddEquipment = () => {
+    setFormData(prev => ({
+      ...prev,
+      equipmentItems: [...prev.equipmentItems, { name: '', number: '', quantity: 1 }]
+    }));
+  };
+
+  // Удалить оборудование
+  const handleRemoveEquipment = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      equipmentItems: prev.equipmentItems.filter((_, i) => i !== index)
+    }));
+  };
+
+  // Изменить поле оборудования
+  const handleEquipmentChange = (index, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      equipmentItems: prev.equipmentItems.map((item, i) => 
+        i === index ? { ...item, [field]: value } : item
+      )
+    }));
+
+    // Фильтрация при вводе названия оборудования
+    if (field === 'name') {
+      if (value.trim() === '') {
+        setFilteredEquipment([]);
+        setShowEquipmentSuggestions(false);
+      } else {
+        const filtered = equipmentList
+          .filter(eq => (eq.equipment || '').toLowerCase().includes(value.toLowerCase()))
+          .map(eq => eq.equipment);
+        setFilteredEquipment(filtered);
+        setShowEquipmentSuggestions(filtered.length > 0);
+        setActiveEquipmentIndex(index);
+      }
+    }
   };
 
   const toggleAddressList = () => {
@@ -194,8 +247,7 @@ function NewReport() {
         // Если адрес очищен, очищаем поля оборудования
         setFormData(prev => ({
           ...prev,
-          machine_name: '',
-          machine_number: ''
+          equipmentItems: [{ name: '', number: '', quantity: 1 }]
         }));
       } else {
         const filtered = addresses
@@ -211,28 +263,13 @@ function NewReport() {
       }
     }
 
-    // Если изменяется поле оборудования, фильтруем подсказки
-    if (name === 'machine_name') {
-      if (value.trim() === '') {
-        setFilteredEquipment([]);
-        setShowEquipmentSuggestions(false);
-      } else {
-        const filtered = equipmentList
-          .filter(eq => (eq.equipment || '').toLowerCase().includes(value.toLowerCase()))
-          .map(eq => eq.equipment);
-        setFilteredEquipment(filtered);
-        setShowEquipmentSuggestions(filtered.length > 0);
-      }
-    }
-
     // Если изменяется классификация и есть адрес, загружаем запомненное оборудование
     if (name === 'classification') {
       if (value === 'не выбрано') {
         // Если выбрано "не выбрано", очищаем поля оборудования
         setFormData(prev => ({
           ...prev,
-          machine_name: '',
-          machine_number: ''
+          equipmentItems: [{ name: '', number: '', quantity: 1 }]
         }));
       } else if (formData.address) {
         fetchEquipmentMemory(formData.address, value);
@@ -240,8 +277,7 @@ function NewReport() {
         // Если адреса нет, очищаем поля оборудования
         setFormData(prev => ({
           ...prev,
-          machine_name: '',
-          machine_number: ''
+          equipmentItems: [{ name: '', number: '', quantity: 1 }]
         }));
       }
     }
@@ -317,6 +353,18 @@ function NewReport() {
 
     // Если выбрана классификация "Другое", заменяем значение
     let dataToSend = { ...formData };
+    // Конвертируем equipmentItems в machine_name и machine_number для совместимости с бэкендом
+    const equipmentNames = formData.equipmentItems
+      .filter(item => item.name.trim())
+      .map(item => item.quantity > 1 ? `${item.name} (${item.quantity} шт.)` : item.name)
+      .join(', ');
+    const equipmentNumbers = formData.equipmentItems
+      .filter(item => item.number.trim())
+      .map(item => item.number)
+      .join(', ');
+    dataToSend.machine_name = equipmentNames;
+    dataToSend.machine_number = equipmentNumbers;
+    delete dataToSend.equipmentItems;
     // Добавляем выбранного исполнителя
     dataToSend.userId = parseInt(selectedUserId, 10);
     if (dataToSend.classification === 'Другое') {
@@ -337,19 +385,21 @@ function NewReport() {
       fetchAddresses();
 
       // Если оборудование не найдено в списке, добавляем его
-      const machineName = dataToSend.machine_name?.trim();
-      if (
-        machineName &&
-        !equipmentList.some(eq => (eq.equipment || '').toLowerCase() === machineName.toLowerCase())
-      ) {
-        try {
-          await axios.post('/api/equipment', { equipment: machineName });
-          fetchEquipment();
-        } catch (err) {
-          // Не критично, просто логируем
-          console.error('Ошибка при добавлении оборудования:', err);
+      for (const item of formData.equipmentItems) {
+        const machineName = item.name?.trim();
+        if (
+          machineName &&
+          !equipmentList.some(eq => (eq.equipment || '').toLowerCase() === machineName.toLowerCase())
+        ) {
+          try {
+            await axios.post('/api/equipment', { equipment: machineName });
+          } catch (err) {
+            // Не критично, просто логируем
+            console.error('Ошибка при добавлении оборудования:', err);
+          }
         }
       }
+      fetchEquipment();
 
       // Перенаправляем на страницу путевого листа после успешного создания
       setTimeout(() => navigate('/travel-sheet'), 2000);
@@ -488,56 +538,86 @@ function NewReport() {
           )}
         </div>
 
-        <div className="mb-3 position-relative">
-          <label className="form-label fw-bold">Название оборудования</label>
-          <div className="input-group">
-            <input
-              type="text"
-              className="form-control"
-              name="machine_name"
-              value={formData.machine_name}
-              onChange={handleChange}
-              ref={equipmentInputRef}
-              autoComplete="off"
-            />
-            <button
-              type="button"
-              className="btn btn-outline-secondary"
-              onClick={toggleEquipmentList}
-              title="Показать все оборудование"
-            >
-              <FaChevronDown />
-            </button>
-          </div>
-          {showEquipmentSuggestions && (
-            <div className="position-absolute w-100 mt-1 border rounded shadow-sm dropdown-suggestions" style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}>
-              {filteredEquipment.length > 0 ? (
-                filteredEquipment.map((name, index) => (
-                  <div
-                    key={index}
-                    className="p-2 border-bottom cursor-pointer dropdown-suggestion-item"
-                    onClick={() => handleEquipmentSelect(name)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    {name}
-                  </div>
-                ))
-              ) : (
-                <div className="p-2 text-muted">Нет подходящего оборудования</div>
-              )}
-            </div>
-          )}
-        </div>
-
         <div className="mb-3">
-          <label className="form-label fw-bold">Номер оборудования</label>
-          <textarea
-            className="form-control"
-            name="machine_number"
-            value={formData.machine_number}
-            onChange={handleChange}
-            rows="1"
-          />
+          <label className="form-label fw-bold">Оборудование</label>
+          {formData.equipmentItems.map((item, index) => (
+            <div key={index} className="border rounded p-3 mb-2 position-relative">
+              <div className="d-flex gap-2 mb-2 align-items-start">
+                <div className="flex-grow-1 position-relative">
+                  <label className="form-label small">Название</label>
+                  <div className="input-group">
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Название оборудования"
+                      value={item.name}
+                      onChange={e => handleEquipmentChange(index, 'name', e.target.value)}
+                      autoComplete="off"
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary"
+                      onClick={() => toggleEquipmentList(index)}
+                      title="Показать все оборудование"
+                    >
+                      <FaChevronDown />
+                    </button>
+                  </div>
+                  {showEquipmentSuggestions && activeEquipmentIndex === index && (
+                    <div className="position-absolute w-100 mt-1 border rounded shadow-sm dropdown-suggestions" style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}>
+                      {filteredEquipment.length > 0 ? (
+                        filteredEquipment.map((name, i) => (
+                          <div
+                            key={i}
+                            className="p-2 border-bottom cursor-pointer dropdown-suggestion-item"
+                            onClick={() => handleEquipmentSelect(name, index)}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            {name}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-2 text-muted">Нет подходящего оборудования</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div style={{ width: '100px' }}>
+                  <label className="form-label small">Кол-во</label>
+                  <input
+                    type="number"
+                    min={1}
+                    className="form-control"
+                    value={item.quantity}
+                    onChange={e => handleEquipmentChange(index, 'quantity', Number(e.target.value) || 1)}
+                  />
+                </div>
+                {formData.equipmentItems.length > 1 && (
+                  <button
+                    type="button"
+                    className="btn btn-danger btn-sm mt-4"
+                    onClick={() => handleRemoveEquipment(index)}
+                    title="Удалить"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+              <div>
+                <label className="form-label small">Номер оборудования</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Номер оборудования"
+                  value={item.number}
+                  onChange={e => handleEquipmentChange(index, 'number', e.target.value)}
+                />
+              </div>
+            </div>
+          ))}
+          <button type="button" className="btn btn-secondary btn-sm" onClick={handleAddEquipment}>
+            + Добавить оборудование
+          </button>
         </div>
 
         <div className="mb-3">
