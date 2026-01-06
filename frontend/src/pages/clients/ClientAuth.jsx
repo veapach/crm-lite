@@ -5,6 +5,33 @@ import styles from './ClientAuth.module.css';
 
 const LOGO_SRC = '/assets/Логотип ВВ/ВкусВилл зеленый/Лого-ВкусВилл-зеленый.png';
 
+// Функция нормализации телефона
+const normalizePhone = (phone) => {
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length === 11 && digits.startsWith('8')) {
+    return '+7' + digits.slice(1);
+  }
+  if (digits.length === 11 && digits.startsWith('7')) {
+    return '+' + digits;
+  }
+  if (digits.length === 10) {
+    return '+7' + digits;
+  }
+  return phone;
+};
+
+// Валидация телефона
+const isValidPhone = (phone) => {
+  const normalized = normalizePhone(phone);
+  return /^\+7\d{10}$/.test(normalized);
+};
+
+// Валидация email
+const isValidEmail = (email) => {
+  if (!email) return true; // Не обязательное поле
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
+
 export default function ClientAuth() {
   const [isLogin, setIsLogin] = useState(true);
   const [form, setForm] = useState({
@@ -15,19 +42,87 @@ export default function ClientAuth() {
     phone: '',
     position: ''
   });
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [touched, setTouched] = useState({});
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { login, register } = useClientAuth();
 
+  // Валидация полей в реальном времени
+  const validateField = (name, value) => {
+    switch (name) {
+      case 'fullName':
+        if (!value.trim()) return 'ФИО обязательно';
+        if (value.trim().length < 2) return 'ФИО слишком короткое';
+        return '';
+      case 'phone':
+        if (!value.trim()) return 'Телефон обязателен';
+        if (!isValidPhone(value)) return 'Формат: +7XXXXXXXXXX';
+        return '';
+      case 'email':
+        if (value && !isValidEmail(value)) return 'Некорректный email';
+        return '';
+      case 'password':
+        if (!value) return 'Пароль обязателен';
+        if (value.length < 6) return 'Минимум 6 символов';
+        return '';
+      case 'login':
+        if (!value.trim()) return 'Введите телефон или email';
+        return '';
+      default:
+        return '';
+    }
+  };
+
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm({ ...form, [name]: value });
     setError('');
+    
+    // Валидация в реальном времени если поле уже было тронуто
+    if (touched[name]) {
+      setFieldErrors(prev => ({
+        ...prev,
+        [name]: validateField(name, value)
+      }));
+    }
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    setTouched(prev => ({ ...prev, [name]: true }));
+    setFieldErrors(prev => ({
+      ...prev,
+      [name]: validateField(name, value)
+    }));
+  };
+
+  // Валидация всей формы
+  const validateForm = () => {
+    const errors = {};
+    if (!isLogin) {
+      errors.fullName = validateField('fullName', form.fullName);
+      errors.phone = validateField('phone', form.phone);
+      errors.email = validateField('email', form.email);
+      errors.password = validateField('password', form.password);
+    } else {
+      errors.login = validateField('login', form.login);
+      errors.password = validateField('password', form.password);
+    }
+    setFieldErrors(errors);
+    setTouched({ fullName: true, phone: true, email: true, password: true, login: true });
+    return !Object.values(errors).some(err => err);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    
+    if (!validateForm()) {
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -35,12 +130,15 @@ export default function ClientAuth() {
       if (isLogin) {
         result = await login(form.login, form.password);
       } else {
-        if (!form.email || !form.password || !form.fullName) {
+        if (!form.phone || !form.password || !form.fullName) {
           setError('Заполните обязательные поля');
           setLoading(false);
           return;
         }
-        result = await register(form);
+        result = await register({
+          ...form,
+          phone: normalizePhone(form.phone)
+        });
       }
 
       if (result.success) {
@@ -58,6 +156,8 @@ export default function ClientAuth() {
   const toggleMode = () => {
     setIsLogin(!isLogin);
     setError('');
+    setFieldErrors({});
+    setTouched({});
     setForm({
       login: '',
       email: '',
@@ -99,27 +199,34 @@ export default function ClientAuth() {
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>ФИО *</label>
                 <input
-                  className={styles.formInput}
+                  className={`${styles.formInput} ${fieldErrors.fullName && touched.fullName ? styles.inputError : ''}`}
                   type="text"
                   name="fullName"
                   value={form.fullName}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   placeholder="Введите ваше имя"
-                  required={!isLogin}
                 />
+                {fieldErrors.fullName && touched.fullName && (
+                  <span className={styles.fieldError}>{fieldErrors.fullName}</span>
+                )}
               </div>
 
               <div className={styles.formRow}>
                 <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Телефон</label>
+                  <label className={styles.formLabel}>Телефон *</label>
                   <input
-                    className={styles.formInput}
+                    className={`${styles.formInput} ${fieldErrors.phone && touched.phone ? styles.inputError : ''}`}
                     type="tel"
                     name="phone"
                     value={form.phone}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     placeholder="+7..."
                   />
+                  {fieldErrors.phone && touched.phone && (
+                    <span className={styles.fieldError}>{fieldErrors.phone}</span>
+                  )}
                 </div>
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Должность</label>
@@ -133,6 +240,22 @@ export default function ClientAuth() {
                   />
                 </div>
               </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Email</label>
+                <input
+                  className={`${styles.formInput} ${fieldErrors.email && touched.email ? styles.inputError : ''}`}
+                  type="email"
+                  name="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  placeholder="example@mail.ru (необязательно)"
+                />
+                {fieldErrors.email && touched.email && (
+                  <span className={styles.fieldError}>{fieldErrors.email}</span>
+                )}
+              </div>
             </>
           )}
 
@@ -140,42 +263,34 @@ export default function ClientAuth() {
             <div className={styles.formGroup}>
               <label className={styles.formLabel}>Телефон или Email *</label>
               <input
-                className={styles.formInput}
+                className={`${styles.formInput} ${fieldErrors.login && touched.login ? styles.inputError : ''}`}
                 type="text"
                 name="login"
                 value={form.login}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 placeholder="+7... или example@mail.ru"
-                required
               />
+              {fieldErrors.login && touched.login && (
+                <span className={styles.fieldError}>{fieldErrors.login}</span>
+              )}
             </div>
-          ) : (
-            <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Email *</label>
-              <input
-                className={styles.formInput}
-                type="email"
-                name="email"
-                value={form.email}
-                onChange={handleChange}
-                placeholder="example@mail.ru"
-                required
-              />
-            </div>
-          )}
+          ) : null}
 
           <div className={styles.formGroup}>
             <label className={styles.formLabel}>Пароль *</label>
             <input
-              className={styles.formInput}
+              className={`${styles.formInput} ${fieldErrors.password && touched.password ? styles.inputError : ''}`}
               type="password"
               name="password"
               value={form.password}
               onChange={handleChange}
-              placeholder="Введите пароль"
-              required
-              minLength={6}
+              onBlur={handleBlur}
+              placeholder="Введите пароль (минимум 6 символов)"
             />
+            {fieldErrors.password && touched.password && (
+              <span className={styles.fieldError}>{fieldErrors.password}</span>
+            )}
           </div>
 
           {error && (

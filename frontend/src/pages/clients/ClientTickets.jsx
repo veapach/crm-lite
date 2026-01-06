@@ -6,7 +6,6 @@ import { useTheme } from '../../context/ThemeContext';
 import styles from './ClientTickets.module.css';
 
 const LOGO_SRC = '/assets/Логотип ВВ/ВкусВилл зеленый/Лого-ВкусВилл-зеленый.png';
-const LOGO_WHITE_SRC = '/assets/Логотип ВВ/ВкусВилл белый/Лого-ВкусВилл-белый.png';
 
 // Статусы и их стили
 const STATUS_CONFIG = {
@@ -51,6 +50,17 @@ export default function ClientTickets() {
       fetchTickets();
       // Загружаем адреса для автокомплита
       axios.get('/api/addresses').then(res => setAddresses(res.data || []));
+      
+      // Polling для live-обновления заявок каждые 30 секунд
+      const pollInterval = setInterval(() => {
+        axios.get('/api/client/my-tickets')
+          .then(res => {
+            setTickets(res.data.tickets || []);
+          })
+          .catch(err => console.error('Polling error:', err));
+      }, 30000);
+      
+      return () => clearInterval(pollInterval);
     }
   }, [isAuthenticated]);
 
@@ -195,7 +205,7 @@ export default function ClientTickets() {
       <header className={styles.header}>
         <div className={styles.headerContent}>
           <div className={styles.headerLeft}>
-            <img src={isDark ? LOGO_WHITE_SRC : LOGO_SRC} alt="ВкусВилл" className={styles.logo} />
+            <img src={LOGO_SRC} alt="ВкусВилл" className={styles.logo} />
             <div className={styles.headerTitle}>
               <h1>Личный кабинет</h1>
               <p>Управление заявками</p>
@@ -354,15 +364,14 @@ export default function ClientTickets() {
                     </span>
                     <div className={styles.reportsList}>
                       {ticket.reports.map(report => (
-                        <a 
+                        <button 
                           key={report.id}
-                          href={`/api/uploads/reports/${report.filename}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                          onClick={() => window.open(`/api/uploads/reports/${report.filename}`, '_blank')}
                           className={styles.reportLink}
+                          type="button"
                         >
                           {report.date} - {report.classification}
-                        </a>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -460,20 +469,19 @@ export default function ClientTickets() {
                   <h4>Отчёты по заявке:</h4>
                   <div className={styles.reportCards}>
                     {selectedTicket.reports.map(report => (
-                      <a 
+                      <button 
                         key={report.id}
-                        href={`/api/uploads/reports/${report.filename}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        onClick={() => window.open(`/api/uploads/reports/${report.filename}`, '_blank')}
                         className={styles.reportCard}
+                        type="button"
                       >
                         <div className={styles.reportIcon}>📄</div>
                         <div className={styles.reportInfo}>
                           <span className={styles.reportDate}>{report.date}</span>
                           <span className={styles.reportClass}>{report.classification}</span>
                         </div>
-                        <span className={styles.downloadIcon}>⬇</span>
-                      </a>
+                        <span className={styles.downloadIcon}>👁</span>
+                      </button>
                     ))}
                   </div>
                 </div>

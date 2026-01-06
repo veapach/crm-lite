@@ -57,10 +57,10 @@ func normalizePhone(phone string) string {
 // ClientRegister - регистрация нового клиента
 func ClientRegister(c *gin.Context) {
 	var input struct {
-		Email    string `json:"email" binding:"required"`
+		Email    string `json:"email"`
 		Password string `json:"password" binding:"required"`
 		FullName string `json:"fullName" binding:"required"`
-		Phone    string `json:"phone"`
+		Phone    string `json:"phone" binding:"required"`
 		Position string `json:"position"`
 	}
 
@@ -69,18 +69,33 @@ func ClientRegister(c *gin.Context) {
 		return
 	}
 
-	// Проверка email
+	// Нормализация телефона
+	normalizedPhone := normalizePhone(strings.TrimSpace(input.Phone))
+	if normalizedPhone == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат телефона"})
+		return
+	}
+
+	// Проверка email если указан
 	input.Email = strings.TrimSpace(strings.ToLower(input.Email))
-	if !strings.Contains(input.Email, "@") {
+	if input.Email != "" && !strings.Contains(input.Email, "@") {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат email"})
 		return
 	}
 
-	// Проверка уникальности email
+	// Проверка уникальности телефона
 	var existing db.Client
-	if err := db.DB.Where("email = ?", input.Email).First(&existing).Error; err == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Пользователь с таким email уже зарегистрирован"})
+	if err := db.DB.Where("phone = ?", normalizedPhone).First(&existing).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Пользователь с таким телефоном уже зарегистрирован"})
 		return
+	}
+
+	// Проверка уникальности email если указан
+	if input.Email != "" {
+		if err := db.DB.Where("email = ?", input.Email).First(&existing).Error; err == nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Пользователь с таким email уже зарегистрирован"})
+			return
+		}
 	}
 
 	// Хеширование пароля
@@ -94,7 +109,7 @@ func ClientRegister(c *gin.Context) {
 		Email:     input.Email,
 		Password:  string(hashedPass),
 		FullName:  strings.TrimSpace(input.FullName),
-		Phone:     strings.TrimSpace(input.Phone),
+		Phone:     normalizedPhone,
 		Position:  strings.TrimSpace(input.Position),
 		CreatedAt: time.Now().Format("2006-01-02 15:04:05"),
 	}
