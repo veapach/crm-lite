@@ -4,6 +4,14 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FaChevronDown } from 'react-icons/fa';
 
+// Стили для скрытия стрелок у input[type=number]
+const quantityInputStyle = {
+  width: '50px',
+  MozAppearance: 'textfield',
+  WebkitAppearance: 'none',
+  appearance: 'textfield'
+};
+
 function NewReport() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -582,15 +590,46 @@ function NewReport() {
                     </div>
                   )}
                 </div>
-                <div style={{ width: '100px' }}>
+                <div style={{ width: '140px' }}>
                   <label className="form-label small">Кол-во</label>
-                  <input
-                    type="number"
-                    min={1}
-                    className="form-control"
-                    value={item.quantity}
-                    onChange={e => handleEquipmentChange(index, 'quantity', Number(e.target.value) || 1)}
-                  />
+                  <div className="d-flex align-items-center gap-1">
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary btn-sm"
+                      onClick={() => handleEquipmentChange(index, 'quantity', Math.max(1, (item.quantity || 1) - 1))}
+                      style={{ width: '32px', height: '38px' }}
+                    >
+                      −
+                    </button>
+                    <input
+                      type="tel"
+                      pattern="[0-9]*"
+                      inputMode="numeric"
+                      className="form-control text-center"
+                      style={{ width: '50px', MozAppearance: 'textfield' }}
+                      value={item.quantity}
+                      onChange={e => {
+                        const val = e.target.value;
+                        if (val === '' || /^\d+$/.test(val)) {
+                          handleEquipmentChange(index, 'quantity', val === '' ? '' : Number(val));
+                        }
+                      }}
+                      onBlur={e => {
+                        const val = Number(e.target.value);
+                        if (!val || val < 1) {
+                          handleEquipmentChange(index, 'quantity', 1);
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary btn-sm"
+                      onClick={() => handleEquipmentChange(index, 'quantity', (item.quantity || 1) + 1)}
+                      style={{ width: '32px', height: '38px' }}
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
                 {formData.equipmentItems.length > 1 && (
                   <button
