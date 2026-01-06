@@ -272,11 +272,12 @@ func ClientUpdateProfile(c *gin.Context) {
 	}
 
 	var input struct {
-		FullName string `json:"fullName"`
-		Email    string `json:"email"`
-		Phone    string `json:"phone"`
-		Position string `json:"position"`
-		Password string `json:"password,omitempty"`
+		FullName        string `json:"fullName"`
+		Email           string `json:"email"`
+		Phone           string `json:"phone"`
+		Position        string `json:"position"`
+		CurrentPassword string `json:"currentPassword,omitempty"`
+		NewPassword     string `json:"newPassword,omitempty"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -284,15 +285,59 @@ func ClientUpdateProfile(c *gin.Context) {
 		return
 	}
 
+	// Получаем текущего клиента
+	var currentClient db.Client
+	if err := db.DB.First(&currentClient, clientID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "клиент не найден"})
+		return
+	}
+
+	// Проверка уникальности телефона если он изменился
+	newPhone := strings.TrimSpace(input.Phone)
+	if newPhone != "" && normalizePhone(newPhone) != normalizePhone(currentClient.Phone) {
+		var existingClient db.Client
+		normalized := normalizePhone(newPhone)
+		// Ищем клиента с таким же нормализованным телефоном
+		var clients []db.Client
+		db.DB.Find(&clients)
+		for _, cl := range clients {
+			if cl.ID != currentClient.ID && normalizePhone(cl.Phone) == normalized {
+				existingClient = cl
+				break
+			}
+		}
+		if existingClient.ID != 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Этот номер телефона уже используется другим пользователем"})
+			return
+		}
+	}
+
 	updates := map[string]interface{}{
 		"full_name": strings.TrimSpace(input.FullName),
 		"email":     strings.TrimSpace(input.Email),
-		"phone":     strings.TrimSpace(input.Phone),
 		"position":  strings.TrimSpace(input.Position),
 	}
 
-	if input.Password != "" {
-		hashedPass, _ := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+	if newPhone != "" {
+		updates["phone"] = newPhone
+	}
+
+	// Смена пароля
+	if input.NewPassword != "" {
+		// Проверяем текущий пароль
+		if input.CurrentPassword == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Для смены пароля введите текущий пароль"})
+			return
+		}
+		if err := bcrypt.CompareHashAndPassword([]byte(currentClient.Password), []byte(input.CurrentPassword)); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный текущий пароль"})
+			return
+		}
+		if len(input.NewPassword) < 4 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Новый пароль должен быть не менее 4 символов"})
+			return
+		}
+		hashedPass, _ := bcrypt.GenerateFromPassword([]byte(input.NewPassword), bcrypt.DefaultCost)
 		updates["password"] = string(hashedPass)
 	}
 
@@ -491,4 +536,66 @@ func clearClientCookies(c *gin.Context) {
 	c.SetCookie("client_token", "", -1, "/", "crmlite-vv.ru", false, true)
 	c.SetCookie("client_token", "", -1, "/", "localhost", false, true)
 	c.SetCookie("client_token", "", -1, "/", "", false, true)
+}
+
+// ClientPreviewReport - предпросмотр отчёта для клиента
+func ClientPreviewReport(c *gin.Context) {
+	clientID, exists := c.Get("clientID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "не авторизован"})
+		return
+	}
+
+	filename := c.Param("filename")
+
+	// Находим отчёт по имени файла
+	var report db.Report
+	if err := db.DB.Where("filename LIKE ?", "%"+filename).First(&report).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "отчёт не найден"})
+		return
+	}
+
+	// Проверяем, что отчёт привязан к заявке клиента
+	hasAccess := false
+
+	// Проверяем привязку через заявки
+	var ticketReports []db.TicketReport
+	db.DB.Where("report_id = ?", report.ID).Find(&ticketReports)
+	for _, tr := range ticketReports {
+		var ticket db.ClientTicket
+		if db.DB.First(&ticket, tr.TicketID).Error == nil {
+			if ticket.ClientID != nil && *ticket.ClientID == clientID.(uint) {
+				hasAccess = true
+				break
+			}
+		}
+	}
+
+	// Если не нашли через заявки, проверяем по адресам заявок клиента
+	if !hasAccess {
+		var clientTickets []db.ClientTicket
+		db.DB.Where("client_id = ?", clientID).Find(&clientTickets)
+		for _, t := range clientTickets {
+			if report.Address == t.Address {
+				hasAccess = true
+				break
+			}
+		}
+	}
+
+	if !hasAccess {
+		c.JSON(http.StatusForbidden, gin.H{"error": "нет доступа к этому отчёту"})
+		return
+	}
+
+	// Отдаём файл
+	filePath := "uploads/reports/" + filename
+	if _, err := os.Stat(filePath); err == nil {
+		c.File(filePath)
+		return
+	}
+
+	// Пробуем S3
+	// (упрощённо - если нет локально, возвращаем ошибку)
+	c.JSON(http.StatusNotFound, gin.H{"error": "файл не найден"})
 }

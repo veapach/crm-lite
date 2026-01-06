@@ -54,11 +54,15 @@ export default function ClientTickets() {
   const [profileForm, setProfileForm] = useState({
     fullName: '',
     email: '',
-    phone: ''
+    phone: '',
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
   });
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileError, setProfileError] = useState('');
   const [profileSuccess, setProfileSuccess] = useState(false);
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -214,12 +218,35 @@ export default function ClientTickets() {
     setProfileForm({
       fullName: client?.fullName || '',
       email: client?.email || '',
-      phone: client?.phone || ''
+      phone: client?.phone || '',
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
     });
     setShowSettingsMenu(false);
     setShowEditProfile(true);
     setProfileError('');
     setProfileSuccess(false);
+    setShowPasswordChange(false);
+  };
+
+  // Форматирование телефона
+  const formatPhoneInput = (value) => {
+    const digits = value.replace(/\D/g, '');
+    let formatted = '+7';
+    if (digits.length > 1) {
+      formatted += ' (' + digits.substring(1, 4);
+    }
+    if (digits.length >= 4) {
+      formatted += ') ' + digits.substring(4, 7);
+    }
+    if (digits.length >= 7) {
+      formatted += '-' + digits.substring(7, 9);
+    }
+    if (digits.length >= 9) {
+      formatted += '-' + digits.substring(9, 11);
+    }
+    return formatted;
   };
 
   // Сохранение профиля
@@ -229,11 +256,33 @@ export default function ClientTickets() {
     setProfileError('');
     setProfileSuccess(false);
     
+    // Валидация пароля
+    if (showPasswordChange && profileForm.newPassword) {
+      if (profileForm.newPassword !== profileForm.confirmPassword) {
+        setProfileError('Пароли не совпадают');
+        setProfileSaving(false);
+        return;
+      }
+      if (profileForm.newPassword.length < 4) {
+        setProfileError('Пароль должен быть не менее 4 символов');
+        setProfileSaving(false);
+        return;
+      }
+    }
+    
     try {
-      await axios.put('/api/client/profile', {
+      const data = {
         fullName: profileForm.fullName,
-        email: profileForm.email
-      });
+        email: profileForm.email,
+        phone: profileForm.phone
+      };
+      
+      if (showPasswordChange && profileForm.newPassword) {
+        data.currentPassword = profileForm.currentPassword;
+        data.newPassword = profileForm.newPassword;
+      }
+      
+      await axios.put('/api/client/profile', data);
       setProfileSuccess(true);
       // Обновляем данные клиента через перезагрузку страницы через 1 секунду
       setTimeout(() => {
@@ -524,7 +573,7 @@ export default function ClientTickets() {
                       {ticket.reports.map(report => (
                         <button 
                           key={report.id}
-                          onClick={() => handlePreviewPdf(`/api/reports/preview/${encodeURIComponent(report.filename)}`)}
+                          onClick={() => handlePreviewPdf(`/api/client/reports/preview/${encodeURIComponent(report.filename)}`)}
                           className={styles.reportLink}
                           type="button"
                         >
@@ -807,6 +856,7 @@ export default function ClientTickets() {
                     value={profileForm.fullName}
                     onChange={e => setProfileForm({...profileForm, fullName: e.target.value})}
                     placeholder="Иванов Иван Иванович"
+                    className={styles.profileInput}
                     required
                   />
                 </div>
@@ -818,6 +868,7 @@ export default function ClientTickets() {
                     value={profileForm.email}
                     onChange={e => setProfileForm({...profileForm, email: e.target.value})}
                     placeholder="email@example.com"
+                    className={styles.profileInput}
                   />
                 </div>
                 
@@ -826,10 +877,57 @@ export default function ClientTickets() {
                   <input
                     type="text"
                     value={profileForm.phone}
-                    disabled
-                    className={styles.disabledInput}
+                    onChange={e => setProfileForm({...profileForm, phone: formatPhoneInput(e.target.value)})}
+                    placeholder="+7 (999) 999-99-99"
+                    className={styles.profileInput}
                   />
-                  <small className={styles.fieldHint}>Телефон изменить нельзя</small>
+                  <small className={styles.fieldHint}>Если номер уже используется, изменить не получится</small>
+                </div>
+
+                {/* Секция смены пароля */}
+                <div className={styles.passwordSection}>
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPasswordChange(!showPasswordChange)}
+                    className={styles.togglePasswordBtn}
+                  >
+                    {showPasswordChange ? '▼ Скрыть смену пароля' : '▶ Сменить пароль'}
+                  </button>
+                  
+                  {showPasswordChange && (
+                    <div className={styles.passwordFields}>
+                      <div className={styles.formGroup}>
+                        <label>Текущий пароль</label>
+                        <input
+                          type="password"
+                          value={profileForm.currentPassword}
+                          onChange={e => setProfileForm({...profileForm, currentPassword: e.target.value})}
+                          placeholder="Введите текущий пароль"
+                          className={styles.profileInput}
+                        />
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label>Новый пароль</label>
+                        <input
+                          type="password"
+                          value={profileForm.newPassword}
+                          onChange={e => setProfileForm({...profileForm, newPassword: e.target.value})}
+                          placeholder="Минимум 4 символа"
+                          className={styles.profileInput}
+                        />
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label>Подтвердите новый пароль</label>
+                        <input
+                          type="password"
+                          value={profileForm.confirmPassword}
+                          onChange={e => setProfileForm({...profileForm, confirmPassword: e.target.value})}
+                          placeholder="Повторите новый пароль"
+                          className={styles.profileInput}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {profileError && (

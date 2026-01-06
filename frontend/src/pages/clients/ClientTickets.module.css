@@ -961,6 +961,22 @@
   padding: 24px;
 }
 
+.formGroup {
+  margin-bottom: 16px;
+}
+
+.formGroup label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.dark .formGroup label {
+  color: #e5e7eb;
+}
+
 .createFormGroup {
   margin-bottom: 20px;
 }
@@ -1528,6 +1544,79 @@
   background: rgba(16, 185, 129, 0.1);
   border-color: rgba(16, 185, 129, 0.3);
   color: #34d399;
+}
+
+/* ========== Стили для формы профиля ========== */
+.profileInput {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  background: white;
+  color: #374151;
+}
+
+.profileInput:focus {
+  outline: none;
+  border-color: #2dbe64;
+  box-shadow: 0 0 0 3px rgba(45, 190, 100, 0.1);
+}
+
+.profileInput::placeholder {
+  color: #9ca3af;
+}
+
+.dark .profileInput {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #f1f1f1;
+}
+
+.dark .profileInput:focus {
+  border-color: #2dbe64;
+  box-shadow: 0 0 0 3px rgba(45, 190, 100, 0.15);
+}
+
+.dark .profileInput::placeholder {
+  color: #6b7280;
+}
+
+/* Секция смены пароля */
+.passwordSection {
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.dark .passwordSection {
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+.togglePasswordBtn {
+  background: none;
+  border: none;
+  color: #2dbe64;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.2s ease;
+}
+
+.togglePasswordBtn:hover {
+  color: #25a857;
+}
+
+.passwordFields {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: slideDown 0.2s ease;
 }
 
 /* Тёмная тема для PDF модалки */
