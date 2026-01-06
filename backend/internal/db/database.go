@@ -94,19 +94,43 @@ type EquipmentMemory struct {
 	Count          int    `gorm:"not null;default:1" json:"count"`
 }
 
+// Client - модель клиента (заказчика услуг)
+type Client struct {
+	ID       uint   `gorm:"primaryKey" json:"id"`
+	Email    string `gorm:"uniqueIndex;not null" json:"email"`
+	Password string `gorm:"not null" json:"-"`
+	FullName string `gorm:"not null" json:"fullName"`
+	Phone    string `gorm:"default:null" json:"phone"`
+
+	Position    string `gorm:"default:null" json:"position"`
+	CreatedAt   string `gorm:"not null" json:"createdAt"`
+	LastLoginAt string `gorm:"default:null" json:"lastLoginAt"`
+}
+
+// TicketReport - связь между заявкой и отчётом
+type TicketReport struct {
+	ID        uint   `gorm:"primaryKey" json:"id"`
+	TicketID  uint   `gorm:"not null;index" json:"ticketId"`
+	ReportID  uint   `gorm:"not null;index" json:"reportId"`
+	CreatedAt string `gorm:"not null" json:"createdAt"`
+}
+
 type ClientTicket struct {
-	ID           uint   `gorm:"primaryKey" json:"id"`
-	Date         string `gorm:"not null" json:"date"`
-	FullName     string `gorm:"not null" json:"fullName"`
-	Position     string `gorm:"not null" json:"position"`
-	Contact      string `gorm:"default:null" json:"contact"`
-	Address      string `gorm:"not null" json:"address"`
-	Description  string `gorm:"not null" json:"description"`
-	Status       string `gorm:"not null;default:'Не назначено'" json:"status"`
-	EngineerID   *uint  `gorm:"default:null" json:"engineerId"`
-	Engineer     *User  `gorm:"foreignKey:EngineerID;constraint:OnDelete:SET NULL" json:"-"`
-	EngineerName string `gorm:"default:null" json:"engineerName"`
-	Files        string `gorm:"type:text" json:"files"`
+	ID           uint    `gorm:"primaryKey" json:"id"`
+	Date         string  `gorm:"not null" json:"date"`
+	FullName     string  `gorm:"not null" json:"fullName"`
+	Position     string  `gorm:"not null" json:"position"`
+	Contact      string  `gorm:"default:null" json:"contact"`
+	Address      string  `gorm:"not null" json:"address"`
+	Description  string  `gorm:"not null" json:"description"`
+	Status       string  `gorm:"not null;default:'Не назначено'" json:"status"`
+	EngineerID   *uint   `gorm:"default:null" json:"engineerId"`
+	Engineer     *User   `gorm:"foreignKey:EngineerID;constraint:OnDelete:SET NULL" json:"-"`
+	EngineerName string  `gorm:"default:null" json:"engineerName"`
+	Files        string  `gorm:"type:text" json:"files"`
+	ClientID     *uint   `gorm:"default:null;index" json:"clientId"`
+	Client       *Client `gorm:"foreignKey:ClientID;constraint:OnDelete:SET NULL" json:"-"`
+	CompletedAt  string  `gorm:"default:null" json:"completedAt"`
 }
 
 func InitDB() {
@@ -120,7 +144,7 @@ func InitDB() {
 		log.Fatal("Ошибка при подключении к PostgreSQL:", err)
 	}
 
-	if err := DB.AutoMigrate(&File{}, &User{}, &Report{}, &Request{}, &Address{}, &AllowedPhone{}, &Equipment{}, &Inventory{}, &TravelRecord{}, &EquipmentMemory{}, &ClientTicket{}); err != nil {
+	if err := DB.AutoMigrate(&File{}, &User{}, &Report{}, &Request{}, &Address{}, &AllowedPhone{}, &Equipment{}, &Inventory{}, &TravelRecord{}, &EquipmentMemory{}, &ClientTicket{}, &Client{}, &TicketReport{}); err != nil {
 		log.Fatal("Ошибка миграции схемы:", err)
 	}
 

@@ -14,10 +14,13 @@ import MaintenancePage from './pages/MaintenancePage';
 import Statistics from './pages/Statistics';
 import TravelSheet from './pages/TravelSheet';
 import Tickets from './pages/clients/Tickets';
+import ClientAuth from './pages/clients/ClientAuth';
+import ClientTickets from './pages/clients/ClientTickets';
 import InnerTickets from './pages/InnerTickets';
 import axios from "axios";
 import config from "./config";
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ClientAuthProvider, useClientAuth } from './context/ClientAuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -52,7 +55,8 @@ function App() {
   const isAdmin = user && user.department === 'Админ';
   const isViewOnly = user?.phone === 'viewonlyuser';
   const isTicketsPage = location.pathname === '/tickets';
-  const hideNavbar = isTicketsPage && (!isAuthenticated || isClient);
+  const isClientPage = location.pathname.startsWith('/client');
+  const hideNavbar = (isTicketsPage && (!isAuthenticated || isClient)) || isClientPage;
 
   useEffect(() => {
     const checkServerAvailability = async () => {
@@ -86,6 +90,9 @@ function App() {
         <Routes>
           <Route path="/auth" element={isAuthenticated ? <Navigate to="/" replace /> : <Auth />} />
           <Route path="/tickets" element={<Tickets />} />
+          {/* Клиентский портал */}
+          <Route path="/client/auth" element={<ClientAuth />} />
+          <Route path="/client/tickets" element={<ClientTickets />} />
           <Route path="/" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <Dashboard />) : <Navigate to="/tickets" replace />} />
           <Route path="/new-report" element={isAuthenticated ? (isViewOnly ? <Navigate to="/reports" replace /> : <NewReport />) : <Navigate to="/auth" replace />} />
           <Route path="/reports" element={isAuthenticated ? <Reports /> : <Navigate to="/auth" replace />} />
@@ -107,11 +114,13 @@ export default function WrappedApp() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <BrowserRouter>
-          <NewTicketsProvider>
-            <App />
-          </NewTicketsProvider>
-        </BrowserRouter>
+        <ClientAuthProvider>
+          <BrowserRouter>
+            <NewTicketsProvider>
+              <App />
+            </NewTicketsProvider>
+          </BrowserRouter>
+        </ClientAuthProvider>
       </AuthProvider>
     </ThemeProvider>
   );

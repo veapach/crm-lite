@@ -3,12 +3,14 @@ import axios from 'axios';
 import styles from './Tickets.module.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { useAuth } from '../../context/AuthContext';
+import { useClientAuth } from '../../context/ClientAuthContext';
 import { useNavigate } from 'react-router-dom';
 
 const LOGO_SRC = '/assets/Логотип ВВ/ВкусВилл зеленый/Лого-ВкусВилл-зеленый.png';
 
 export default function Tickets() {
   const { isAuthenticated, user, loading } = useAuth();
+  const { isAuthenticated: isClientAuth, client, loading: clientLoading } = useClientAuth();
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
 
@@ -27,7 +29,7 @@ export default function Tickets() {
     };
   }, []);
 
-  // Состояния формы
+  // Состояния формы - автозаполнение если клиент авторизован
   const [form, setForm] = useState({
     fullName: '',
     position: '',
@@ -36,6 +38,19 @@ export default function Tickets() {
     description: '',
     files: [],
   });
+
+  // Автозаполнение из профиля клиента
+  useEffect(() => {
+    if (isClientAuth && client) {
+      setForm(f => ({
+        ...f,
+        fullName: client.fullName || f.fullName,
+        position: client.position || f.position,
+        contact: client.phone || client.email || f.contact,
+      }));
+    }
+  }, [isClientAuth, client]);
+
   const [addresses, setAddresses] = useState([]);
   const [filteredAddresses, setFilteredAddresses] = useState([]);
   const [showAddressList, setShowAddressList] = useState(false);
@@ -110,7 +125,14 @@ export default function Tickets() {
       form.files.forEach(f => data.append('files', f));
       await axios.post('/api/client-tickets', data);
       setSuccess(true);
-      setForm({ fullName: '', position: '', contact: '', address: '', description: '', files: [] });
+      setForm({ 
+        fullName: isClientAuth && client ? client.fullName : '', 
+        position: isClientAuth && client ? client.position || '' : '', 
+        contact: isClientAuth && client ? (client.phone || client.email || '') : '', 
+        address: '', 
+        description: '', 
+        files: [] 
+      });
     } catch (e) {
       setError('Ошибка при отправке. Попробуйте еще раз.');
     } finally {
@@ -251,7 +273,24 @@ export default function Tickets() {
           </div>
         </form>
         {!isAuthenticated && (
-          <div className="text-center mt-4">
+          <div className={styles.authSection}>
+            {isClientAuth ? (
+              <>
+                <div className={styles.clientInfo}>
+                  <span className={styles.clientName}>👤 {client?.fullName}</span>
+                </div>
+                <button className={styles.myTicketsBtn} onClick={() => navigate('/client/tickets')}>
+                  Мои заявки
+                </button>
+              </>
+            ) : (
+              <>
+                <button className={styles.clientAuthBtn} onClick={() => navigate('/client/auth')}>
+                  Вход / Регистрация
+                </button>
+                <span className={styles.authHint}>для отслеживания заявок</span>
+              </>
+            )}
             <button className={styles.engineerBtn} onClick={() => navigate('/auth')}>
               Вход для инженеров
             </button>

@@ -14,6 +14,7 @@ import (
 
 	"backend/internal/address"
 	"backend/internal/backup"
+	"backend/internal/clients"
 	"backend/internal/db"
 	"backend/internal/equipment"
 	"backend/internal/files"
@@ -43,6 +44,30 @@ func init() {
 }
 
 var serverMode string
+
+// optionalClientAuth - опциональная авторизация клиента (не блокирует запрос если токена нет)
+func optionalClientAuth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		tokenString, err := c.Cookie("client_token")
+		if err != nil {
+			tokenString = c.GetHeader("Authorization")
+			if tokenString != "" && len(tokenString) > 7 {
+				tokenString = tokenString[7:] // Remove "Bearer "
+			}
+		}
+
+		if tokenString == "" {
+			c.Next()
+			return
+		}
+
+		// Попытка распарсить токен клиента
+		// Импортируем необходимые пакеты через clients package
+		// Для простоты здесь просто передаём дальше, а парсинг делается в CreateTicket
+		c.Set("clientToken", tokenString)
+		c.Next()
+	}
+}
 
 func createRequiredDirectories() {
 	dirs := []string{
@@ -182,11 +207,23 @@ func main() {
 	r.DELETE("/api/requests/:id", users.AuthMiddleware(), requests.DeleteReport)
 
 	// Заявки клиентов
-	r.POST("/api/client-tickets", tickets.CreateTicket)
+	r.POST("/api/client-tickets", optionalClientAuth(), tickets.CreateTicket)
 	r.GET("/api/client-tickets", users.AuthMiddleware(), tickets.GetClientTickets)
 	r.PUT("/api/client-tickets/:id", users.AuthMiddleware(), tickets.UpdateClientTicket)
 	r.DELETE("/api/client-tickets/:id", users.AuthMiddleware(), tickets.DeleteClientTicket)
 	r.GET("/api/tickets/files/:filename", tickets.ServeTicketFile)
+	r.POST("/api/tickets/link-report", users.AuthMiddleware(), tickets.LinkReportToTicket)
+	r.DELETE("/api/tickets/:ticketId/reports/:reportId", users.AuthMiddleware(), tickets.UnlinkReportFromTicket)
+	r.GET("/api/tickets/:id/reports", users.AuthMiddleware(), tickets.GetTicketReports)
+
+	// Клиентский портал
+	r.POST("/api/client/register", clients.ClientRegister)
+	r.POST("/api/client/login", clients.ClientLogin)
+	r.POST("/api/client/logout", clients.ClientLogout)
+	r.GET("/api/client/check-auth", clients.ClientCheckAuth)
+	r.PUT("/api/client/profile", clients.ClientAuthMiddleware(), clients.ClientUpdateProfile)
+	r.GET("/api/client/my-tickets", clients.ClientAuthMiddleware(), clients.GetClientTickets)
+	r.GET("/api/client/my-tickets/:id", clients.ClientAuthMiddleware(), clients.GetClientTicketByID)
 
 	// Debug TG отправка (только админ)
 	r.POST("/api/debug/send-unassigned-alert", users.AuthMiddleware(), users.AdminMiddleware(), tickets.DebugSendUnassigned)

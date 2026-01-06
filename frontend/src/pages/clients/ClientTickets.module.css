@@ -1,0 +1,677 @@
+/* ========== Client Tickets Page Styles ========== */
+
+.pageWrapper {
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+  background: linear-gradient(135deg, #f8fdf9 0%, #e8f5e9 50%, #f1f8e9 100%);
+}
+
+/* Анимированный фон */
+.animatedBg {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.gradientOrb1,
+.gradientOrb2,
+.gradientOrb3 {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.3;
+  animation: float 25s ease-in-out infinite;
+}
+
+.gradientOrb1 {
+  width: 500px;
+  height: 500px;
+  background: linear-gradient(135deg, #2dbe64 0%, #27a857 100%);
+  top: -150px;
+  left: -150px;
+}
+
+.gradientOrb2 {
+  width: 400px;
+  height: 400px;
+  background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+  bottom: -100px;
+  right: -100px;
+  animation-delay: -8s;
+}
+
+.gradientOrb3 {
+  width: 300px;
+  height: 300px;
+  background: linear-gradient(135deg, #86efac 0%, #4ade80 100%);
+  top: 40%;
+  left: 60%;
+  animation-delay: -16s;
+}
+
+@keyframes float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -30px) scale(1.05); }
+  66% { transform: translate(-20px, 20px) scale(0.95); }
+}
+
+/* Хедер */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(45, 190, 100, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.headerContent {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.logo {
+  height: 48px;
+  width: auto;
+}
+
+.headerTitle h1 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.headerTitle p {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.userName {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.userEmail {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.logoutBtn {
+  padding: 8px 16px;
+  background: #f3f4f6;
+  color: #374151;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logoutBtn:hover {
+  background: #e5e7eb;
+}
+
+/* Основной контент */
+.mainContent {
+  position: relative;
+  z-index: 1;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* Карточки статистики */
+.statsCards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.statCard {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(45, 190, 100, 0.1);
+}
+
+.statIcon {
+  font-size: 32px;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-radius: 12px;
+}
+
+.statInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.statValue {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a1a;
+  line-height: 1;
+}
+
+.statLabel {
+  font-size: 13px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+/* Панель действий */
+.actionsPanel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.filterTabs {
+  display: flex;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 4px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.filterTab {
+  padding: 10px 20px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filterTab:hover {
+  color: #2dbe64;
+}
+
+.filterTab.active {
+  background: #2dbe64;
+  color: white;
+}
+
+.newTicketBtn {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #2dbe64 0%, #27a857 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 15px rgba(45, 190, 100, 0.3);
+}
+
+.newTicketBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(45, 190, 100, 0.4);
+}
+
+/* Список заявок */
+.ticketsList {
+  display: grid;
+  gap: 16px;
+}
+
+.ticketCard {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(45, 190, 100, 0.1);
+  transition: all 0.3s ease;
+}
+
+.ticketCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.ticketHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.ticketId {
+  font-size: 14px;
+  font-weight: 600;
+  color: #9ca3af;
+}
+
+.ticketStatus {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ticketBody {
+  margin-bottom: 16px;
+}
+
+.ticketAddress {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 8px 0;
+}
+
+.ticketDescription {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.ticketMeta {
+  display: flex;
+  gap: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #f3f4f6;
+  margin-bottom: 16px;
+}
+
+.ticketDate,
+.ticketEngineer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.metaIcon {
+  font-size: 14px;
+}
+
+/* Отчёты в карточке */
+.ticketReports {
+  padding: 12px 16px;
+  background: #f0fdf4;
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+
+.reportsLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: #15803d;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.reportsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.reportLink {
+  padding: 6px 12px;
+  background: white;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #15803d;
+  text-decoration: none;
+  border: 1px solid #bbf7d0;
+  transition: all 0.2s;
+}
+
+.reportLink:hover {
+  background: #dcfce7;
+}
+
+.ticketActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.detailsBtn {
+  padding: 10px 20px;
+  background: #f3f4f6;
+  color: #374151;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.detailsBtn:hover {
+  background: #e5e7eb;
+}
+
+/* Состояния */
+.loadingWrapper,
+.loadingState,
+.errorState,
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  text-align: center;
+}
+
+.loadingWrapper {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fdf9 0%, #e8f5e9 50%, #f1f8e9 100%);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #2dbe64;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.emptyIcon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.emptyState h3 {
+  font-size: 20px;
+  color: #1a1a1a;
+  margin: 0 0 8px 0;
+}
+
+.emptyState p {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 24px 0;
+}
+
+.createBtn,
+.retryBtn {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #2dbe64 0%, #27a857 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Модальное окно */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modalContent {
+  background: white;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f3f4f6;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 1;
+}
+
+.modalHeader h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.modalClose {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 10px;
+  font-size: 24px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modalClose:hover {
+  background: #e5e7eb;
+}
+
+.modalBody {
+  padding: 24px;
+}
+
+.detailRow {
+  display: flex;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.detailLabel {
+  flex-shrink: 0;
+  width: 100px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.detailValue {
+  font-size: 14px;
+  color: #1a1a1a;
+  padding: 4px 0;
+}
+
+.detailSection {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.detailSection h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 16px 0;
+}
+
+.photosGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.photoItem {
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f3f4f6;
+}
+
+.photoItem img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photoLoading {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.reportCards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reportCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #f0fdf4;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.reportCard:hover {
+  background: #dcfce7;
+}
+
+.reportIcon {
+  font-size: 24px;
+}
+
+.reportInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.reportDate {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.reportClass {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.downloadIcon {
+  font-size: 16px;
+  color: #2dbe64;
+}
+
+/* Адаптивность */
+@media (max-width: 900px) {
+  .statsCards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .headerContent {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+  }
+
+  .headerLeft,
+  .headerRight {
+    flex-direction: column;
+  }
+
+  .userInfo {
+    align-items: center;
+  }
+
+  .statsCards {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .actionsPanel {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filterTabs {
+    justify-content: center;
+  }
+
+  .newTicketBtn {
+    width: 100%;
+  }
+
+  .ticketMeta {
+    flex-direction: column;
+    gap: 8px;
+  }
+}

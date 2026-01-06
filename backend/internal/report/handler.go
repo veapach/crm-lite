@@ -105,6 +105,42 @@ func getUniqueS3FileName(ctx context.Context, prefix, baseName string) string { 
 	}
 }
 
+// autoLinkReportToTickets автоматически привязывает отчёт к заявкам по адресу
+// Ищет заявки с таким же адресом в статусах "В работе" или "Завершена" и привязывает отчёт
+func autoLinkReportToTickets(reportID uint, address string) {
+	if address == "" {
+		return
+	}
+
+	// Ищем заявки с таким же адресом
+	var tickets []db.ClientTicket
+	if err := db.DB.Where("address = ? AND (status = ? OR status = ?)", address, "В работе", "Завершена").Find(&tickets).Error; err != nil {
+		log.Printf("Ошибка при поиске заявок для автопривязки: %v", err)
+		return
+	}
+
+	for _, ticket := range tickets {
+		// Проверяем, не привязан ли уже этот отчёт к этой заявке
+		var existing db.TicketReport
+		if err := db.DB.Where("ticket_id = ? AND report_id = ?", ticket.ID, reportID).First(&existing).Error; err == nil {
+			// Уже привязан
+			continue
+		}
+
+		// Создаём связь
+		ticketReport := db.TicketReport{
+			TicketID:  ticket.ID,
+			ReportID:  reportID,
+			CreatedAt: time.Now().Format("2006-01-02 15:04:05"),
+		}
+		if err := db.DB.Create(&ticketReport).Error; err != nil {
+			log.Printf("Ошибка при автопривязке отчёта %d к заявке %d: %v", reportID, ticket.ID, err)
+		} else {
+			log.Printf("Отчёт %d автоматически привязан к заявке %d (адрес: %s)", reportID, ticket.ID, address)
+		}
+	}
+}
+
 func CreateReport(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -209,6 +245,8 @@ func CreateReport(c *gin.Context) {
 						c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Ошибка при сохранении в БД: %v", result.Error)})
 						return
 					}
+					// Автоматическая привязка отчёта к заявкам по адресу
+					autoLinkReportToTickets(report.ID, reportData.Address)
 					respMap := gin.H{
 						"message":     "Отчет успешно создан",
 						"report":      report,
@@ -370,6 +408,9 @@ func CreateReport(c *gin.Context) {
 				)
 				return
 			}
+
+			// Автоматическая привязка отчёта к заявкам по адресу
+			autoLinkReportToTickets(report.ID, reportData.Address)
 
 			respMap := gin.H{
 				"message":     "Отчет успешно создан",
@@ -580,6 +621,9 @@ func CreateReport(c *gin.Context) {
 		)
 		return
 	}
+
+	// Автоматическая привязка отчёта к заявкам по адресу
+	autoLinkReportToTickets(report.ID, reportData.Address)
 
 	resp := gin.H{
 		"message":     "Отчет успешно создан",
@@ -874,6 +918,9 @@ func UploadReport(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении данных в БД"})
 		return
 	}
+
+	// Автоматическая привязка отчёта к заявкам по адресу
+	autoLinkReportToTickets(report.ID, address)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Отчет успешно загружен"})
 }

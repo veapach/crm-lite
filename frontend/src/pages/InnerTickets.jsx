@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Table, Button, Modal, Tabs, Tab, Fade } from 'react-bootstrap';
+import { Table, Button, Modal, Tabs, Tab, Fade, Form } from 'react-bootstrap';
 import TicketsMap from '../components/TicketsMap';
 import '../styles/Schedule.css';
 import '../styles/InnerTickets.css';
@@ -11,9 +11,13 @@ function InnerTickets() {
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showLinkReportModal, setShowLinkReportModal] = useState(false);
   const [showCompletedTickets, setShowCompletedTickets] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [activeTab, setActiveTab] = useState('list');
+  const [ticketReports, setTicketReports] = useState([]);
+  const [availableReports, setAvailableReports] = useState([]);
+  const [selectedReportId, setSelectedReportId] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -41,6 +45,58 @@ function InnerTickets() {
     fetchTickets();
     fetchCurrentUser();
   }, []);
+
+  // Загрузка привязанных отчётов для заявки
+  const fetchTicketReports = async (ticketId) => {
+    try {
+      const response = await axios.get(`/api/tickets/${ticketId}/reports`);
+      setTicketReports(response.data.reports || []);
+    } catch (error) {
+      console.error('Ошибка загрузки отчётов:', error);
+      setTicketReports([]);
+    }
+  };
+
+  // Загрузка доступных отчётов для привязки
+  const fetchAvailableReports = async (address) => {
+    try {
+      const response = await axios.get('/api/reports', {
+        params: { search: address, limit: 50 }
+      });
+      setAvailableReports(response.data.reports || []);
+    } catch (error) {
+      console.error('Ошибка загрузки отчётов:', error);
+      setAvailableReports([]);
+    }
+  };
+
+  // Привязка отчёта к заявке
+  const handleLinkReport = async () => {
+    if (!selectedReportId || !selectedTicket) return;
+    try {
+      await axios.post('/api/tickets/link-report', {
+        ticketId: selectedTicket.id,
+        reportId: parseInt(selectedReportId)
+      });
+      await fetchTicketReports(selectedTicket.id);
+      setSelectedReportId('');
+      setShowLinkReportModal(false);
+    } catch (error) {
+      console.error('Ошибка привязки отчёта:', error);
+      alert(error.response?.data?.error || 'Ошибка привязки отчёта');
+    }
+  };
+
+  // Отвязка отчёта от заявки
+  const handleUnlinkReport = async (reportId) => {
+    if (!selectedTicket) return;
+    try {
+      await axios.delete(`/api/tickets/${selectedTicket.id}/reports/${reportId}`);
+      await fetchTicketReports(selectedTicket.id);
+    } catch (error) {
+      console.error('Ошибка отвязки отчёта:', error);
+    }
+  };
 
   const handleTakeInWork = async (ticketId) => {
     try {
@@ -113,6 +169,10 @@ function InnerTickets() {
   const handleViewDetails = async (ticket) => {
     setSelectedTicket(ticket);
     setShowDetailsModal(true);
+    setTicketReports([]);
+
+    // Загружаем привязанные отчёты
+    await fetchTicketReports(ticket.id);
 
     if (ticket.files) {
       const files = ticket.files.split(',');
@@ -132,6 +192,14 @@ function InnerTickets() {
 
       setFileUrls(urls);
     }
+  };
+
+  // Открыть модалку привязки отчёта
+  const handleOpenLinkReportModal = async (ticket) => {
+    setSelectedTicket(ticket);
+    setSelectedReportId('');
+    await fetchAvailableReports(ticket.address);
+    setShowLinkReportModal(true);
   };
 
   return (
@@ -207,6 +275,7 @@ function InnerTickets() {
                           )}{' '}
                           <Button variant="danger" size="sm" onClick={() => handleDelete(ticket.id)}>Удалить</Button>{' '}
                           <Button variant="primary" size="sm" onClick={() => handleCreateReport(ticket)}>Создать отчет</Button>{' '}
+                          <Button variant="outline-secondary" size="sm" onClick={() => handleOpenLinkReportModal(ticket)}>📎 Отчёт</Button>{' '}
                           <Button variant="info" size="sm" onClick={() => handleViewDetails(ticket)}>Подробнее</Button>
                         </td>
                       </tr>
@@ -265,11 +334,90 @@ function InnerTickets() {
                   </div>
                 ))}
               </div>
+              
+              {/* Привязанные отчёты */}
+              <div className="mt-4">
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <strong>Привязанные отчёты:</strong>
+                  <Button 
+                    variant="outline-success" 
+                    size="sm"
+                    onClick={() => handleOpenLinkReportModal(selectedTicket)}
+                  >
+                    + Привязать отчёт
+                  </Button>
+                </div>
+                {ticketReports.length === 0 ? (
+                  <p className="text-muted">Нет привязанных отчётов</p>
+                ) : (
+                  <div className="list-group">
+                    {ticketReports.map(report => (
+                      <div key={report.id} className="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                          <a 
+                            href={`/uploads/reports/${report.filename}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            📄 {report.date} - {report.classification}
+                          </a>
+                          <small className="d-block text-muted">{report.address}</small>
+                        </div>
+                        <Button 
+                          variant="outline-danger" 
+                          size="sm"
+                          onClick={() => handleUnlinkReport(report.id)}
+                        >
+                          ✕
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowDetailsModal(false)}>Закрыть</Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Модальное окно привязки отчёта */}
+      <Modal show={showLinkReportModal} onHide={() => setShowLinkReportModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Привязать отчёт к заявке</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form.Group>
+            <Form.Label>Выберите отчёт для привязки</Form.Label>
+            <Form.Select 
+              value={selectedReportId} 
+              onChange={(e) => setSelectedReportId(e.target.value)}
+            >
+              <option value="">-- Выберите отчёт --</option>
+              {availableReports.map(report => (
+                <option key={report.id} value={report.id}>
+                  {report.date} - {report.classification} ({report.address.substring(0, 30)}...)
+                </option>
+              ))}
+            </Form.Select>
+            <Form.Text className="text-muted">
+              Показаны отчёты по адресу: {selectedTicket?.address}
+            </Form.Text>
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowLinkReportModal(false)}>
+            Отмена
+          </Button>
+          <Button 
+            variant="success" 
+            onClick={handleLinkReport}
+            disabled={!selectedReportId}
+          >
+            Привязать
+          </Button>
         </Modal.Footer>
       </Modal>
 

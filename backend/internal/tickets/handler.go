@@ -15,7 +15,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"github.com/streadway/amqp"
 )
 
@@ -25,6 +27,17 @@ var TicketQueue *amqp.Channel
 var lastNotifiedUnassignedCount int64 = -1
 
 const ticketsPrefix = "tickets/"
+
+var jwtkey string
+var secretKey []byte
+
+func init() {
+	if err := godotenv.Load(); err != nil {
+		// Ignore error in init
+	}
+	jwtkey, _ = os.LookupEnv("JWTKEY")
+	secretKey = []byte(jwtkey)
+}
 
 func russianPlural(n int64, one string, few string, many string) string {
 	mod10 := n % 10
@@ -120,6 +133,29 @@ func DebugSendUnassigned(c *gin.Context) {
 func CreateTicket(c *gin.Context) {
 	var ticket db.ClientTicket
 
+	// Проверяем, есть ли авторизованный клиент через токен
+	var clientID *uint
+	if tokenString, exists := c.Get("clientToken"); exists {
+		if ts, ok := tokenString.(string); ok && ts != "" {
+			token, err := jwt.Parse(ts, func(t *jwt.Token) (interface{}, error) {
+				if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+					return nil, fmt.Errorf("unexpected signing method")
+				}
+				return secretKey, nil
+			})
+			if err == nil && token.Valid {
+				if claims, ok := token.Claims.(jwt.MapClaims); ok {
+					if tokenType, _ := claims["type"].(string); tokenType == "client" {
+						if cID, ok := claims["client_id"].(float64); ok {
+							id := uint(cID)
+							clientID = &id
+						}
+					}
+				}
+			}
+		}
+	}
+
 	if strings.HasPrefix(c.GetHeader("Content-Type"), "multipart/form-data") {
 		ticket.FullName = c.PostForm("fullName")
 		ticket.Position = c.PostForm("position")
@@ -128,6 +164,7 @@ func CreateTicket(c *gin.Context) {
 		ticket.Description = c.PostForm("description")
 		ticket.Date = time.Now().Format("2006-01-02")
 		ticket.Status = "Не назначено"
+		ticket.ClientID = clientID
 
 		form, err := c.MultipartForm()
 		if err == nil && form != nil {
@@ -174,6 +211,7 @@ func CreateTicket(c *gin.Context) {
 		}
 		ticket.Date = time.Now().Format("2006-01-02")
 		ticket.Status = "Не назначено"
+		ticket.ClientID = clientID
 	}
 
 	body, err := json.Marshal(ticket)
@@ -296,6 +334,11 @@ func UpdateClientTicket(c *gin.Context) {
 			ticket.Files = ""
 		}
 		ticket.Status = input.Status
+
+		// Устанавливаем дату завершения если заявка завершена
+		if input.Status == "Завершено" {
+			ticket.CompletedAt = time.Now().Format("2006-01-02 15:04:05")
+		}
 	}
 
 	if err := db.DB.Save(&ticket).Error; err != nil {
@@ -305,6 +348,104 @@ func UpdateClientTicket(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "ticket": ticket})
 
 	go notifyUnassignedIfNeeded()
+}
+
+// LinkReportToTicket - связывание отчёта с заявкой
+func LinkReportToTicket(c *gin.Context) {
+	var input struct {
+		TicketID uint `json:"ticketId" binding:"required"`
+		ReportID uint `json:"reportId" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат данных"})
+		return
+	}
+
+	// Проверяем существование заявки
+	var ticket db.ClientTicket
+	if err := db.DB.First(&ticket, input.TicketID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Заявка не найдена"})
+		return
+	}
+
+	// Проверяем существование отчёта
+	var report db.Report
+	if err := db.DB.First(&report, input.ReportID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Отчёт не найден"})
+		return
+	}
+
+	// Проверяем, нет ли уже такой связи
+	var existing db.TicketReport
+	if err := db.DB.Where("ticket_id = ? AND report_id = ?", input.TicketID, input.ReportID).First(&existing).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Отчёт уже привязан к этой заявке"})
+		return
+	}
+
+	// Создаём связь
+	ticketReport := db.TicketReport{
+		TicketID:  input.TicketID,
+		ReportID:  input.ReportID,
+		CreatedAt: time.Now().Format("2006-01-02 15:04:05"),
+	}
+
+	if err := db.DB.Create(&ticketReport).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка создания связи"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Отчёт успешно привязан к заявке"})
+}
+
+// UnlinkReportFromTicket - отвязывание отчёта от заявки
+func UnlinkReportFromTicket(c *gin.Context) {
+	ticketID := c.Param("ticketId")
+	reportID := c.Param("reportId")
+
+	if err := db.DB.Where("ticket_id = ? AND report_id = ?", ticketID, reportID).Delete(&db.TicketReport{}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка удаления связи"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Связь удалена"})
+}
+
+// GetTicketReports - получение отчётов привязанных к заявке
+func GetTicketReports(c *gin.Context) {
+	ticketID := c.Param("id")
+
+	var ticketReports []db.TicketReport
+	if err := db.DB.Where("ticket_id = ?", ticketID).Find(&ticketReports).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения отчётов"})
+		return
+	}
+
+	type ReportInfo struct {
+		ID             uint   `json:"id"`
+		Filename       string `json:"filename"`
+		Date           string `json:"date"`
+		Address        string `json:"address"`
+		Classification string `json:"classification"`
+		UserID         uint   `json:"userId"`
+	}
+
+	var reports []ReportInfo
+	for _, tr := range ticketReports {
+		var report db.Report
+		if err := db.DB.First(&report, tr.ReportID).Error; err == nil {
+			reports = append(reports, ReportInfo{
+				ID:             report.ID,
+				Filename:       report.Filename,
+				Date:           report.Date,
+				Address:        report.Address,
+				Classification: report.Classification,
+				UserID:         report.UserID,
+			})
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"reports": reports})
 }
 
 func DeleteClientTicket(c *gin.Context) {
