@@ -36,6 +36,8 @@ function Reports() {
   const loadingRef = useRef(false); // фактическое состояние загрузки для защиты от гонок
   const activeRequestRef = useRef(0); // id последнего запроса
   const currentPageRef = useRef(1); // ref для отслеживания текущей страницы
+  const previewCacheRef = useRef(new Map()); // Кэш превью для избежания повторных загрузок
+  const [previewLoading, setPreviewLoading] = useState(false); // Индикатор загрузки превью
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('ru-RU');
@@ -160,15 +162,35 @@ function Reports() {
   const handlePreviewClick = async (report) => {
     setSelectedReport(report);
     setShowPreview(true);
+    setPreviewLoading(true);
+
+    const previewName = getPreviewName(report);
+    const container = viewerRef.current;
+
     try {
-      // Загружаем готовое PNG превью - это быстро!
-      const previewName = getPreviewName(report);
+      // Проверяем кэш - если превью уже загружено, используем его
+      if (previewCacheRef.current.has(previewName)) {
+        const cachedUrl = previewCacheRef.current.get(previewName);
+        container.innerHTML = '';
+        const img = document.createElement('img');
+        img.src = cachedUrl;
+        img.style.maxWidth = '100%';
+        img.style.height = 'auto';
+        container.appendChild(img);
+        setPreviewLoading(false);
+        return;
+      }
+
+      // Загружаем готовое PNG превью
       const response = await axios.get(`/api/reports/preview-image/${encodeURIComponent(previewName)}`, {
         responseType: 'blob',
         withCredentials: true,
       });
       const url = URL.createObjectURL(response.data);
-      const container = viewerRef.current;
+
+      // Сохраняем в кэш
+      previewCacheRef.current.set(previewName, url);
+
       container.innerHTML = '';
       const img = document.createElement('img');
       img.src = url;
@@ -178,6 +200,8 @@ function Reports() {
     } catch (err) {
       setError('Ошибка при загрузке документа');
       console.error('Ошибка при загрузке документа:', err);
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -508,6 +532,14 @@ function Reports() {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
+          {previewLoading && (
+            <div className="text-center py-5">
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Загрузка...</span>
+              </div>
+              <p className="mt-2 text-muted">Загрузка предпросмотра...</p>
+            </div>
+          )}
           <div
             ref={viewerRef}
             style={{
@@ -517,7 +549,8 @@ function Reports() {
               padding: window.innerWidth <= 768 ? '8px' : '16px 0 16px 0',
               margin: '0',
               textAlign: 'left',
-              width: '100%'
+              width: '100%',
+              display: previewLoading ? 'none' : 'block'
             }}
           >
           </div>

@@ -1304,6 +1304,10 @@ func PreviewReport(c *gin.Context) {
 func PreviewReportImage(c *gin.Context) {
 	filename := c.Param("filename")
 
+	// Устанавливаем заголовки кэширования - превью статичны и не меняются
+	// Кэш на 1 год для браузера, immutable означает что файл не изменится
+	c.Header("Cache-Control", "public, max-age=31536000, immutable")
+
 	// Сначала проверяем S3 (основное хранилище)
 	if storage.IsS3Enabled() {
 		obj, info, err := storage.GetReportObject(context.Background(), "previews/"+filename)
@@ -1320,7 +1324,7 @@ func PreviewReportImage(c *gin.Context) {
 		}
 	}
 
-	// Fallback на локальное хранилище
+	// Fallback на локальное хранилище (для старых файлов)
 	filePath := filepath.Join("uploads", "previews", filename)
 	if _, err := os.Stat(filePath); err == nil {
 		c.Header("Content-Type", "image/png")
