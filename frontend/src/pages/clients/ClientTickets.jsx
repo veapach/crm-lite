@@ -18,7 +18,7 @@ export default function ClientTickets() {
   const { client, isAuthenticated, loading: authLoading, logout } = useClientAuth();
   const { theme, toggleTheme, isDark } = useTheme();
   const navigate = useNavigate();
-  
+
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -38,12 +38,14 @@ export default function ClientTickets() {
   const [createSending, setCreateSending] = useState(false);
   const [createSuccess, setCreateSuccess] = useState(false);
   const [createError, setCreateError] = useState('');
-  
+
   // Состояние для предпросмотра PDF
   const [previewPdf, setPreviewPdf] = useState(null);
   const [pdfLoading, setPdfLoading] = useState(false);
   const viewerRef = useRef(null);
-  
+  const previewCacheRef = useRef(new Map()); // Кэш превью картинок
+  const pagesCacheRef = useRef(new Map()); // Кэш списка страниц
+
   // Состояние для меню настроек
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
@@ -82,7 +84,7 @@ export default function ClientTickets() {
       fetchTickets();
       // Загружаем адреса для автокомплита
       axios.get('/api/addresses').then(res => setAddresses(res.data || []));
-      
+
       // Polling для live-обновления заявок каждые 10 секунд
       const pollInterval = setInterval(() => {
         axios.get('/api/client/my-tickets')
@@ -91,7 +93,7 @@ export default function ClientTickets() {
           })
           .catch(err => console.error('Polling error:', err));
       }, 10000);
-      
+
       return () => clearInterval(pollInterval);
     }
   }, [isAuthenticated]);
@@ -142,44 +144,112 @@ export default function ClientTickets() {
     return filename.replace(/\.pdf$/i, '.png');
   };
 
-  // Обработчик предпросмотра отчёта (загружаем готовое PNG превью)
+  // Функция загрузки одной страницы превью
+  const loadPreviewPage = async (pageName) => {
+    if (previewCacheRef.current.has(pageName)) {
+      return previewCacheRef.current.get(pageName);
+    }
+
+    const response = await axios.get(`/api/client/reports/preview/${encodeURIComponent(pageName)}`, {
+      responseType: 'blob',
+      withCredentials: true,
+    });
+    const url = URL.createObjectURL(response.data);
+    previewCacheRef.current.set(pageName, url);
+    return url;
+  };
+
+  // Обработчик предпросмотра отчёта (загружаем все страницы PNG превью)
   const handlePreviewPdf = async (filename) => {
     const previewName = getPreviewName(filename);
-    const url = `/api/client/reports/preview/${encodeURIComponent(previewName)}`;
-    setPreviewPdf(url);
-    setPreviewPdf(url);
+    setPreviewPdf(previewName);
     setPdfLoading(true);
-    
+
     try {
-      const response = await axios.get(url, {
-        responseType: 'blob',
-        withCredentials: true,
-      });
-      
+      // Проверяем кэш списка страниц
+      let pages = pagesCacheRef.current.get(previewName);
+
+      if (!pages) {
+        // Получаем список страниц превью с сервера
+        const pagesResponse = await axios.get(`/api/client/reports/preview-pages/${encodeURIComponent(previewName)}`, {
+          withCredentials: true,
+        });
+        pages = pagesResponse.data.pages || [];
+        pagesCacheRef.current.set(previewName, pages);
+      }
+
       // Ждём пока ref будет доступен
       await new Promise(resolve => setTimeout(resolve, 50));
-      
+
       const container = viewerRef.current;
       if (!container) {
         setPdfLoading(false);
         return;
       }
-      container.innerHTML = '';
-      
-      // Создаём URL для изображения и показываем его
-      const imageUrl = URL.createObjectURL(response.data);
-      const img = document.createElement('img');
-      img.src = imageUrl;
-      img.style.maxWidth = '100%';
-      img.style.height = 'auto';
-      img.style.display = 'block';
-      img.style.margin = '0 auto';
-      img.onload = () => setPdfLoading(false);
-      img.onerror = () => {
-        container.innerHTML = '<p style="color: red; text-align: center; padding: 20px;">Ошибка загрузки превью</p>';
+
+      if (pages.length === 0) {
+        container.innerHTML = '<p style="color: red; text-align: center; padding: 20px;">Превью не найдено</p>';
         setPdfLoading(false);
-      };
-      container.appendChild(img);
+        return;
+      }
+
+      // Загружаем первую страницу сразу
+      const firstPageUrl = await loadPreviewPage(pages[0]);
+
+      container.innerHTML = '';
+
+      // Создаём контейнеры для всех страниц
+      pages.forEach((pageName, index) => {
+        const pageWrapper = document.createElement('div');
+        pageWrapper.id = `client-preview-page-${index}`;
+        pageWrapper.style.marginBottom = '16px';
+        pageWrapper.style.borderBottom = index < pages.length - 1 ? '1px solid #dee2e6' : 'none';
+        pageWrapper.style.paddingBottom = '16px';
+        pageWrapper.style.minHeight = '200px';
+
+        if (index === 0) {
+          const img = document.createElement('img');
+          img.src = firstPageUrl;
+          img.style.maxWidth = '100%';
+          img.style.height = 'auto';
+          img.style.display = 'block';
+          img.style.margin = '0 auto';
+          pageWrapper.appendChild(img);
+        } else {
+          const placeholder = document.createElement('div');
+          placeholder.style.textAlign = 'center';
+          placeholder.style.padding = '20px';
+          placeholder.style.color = '#666';
+          placeholder.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div> Загрузка страницы ' + (index + 1) + '...';
+          pageWrapper.appendChild(placeholder);
+        }
+
+        container.appendChild(pageWrapper);
+      });
+
+      setPdfLoading(false);
+
+      // Загружаем остальные страницы в фоне
+      if (pages.length > 1) {
+        for (let i = 1; i < pages.length; i++) {
+          const pageIndex = i;
+          loadPreviewPage(pages[pageIndex]).then(url => {
+            const pageWrapper = document.getElementById(`client-preview-page-${pageIndex}`);
+            if (pageWrapper) {
+              pageWrapper.innerHTML = '';
+              const img = document.createElement('img');
+              img.src = url;
+              img.style.maxWidth = '100%';
+              img.style.height = 'auto';
+              img.style.display = 'block';
+              img.style.margin = '0 auto';
+              pageWrapper.appendChild(img);
+            }
+          }).catch(err => {
+            console.error(`Ошибка загрузки страницы ${pageIndex + 1}:`, err);
+          });
+        }
+      }
     } catch (err) {
       console.error('Ошибка загрузки превью:', err);
       if (viewerRef.current) {
@@ -239,7 +309,7 @@ export default function ClientTickets() {
     setProfileSaving(true);
     setProfileError('');
     setProfileSuccess(false);
-    
+
     // Валидация пароля
     if (showPasswordChange && profileForm.newPassword) {
       if (profileForm.newPassword !== profileForm.confirmPassword) {
@@ -253,19 +323,19 @@ export default function ClientTickets() {
         return;
       }
     }
-    
+
     try {
       const data = {
         fullName: profileForm.fullName,
         email: profileForm.email,
         phone: profileForm.phone
       };
-      
+
       if (showPasswordChange && profileForm.newPassword) {
         data.currentPassword = profileForm.currentPassword;
         data.newPassword = profileForm.newPassword;
       }
-      
+
       await axios.put('/api/client/profile', data);
       setProfileSuccess(true);
       // Обновляем данные клиента через перезагрузку страницы через 1 секунду
@@ -387,8 +457,8 @@ export default function ClientTickets() {
           </div>
           <div className={styles.headerRight}>
             {/* Кнопка переключения темы */}
-            <button 
-              onClick={toggleTheme} 
+            <button
+              onClick={toggleTheme}
               className={styles.themeToggle}
               title={isDark ? 'Включить светлую тему' : 'Включить тёмную тему'}
             >
@@ -400,8 +470,8 @@ export default function ClientTickets() {
             </div>
             {/* Кнопка настроек */}
             <div className={styles.settingsWrapper}>
-              <button 
-                onClick={() => setShowSettingsMenu(!showSettingsMenu)} 
+              <button
+                onClick={() => setShowSettingsMenu(!showSettingsMenu)}
                 className={styles.settingsBtn}
                 title="Настройки"
               >
@@ -465,19 +535,19 @@ export default function ClientTickets() {
         {/* Панель действий */}
         <div className={styles.actionsPanel}>
           <div className={styles.filterTabs}>
-            <button 
+            <button
               className={`${styles.filterTab} ${filter === 'all' ? styles.active : ''}`}
               onClick={() => setFilter('all')}
             >
               Все заявки
             </button>
-            <button 
+            <button
               className={`${styles.filterTab} ${filter === 'active' ? styles.active : ''}`}
               onClick={() => setFilter('active')}
             >
               Активные
             </button>
-            <button 
+            <button
               className={`${styles.filterTab} ${filter === 'completed' ? styles.active : ''}`}
               onClick={() => setFilter('completed')}
             >
@@ -517,19 +587,19 @@ export default function ClientTickets() {
               <div key={ticket.id} className={styles.ticketCard}>
                 <div className={styles.ticketHeader}>
                   <div className={styles.ticketId}>#{ticket.id}</div>
-                  <div 
+                  <div
                     className={styles.ticketStatus}
                     style={getStatusStyle(ticket.status)}
                   >
                     {STATUS_CONFIG[ticket.status]?.icon} {ticket.status}
                   </div>
                 </div>
-                
+
                 <div className={styles.ticketBody}>
                   <h3 className={styles.ticketAddress}>{ticket.address}</h3>
                   <p className={styles.ticketDescription}>
-                    {ticket.description.length > 150 
-                      ? ticket.description.substring(0, 150) + '...' 
+                    {ticket.description.length > 150
+                      ? ticket.description.substring(0, 150) + '...'
                       : ticket.description}
                   </p>
                 </div>
@@ -555,7 +625,7 @@ export default function ClientTickets() {
                     </span>
                     <div className={styles.reportsList}>
                       {ticket.reports.map(report => (
-                        <button 
+                        <button
                           key={report.id}
                           onClick={() => handlePreviewPdf(report.filename)}
                           className={styles.reportLink}
@@ -569,7 +639,7 @@ export default function ClientTickets() {
                 )}
 
                 <div className={styles.ticketActions}>
-                  <button 
+                  <button
                     onClick={() => handleViewDetails(ticket)}
                     className={styles.detailsBtn}
                   >
@@ -588,18 +658,18 @@ export default function ClientTickets() {
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h2>Заявка #{selectedTicket.id}</h2>
-              <button 
-                onClick={() => setShowDetails(false)} 
+              <button
+                onClick={() => setShowDetails(false)}
                 className={styles.modalClose}
               >
                 ×
               </button>
             </div>
-            
+
             <div className={styles.modalBody}>
               <div className={styles.detailRow}>
                 <span className={styles.detailLabel}>Статус:</span>
-                <span 
+                <span
                   className={`${styles.detailStatusBadge} ${styles['status' + selectedTicket.status.replace(/\s+/g, '')]}`}
                 >
                   {STATUS_CONFIG[selectedTicket.status]?.icon} {selectedTicket.status}
@@ -659,7 +729,7 @@ export default function ClientTickets() {
                   <h4>Отчёты по заявке:</h4>
                   <div className={styles.reportCards}>
                     {selectedTicket.reports.map(report => (
-                      <button 
+                      <button
                         key={report.id}
                         onClick={() => handlePreviewPdf(report.filename)}
                         className={styles.reportCard}
@@ -689,7 +759,7 @@ export default function ClientTickets() {
               <h2>Новая заявка</h2>
               <button onClick={handleCloseCreateModal} className={styles.modalClose}>×</button>
             </div>
-            
+
             {createSuccess ? (
               <div className={styles.createSuccess}>
                 <div className={styles.successIcon}>✅</div>
@@ -716,8 +786,8 @@ export default function ClientTickets() {
                     {showAddressList && filteredAddresses.length > 0 && (
                       <div className={styles.addressDropdown}>
                         {filteredAddresses.map((a, i) => (
-                          <div 
-                            key={i} 
+                          <div
+                            key={i}
                             className={styles.addressItem}
                             onClick={() => handleAddressSelect(a)}
                           >
@@ -743,10 +813,10 @@ export default function ClientTickets() {
 
                 <div className={styles.createFormGroup}>
                   <label>Фото (до 5 файлов)</label>
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    multiple 
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
                     onChange={handleCreateFileChange}
                     style={{ display: 'none' }}
                     id="create-file-upload"
@@ -759,8 +829,8 @@ export default function ClientTickets() {
                       {createForm.files.map((file, idx) => (
                         <div key={idx} className={styles.filePreviewItem}>
                           <img src={URL.createObjectURL(file)} alt="preview" />
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             onClick={() => handleRemoveCreateFile(idx)}
                             className={styles.removeFileBtn}
                           >
@@ -776,8 +846,8 @@ export default function ClientTickets() {
                   <div className={styles.createError}>{createError}</div>
                 )}
 
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   className={styles.createSubmitBtn}
                   disabled={createSending}
                 >
@@ -796,8 +866,8 @@ export default function ClientTickets() {
             <div className={styles.pdfHeader}>
               <h3>Просмотр отчёта</h3>
               <div className={styles.pdfActions}>
-                <button 
-                  onClick={closePdfPreview} 
+                <button
+                  onClick={closePdfPreview}
                   className={styles.pdfCloseBtn}
                 >
                   ×
@@ -823,14 +893,14 @@ export default function ClientTickets() {
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h2>Редактирование профиля</h2>
-              <button 
-                onClick={() => setShowEditProfile(false)} 
+              <button
+                onClick={() => setShowEditProfile(false)}
                 className={styles.modalClose}
               >
                 ×
               </button>
             </div>
-            
+
             <div className={styles.modalBody}>
               <form onSubmit={handleSaveProfile} className={styles.profileForm}>
                 <div className={styles.formGroup}>
@@ -838,30 +908,30 @@ export default function ClientTickets() {
                   <input
                     type="text"
                     value={profileForm.fullName}
-                    onChange={e => setProfileForm({...profileForm, fullName: e.target.value})}
+                    onChange={e => setProfileForm({ ...profileForm, fullName: e.target.value })}
                     placeholder="Иванов Иван Иванович"
                     className={styles.profileInput}
                     required
                   />
                 </div>
-                
+
                 <div className={styles.formGroup}>
                   <label>Email</label>
                   <input
                     type="email"
                     value={profileForm.email}
-                    onChange={e => setProfileForm({...profileForm, email: e.target.value})}
+                    onChange={e => setProfileForm({ ...profileForm, email: e.target.value })}
                     placeholder="email@example.com"
                     className={styles.profileInput}
                   />
                 </div>
-                
+
                 <div className={styles.formGroup}>
                   <label>Телефон</label>
                   <input
                     type="text"
                     value={profileForm.phone}
-                    onChange={e => setProfileForm({...profileForm, phone: formatPhoneInput(e.target.value)})}
+                    onChange={e => setProfileForm({ ...profileForm, phone: formatPhoneInput(e.target.value) })}
                     placeholder="+7 (999) 999-99-99"
                     className={styles.profileInput}
                   />
@@ -870,14 +940,14 @@ export default function ClientTickets() {
 
                 {/* Секция смены пароля */}
                 <div className={styles.passwordSection}>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => setShowPasswordChange(!showPasswordChange)}
                     className={styles.togglePasswordBtn}
                   >
                     {showPasswordChange ? '▼ Скрыть смену пароля' : '▶ Сменить пароль'}
                   </button>
-                  
+
                   {showPasswordChange && (
                     <div className={styles.passwordFields}>
                       <div className={styles.formGroup}>
@@ -885,7 +955,7 @@ export default function ClientTickets() {
                         <input
                           type="password"
                           value={profileForm.currentPassword}
-                          onChange={e => setProfileForm({...profileForm, currentPassword: e.target.value})}
+                          onChange={e => setProfileForm({ ...profileForm, currentPassword: e.target.value })}
                           placeholder="Введите текущий пароль"
                           className={styles.profileInput}
                         />
@@ -895,7 +965,7 @@ export default function ClientTickets() {
                         <input
                           type="password"
                           value={profileForm.newPassword}
-                          onChange={e => setProfileForm({...profileForm, newPassword: e.target.value})}
+                          onChange={e => setProfileForm({ ...profileForm, newPassword: e.target.value })}
                           placeholder="Минимум 4 символа"
                           className={styles.profileInput}
                         />
@@ -905,7 +975,7 @@ export default function ClientTickets() {
                         <input
                           type="password"
                           value={profileForm.confirmPassword}
-                          onChange={e => setProfileForm({...profileForm, confirmPassword: e.target.value})}
+                          onChange={e => setProfileForm({ ...profileForm, confirmPassword: e.target.value })}
                           placeholder="Повторите новый пароль"
                           className={styles.profileInput}
                         />
@@ -917,21 +987,21 @@ export default function ClientTickets() {
                 {profileError && (
                   <div className={styles.createError}>{profileError}</div>
                 )}
-                
+
                 {profileSuccess && (
                   <div className={styles.createSuccess}>✅ Профиль сохранён!</div>
                 )}
 
                 <div className={styles.profileActions}>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => setShowEditProfile(false)}
                     className={styles.cancelBtn}
                   >
                     Отмена
                   </button>
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     className={styles.createSubmitBtn}
                     disabled={profileSaving}
                   >

@@ -227,6 +227,7 @@ func main() {
 	r.GET("/api/client/my-tickets", clients.ClientAuthMiddleware(), clients.GetClientTickets)
 	r.GET("/api/client/my-tickets/:id", clients.ClientAuthMiddleware(), clients.GetClientTicketByID)
 	r.GET("/api/client/reports/preview/:filename", clients.ClientAuthMiddleware(), clients.ClientPreviewReport)
+	r.GET("/api/client/reports/preview-pages/:filename", clients.ClientAuthMiddleware(), clients.ClientGetPreviewPages)
 
 	// Debug TG отправка (только админ)
 	r.POST("/api/debug/send-unassigned-alert", users.AuthMiddleware(), users.AdminMiddleware(), tickets.DebugSendUnassigned)

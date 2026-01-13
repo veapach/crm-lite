@@ -19,11 +19,13 @@ function InnerTickets() {
   const [availableReports, setAvailableReports] = useState([]);
   const [selectedReportId, setSelectedReportId] = useState('');
   const navigate = useNavigate();
-  
+
   // Состояние для предпросмотра PDF
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const pdfViewerRef = useRef(null);
+  const previewCacheRef = useRef(new Map()); // Кэш превью картинок
+  const pagesCacheRef = useRef(new Map()); // Кэш списка страниц
 
   useEffect(() => {
     const fetchTickets = async () => {
@@ -108,39 +110,111 @@ function InnerTickets() {
     return filename.replace(/\.pdf$/i, '.png');
   };
 
-  // Предпросмотр отчёта (загружаем готовое PNG превью)
+  // Функция загрузки одной страницы превью
+  const loadPreviewPage = async (pageName) => {
+    if (previewCacheRef.current.has(pageName)) {
+      return previewCacheRef.current.get(pageName);
+    }
+
+    const response = await axios.get(`/api/reports/preview-image/${encodeURIComponent(pageName)}`, {
+      responseType: 'blob',
+      withCredentials: true,
+    });
+    const url = URL.createObjectURL(response.data);
+    previewCacheRef.current.set(pageName, url);
+    return url;
+  };
+
+  // Предпросмотр отчёта (загружаем все страницы PNG превью)
   const handlePreviewReport = async (report) => {
     setShowPdfPreview(true);
     setPdfLoading(true);
-    
+
+    const previewName = getPreviewName(report.filename);
+
     try {
-      const previewName = getPreviewName(report.filename);
-      const response = await axios.get(`/api/reports/preview-image/${encodeURIComponent(previewName)}`, {
-        responseType: 'blob',
-        withCredentials: true,
-      });
-      
+      // Проверяем кэш списка страниц
+      let pages = pagesCacheRef.current.get(previewName);
+
+      if (!pages) {
+        // Получаем список страниц превью с сервера
+        const pagesResponse = await axios.get(`/api/reports/preview-pages/${encodeURIComponent(previewName)}`, {
+          withCredentials: true,
+        });
+        pages = pagesResponse.data.pages || [];
+        pagesCacheRef.current.set(previewName, pages);
+      }
+
+      if (pages.length === 0) {
+        if (pdfViewerRef.current) {
+          pdfViewerRef.current.innerHTML = '<p style="color: red; text-align: center; padding: 20px;">Превью не найдено</p>';
+        }
+        setPdfLoading(false);
+        return;
+      }
+
+      // Загружаем первую страницу сразу
+      const firstPageUrl = await loadPreviewPage(pages[0]);
+
       const container = pdfViewerRef.current;
       if (!container) {
         setPdfLoading(false);
         return;
       }
       container.innerHTML = '';
-      
-      // Создаём URL для изображения и показываем его
-      const imageUrl = URL.createObjectURL(response.data);
-      const img = document.createElement('img');
-      img.src = imageUrl;
-      img.style.maxWidth = '100%';
-      img.style.height = 'auto';
-      img.style.display = 'block';
-      img.style.margin = '0 auto';
-      img.onload = () => setPdfLoading(false);
-      img.onerror = () => {
-        container.innerHTML = '<p style="color: red; text-align: center; padding: 20px;">Ошибка загрузки превью</p>';
-        setPdfLoading(false);
-      };
-      container.appendChild(img);
+
+      // Создаём контейнеры для всех страниц
+      pages.forEach((pageName, index) => {
+        const pageWrapper = document.createElement('div');
+        pageWrapper.id = `inner-preview-page-${index}`;
+        pageWrapper.style.marginBottom = '16px';
+        pageWrapper.style.borderBottom = index < pages.length - 1 ? '1px solid #dee2e6' : 'none';
+        pageWrapper.style.paddingBottom = '16px';
+        pageWrapper.style.minHeight = '200px';
+
+        if (index === 0) {
+          const img = document.createElement('img');
+          img.src = firstPageUrl;
+          img.style.maxWidth = '100%';
+          img.style.height = 'auto';
+          img.style.display = 'block';
+          img.style.margin = '0 auto';
+          pageWrapper.appendChild(img);
+        } else {
+          const placeholder = document.createElement('div');
+          placeholder.style.textAlign = 'center';
+          placeholder.style.padding = '20px';
+          placeholder.style.color = '#666';
+          placeholder.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div> Загрузка страницы ' + (index + 1) + '...';
+          pageWrapper.appendChild(placeholder);
+        }
+
+        container.appendChild(pageWrapper);
+      });
+
+      setPdfLoading(false);
+
+      // Загружаем остальные страницы в фоне
+      if (pages.length > 1) {
+        for (let i = 1; i < pages.length; i++) {
+          const pageIndex = i;
+          loadPreviewPage(pages[pageIndex]).then(url => {
+            const pageWrapper = document.getElementById(`inner-preview-page-${pageIndex}`);
+            if (pageWrapper) {
+              pageWrapper.innerHTML = '';
+              const img = document.createElement('img');
+              img.src = url;
+              img.style.maxWidth = '100%';
+              img.style.height = 'auto';
+              img.style.display = 'block';
+              img.style.margin = '0 auto';
+              pageWrapper.appendChild(img);
+            }
+          }).catch(err => {
+            console.error(`Ошибка загрузки страницы ${pageIndex + 1}:`, err);
+          });
+        }
+      }
     } catch (err) {
       console.error('Ошибка загрузки превью:', err);
       if (pdfViewerRef.current) {
@@ -394,13 +468,13 @@ function InnerTickets() {
                   </div>
                 ))}
               </div>
-              
+
               {/* Привязанные отчёты */}
               <div className="mt-4">
                 <div className="d-flex justify-content-between align-items-center mb-2">
                   <strong>Привязанные отчёты:</strong>
-                  <Button 
-                    variant="outline-success" 
+                  <Button
+                    variant="outline-success"
                     size="sm"
                     onClick={() => handleOpenLinkReportModal(selectedTicket)}
                   >
@@ -414,7 +488,7 @@ function InnerTickets() {
                     {ticketReports.map(report => (
                       <div key={report.id} className="list-group-item d-flex justify-content-between align-items-center">
                         <div style={{ flex: 1 }}>
-                          <button 
+                          <button
                             onClick={() => handlePreviewReport(report)}
                             style={{
                               background: 'none',
@@ -430,8 +504,8 @@ function InnerTickets() {
                           </button>
                           <small className="d-block text-muted">{report.address}</small>
                         </div>
-                        <Button 
-                          variant="outline-danger" 
+                        <Button
+                          variant="outline-danger"
                           size="sm"
                           onClick={() => handleUnlinkReport(report.id)}
                         >
@@ -458,8 +532,8 @@ function InnerTickets() {
         <Modal.Body>
           <Form.Group>
             <Form.Label>Выберите отчёт для привязки</Form.Label>
-            <Form.Select 
-              value={selectedReportId} 
+            <Form.Select
+              value={selectedReportId}
               onChange={(e) => setSelectedReportId(e.target.value)}
             >
               <option value="">-- Выберите отчёт --</option>
@@ -478,8 +552,8 @@ function InnerTickets() {
           <Button variant="secondary" onClick={() => setShowLinkReportModal(false)}>
             Отмена
           </Button>
-          <Button 
-            variant="success" 
+          <Button
+            variant="success"
             onClick={handleLinkReport}
             disabled={!selectedReportId}
           >

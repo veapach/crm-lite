@@ -615,3 +615,98 @@ func ClientPreviewReport(c *gin.Context) {
 
 	c.JSON(http.StatusNotFound, gin.H{"error": "превью не найдено"})
 }
+
+// ClientGetPreviewPages - получение списка страниц превью для отчёта (для клиентов)
+func ClientGetPreviewPages(c *gin.Context) {
+	clientID, exists := c.Get("clientID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "не авторизован"})
+		return
+	}
+
+	filename := c.Param("filename")
+
+	// Убираем расширение .png если есть
+	baseName := strings.TrimSuffix(filename, ".png")
+	pdfFilename := baseName + ".pdf"
+
+	// Находим отчёт по имени PDF файла
+	var report db.Report
+	if err := db.DB.Where("filename LIKE ?", "%"+pdfFilename).First(&report).Error; err != nil {
+		if err := db.DB.Where("filename LIKE ?", "%"+baseName+"%").First(&report).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "отчёт не найден"})
+			return
+		}
+	}
+
+	// Проверяем доступ
+	var count int64
+	db.DB.Model(&db.TicketReport{}).
+		Joins("JOIN client_tickets ON client_tickets.id = ticket_reports.ticket_id").
+		Where("ticket_reports.report_id = ? AND client_tickets.client_id = ?", report.ID, clientID).
+		Count(&count)
+
+	hasAccess := count > 0
+
+	if !hasAccess {
+		db.DB.Model(&db.ClientTicket{}).
+			Where("client_id = ? AND address = ?", clientID, report.Address).
+			Count(&count)
+		hasAccess = count > 0
+	}
+
+	if !hasAccess {
+		c.JSON(http.StatusForbidden, gin.H{"error": "нет доступа к этому отчёту"})
+		return
+	}
+
+	var pages []string
+
+	// Проверяем S3
+	if storage.IsS3Enabled() {
+		for pageNum := 1; pageNum <= 50; pageNum++ {
+			pageFileName := fmt.Sprintf("%s_page_%d.png", baseName, pageNum)
+			obj, _, err := storage.GetReportObject(context.Background(), "previews/"+pageFileName)
+			if err != nil {
+				break
+			}
+			obj.Close()
+			pages = append(pages, pageFileName)
+		}
+	}
+
+	// Если S3 не включен или страницы не найдены, проверяем локальное хранилище
+	if len(pages) == 0 {
+		previewsDir := filepath.Join("uploads", "previews")
+		for pageNum := 1; pageNum <= 50; pageNum++ {
+			pageFileName := fmt.Sprintf("%s_page_%d.png", baseName, pageNum)
+			pagePath := filepath.Join(previewsDir, pageFileName)
+			if _, err := os.Stat(pagePath); err != nil {
+				break
+			}
+			pages = append(pages, pageFileName)
+		}
+	}
+
+	// Если страниц не найдено, возвращаем только основное превью (для старых отчётов)
+	if len(pages) == 0 {
+		mainPreview := baseName + ".png"
+		if storage.IsS3Enabled() {
+			obj, _, err := storage.GetReportObject(context.Background(), "previews/"+mainPreview)
+			if err == nil {
+				obj.Close()
+				pages = append(pages, mainPreview)
+			}
+		} else {
+			mainPath := filepath.Join("uploads", "previews", mainPreview)
+			if _, err := os.Stat(mainPath); err == nil {
+				pages = append(pages, mainPreview)
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"pages":     pages,
+		"pageCount": len(pages),
+	})
+}
