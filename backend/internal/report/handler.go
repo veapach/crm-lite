@@ -527,11 +527,13 @@ func CreateReport(c *gin.Context) {
 	lines := strings.Split(string(output), "\n")
 	var displayName string
 	var previewName string
+	log.Printf("Python script output: %s", string(output))
 	for _, lineRaw := range lines {
 		line := strings.TrimSpace(strings.ReplaceAll(strings.TrimPrefix(lineRaw, "\ufeff"), "\r", ""))
 		if line == "" || strings.Contains(line, "%") {
 			continue
 		}
+		log.Printf("Parsed line: '%s'", line)
 		if strings.HasSuffix(line, ".pdf") {
 			displayName = line
 		}
@@ -539,6 +541,7 @@ func CreateReport(c *gin.Context) {
 			previewName = line
 		}
 	}
+	log.Printf("displayName: '%s', previewName: '%s'", displayName, previewName)
 
 	if displayName == "" {
 		c.JSON(
@@ -587,10 +590,12 @@ func CreateReport(c *gin.Context) {
 
 			if previewName != "" {
 				p := filepath.Clean(filepath.Join("uploads", "previews", previewName))
+				log.Printf("Trying to open preview file: %s", p)
 				pf, err := os.Open(p)
 				if err == nil {
 					defer pf.Close()
 					pinfo, _ := pf.Stat()
+					log.Printf("Preview file size: %d bytes", pinfo.Size())
 
 					pext := filepath.Ext(previewName)
 					pbase := strings.TrimSuffix(previewName, pext)
@@ -610,9 +615,16 @@ func CreateReport(c *gin.Context) {
 					}
 
 					_, _ = pf.Seek(0, 0)
-					_ = storage.UploadReportObject(context.Background(), "previews/"+pUnique, pf, pinfo.Size(), "image/png")
+					err := storage.UploadReportObject(context.Background(), "previews/"+pUnique, pf, pinfo.Size(), "image/png")
+					if err != nil {
+						log.Printf("Error uploading preview to S3: %v", err)
+					} else {
+						log.Printf("Preview uploaded to S3: previews/%s", pUnique)
+					}
 					_ = os.Remove(p)
 					previewName = pUnique
+				} else {
+					log.Printf("Error opening preview file: %v", err)
 				}
 			}
 		} else {
