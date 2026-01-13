@@ -163,21 +163,27 @@ function Reports() {
     setSelectedReport(report);
     setShowPreview(true);
     setPreviewLoading(true);
+    setError(''); // Сбрасываем предыдущую ошибку
 
     const previewName = getPreviewName(report);
-    const container = viewerRef.current;
 
     try {
       // Проверяем кэш - если превью уже загружено, используем его
       if (previewCacheRef.current.has(previewName)) {
         const cachedUrl = previewCacheRef.current.get(previewName);
-        container.innerHTML = '';
-        const img = document.createElement('img');
-        img.src = cachedUrl;
-        img.style.maxWidth = '100%';
-        img.style.height = 'auto';
-        container.appendChild(img);
-        setPreviewLoading(false);
+        // Ждём следующий тик, чтобы модал успел отрендериться
+        setTimeout(() => {
+          const container = viewerRef.current;
+          if (container) {
+            container.innerHTML = '';
+            const img = document.createElement('img');
+            img.src = cachedUrl;
+            img.style.maxWidth = '100%';
+            img.style.height = 'auto';
+            container.appendChild(img);
+          }
+          setPreviewLoading(false);
+        }, 0);
         return;
       }
 
@@ -191,16 +197,22 @@ function Reports() {
       // Сохраняем в кэш
       previewCacheRef.current.set(previewName, url);
 
-      container.innerHTML = '';
-      const img = document.createElement('img');
-      img.src = url;
-      img.style.maxWidth = '100%';
-      img.style.height = 'auto';
-      container.appendChild(img);
+      // Ждём следующий тик, чтобы модал успел отрендериться
+      setTimeout(() => {
+        const container = viewerRef.current;
+        if (container) {
+          container.innerHTML = '';
+          const img = document.createElement('img');
+          img.src = url;
+          img.style.maxWidth = '100%';
+          img.style.height = 'auto';
+          container.appendChild(img);
+        }
+        setPreviewLoading(false);
+      }, 0);
     } catch (err) {
       setError('Ошибка при загрузке документа');
       console.error('Ошибка при загрузке документа:', err);
-    } finally {
       setPreviewLoading(false);
     }
   };
@@ -501,6 +513,7 @@ function Reports() {
                     </button>
                   )}
                 </div>
+
               </div>
             </div>
           </div>
