@@ -127,19 +127,41 @@ def add_stamp_to_pdf(pdf_path):
 
 
 def generate_preview_png(pdf_path, preview_png_path):
-    """Генерация PNG превью первой страницы PDF"""
+    """Генерация PNG превью всех страниц PDF
+    
+    Создаёт:
+    - preview_png_path - первая страница (для миниатюры, обратная совместимость)
+    - preview_png_path_page_1.png, _page_2.png, etc. - все страницы для полного превью
+    
+    Возвращает кортеж (путь_к_первой_странице, количество_страниц)
+    """
     try:
         doc = fitz.open(pdf_path)
-        page = doc.load_page(0)
-        # Уменьшаем масштаб с 2.0 до 1.5 для меньшего размера файла
+        page_count = len(doc)
+        
+        # Масштаб для превью (1.5 = хороший баланс качества и размера)
         matrix = fitz.Matrix(1.5, 1.5)
-        pix = page.get_pixmap(matrix=matrix, alpha=False)
-        pix.save(preview_png_path)
+        
+        # Базовое имя без расширения
+        base_path = preview_png_path.rsplit('.png', 1)[0]
+        
+        for i in range(page_count):
+            page = doc.load_page(i)
+            pix = page.get_pixmap(matrix=matrix, alpha=False)
+            
+            # Сохраняем каждую страницу как name_page_N.png
+            page_path = f"{base_path}_page_{i + 1}.png"
+            pix.save(page_path)
+            
+            # Первую страницу также сохраняем как основное превью (для миниатюры)
+            if i == 0:
+                pix.save(preview_png_path)
+        
         doc.close()
-        return preview_png_path
+        return preview_png_path, page_count
     except Exception as e:
         print(f"Ошибка генерации превью PNG: {e}")
-        return None
+        return None, 0
 
 
 def generate_document_from_data(user_info: dict) -> dict:
@@ -245,8 +267,8 @@ def generate_document_from_data(user_info: dict) -> dict:
         if not final_pdf:
             return {"success": False, "error": "Ошибка при добавлении печати"}
 
-        # Генерируем превью
-        preview_png = generate_preview_png(final_pdf, preview_png_path)
+        # Генерируем превью (всех страниц)
+        preview_png, page_count = generate_preview_png(final_pdf, preview_png_path)
 
         # Читаем содержимое файлов
         pdf_content = b""
@@ -256,6 +278,7 @@ def generate_document_from_data(user_info: dict) -> dict:
             with open(final_pdf, "rb") as f:
                 pdf_content = f.read()
         
+        # Читаем первую страницу для preview_content (обратная совместимость)
         if preview_png and os.path.exists(preview_png):
             with open(preview_png, "rb") as f:
                 preview_content = f.read()
@@ -264,6 +287,7 @@ def generate_document_from_data(user_info: dict) -> dict:
             "success": True,
             "pdf_filename": os.path.basename(final_pdf),
             "preview_filename": os.path.basename(preview_png) if preview_png else "",
+            "page_count": page_count,
             "pdf_content": pdf_content,
             "preview_content": preview_content,
         }

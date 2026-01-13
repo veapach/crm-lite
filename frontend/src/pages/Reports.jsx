@@ -1,13 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
-import { renderAsync } from 'docx-preview';
 import { Modal } from 'react-bootstrap';
 import '../styles/Reports.css';
-import * as pdfjsLib from 'pdfjs-dist';
 import { useAuth } from '../context/AuthContext';
-
-// Устанавливаем worker для PDF.js
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 function Reports() {
   const { user } = useAuth();
@@ -36,7 +31,8 @@ function Reports() {
   const loadingRef = useRef(false); // фактическое состояние загрузки для защиты от гонок
   const activeRequestRef = useRef(0); // id последнего запроса
   const currentPageRef = useRef(1); // ref для отслеживания текущей страницы
-  const previewCacheRef = useRef(new Map()); // Кэш превью для избежания повторных загрузок
+  const previewCacheRef = useRef(new Map()); // Кэш превью картинок для избежания повторных загрузок
+  const pagesCacheRef = useRef(new Map()); // Кэш списка страниц для избежания повторных запросов
   const [previewLoading, setPreviewLoading] = useState(false); // Индикатор загрузки превью
 
   const formatDate = (dateString) => {
@@ -159,6 +155,22 @@ function Reports() {
     return `${base}.png`;
   };
 
+  // Функция загрузки одной страницы превью
+  const loadPreviewPage = async (pageName) => {
+    // Проверяем кэш картинок
+    if (previewCacheRef.current.has(pageName)) {
+      return previewCacheRef.current.get(pageName);
+    }
+
+    const response = await axios.get(`/api/reports/preview-image/${encodeURIComponent(pageName)}`, {
+      responseType: 'blob',
+      withCredentials: true,
+    });
+    const url = URL.createObjectURL(response.data);
+    previewCacheRef.current.set(pageName, url);
+    return url;
+  };
+
   const handlePreviewClick = async (report) => {
     setSelectedReport(report);
     setShowPreview(true);
@@ -168,48 +180,84 @@ function Reports() {
     const previewName = getPreviewName(report);
 
     try {
-      // Проверяем кэш - если превью уже загружено, используем его
-      if (previewCacheRef.current.has(previewName)) {
-        const cachedUrl = previewCacheRef.current.get(previewName);
-        // Ждём следующий тик, чтобы модал успел отрендериться
-        setTimeout(() => {
-          const container = viewerRef.current;
-          if (container) {
-            container.innerHTML = '';
-            const img = document.createElement('img');
-            img.src = cachedUrl;
-            img.style.maxWidth = '100%';
-            img.style.height = 'auto';
-            container.appendChild(img);
-          }
-          setPreviewLoading(false);
-        }, 0);
+      // Проверяем кэш списка страниц
+      let pages = pagesCacheRef.current.get(previewName);
+
+      if (!pages) {
+        // Получаем список страниц превью с сервера
+        const pagesResponse = await axios.get(`/api/reports/preview-pages/${encodeURIComponent(previewName)}`, {
+          withCredentials: true,
+        });
+        pages = pagesResponse.data.pages || [];
+        pagesCacheRef.current.set(previewName, pages);
+      }
+
+      if (pages.length === 0) {
+        setError('Превью не найдено');
+        setPreviewLoading(false);
         return;
       }
 
-      // Загружаем готовое PNG превью
-      const response = await axios.get(`/api/reports/preview-image/${encodeURIComponent(previewName)}`, {
-        responseType: 'blob',
-        withCredentials: true,
-      });
-      const url = URL.createObjectURL(response.data);
+      // Быстрый показ первой страницы
+      const firstPageUrl = await loadPreviewPage(pages[0]);
 
-      // Сохраняем в кэш
-      previewCacheRef.current.set(previewName, url);
-
-      // Ждём следующий тик, чтобы модал успел отрендериться
+      // Показываем первую страницу сразу
       setTimeout(() => {
         const container = viewerRef.current;
         if (container) {
           container.innerHTML = '';
-          const img = document.createElement('img');
-          img.src = url;
-          img.style.maxWidth = '100%';
-          img.style.height = 'auto';
-          container.appendChild(img);
+
+          // Создаём контейнеры для всех страниц заранее
+          pages.forEach((pageName, index) => {
+            const pageWrapper = document.createElement('div');
+            pageWrapper.id = `preview-page-${index}`;
+            pageWrapper.style.marginBottom = '16px';
+            pageWrapper.style.borderBottom = index < pages.length - 1 ? '1px solid #dee2e6' : 'none';
+            pageWrapper.style.paddingBottom = '16px';
+            pageWrapper.style.minHeight = '200px'; // Placeholder height
+
+            if (index === 0) {
+              // Первая страница уже загружена
+              const img = document.createElement('img');
+              img.src = firstPageUrl;
+              img.style.maxWidth = '100%';
+              img.style.height = 'auto';
+              img.style.display = 'block';
+              pageWrapper.appendChild(img);
+            } else {
+              // Placeholder для остальных страниц
+              const placeholder = document.createElement('div');
+              placeholder.className = 'text-center text-muted py-4';
+              placeholder.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div> Загрузка страницы ' + (index + 1) + '...';
+              pageWrapper.appendChild(placeholder);
+            }
+
+            container.appendChild(pageWrapper);
+          });
         }
         setPreviewLoading(false);
       }, 0);
+
+      // Загружаем остальные страницы в фоне
+      if (pages.length > 1) {
+        for (let i = 1; i < pages.length; i++) {
+          const pageIndex = i;
+          loadPreviewPage(pages[pageIndex]).then(url => {
+            const pageWrapper = document.getElementById(`preview-page-${pageIndex}`);
+            if (pageWrapper) {
+              pageWrapper.innerHTML = '';
+              const img = document.createElement('img');
+              img.src = url;
+              img.style.maxWidth = '100%';
+              img.style.height = 'auto';
+              img.style.display = 'block';
+              pageWrapper.appendChild(img);
+            }
+          }).catch(err => {
+            console.error(`Ошибка загрузки страницы ${pageIndex + 1}:`, err);
+          });
+        }
+      }
     } catch (err) {
       setError('Ошибка при загрузке документа');
       console.error('Ошибка при загрузке документа:', err);

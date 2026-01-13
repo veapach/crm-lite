@@ -198,6 +198,7 @@ func main() {
 	r.GET("/api/reportscount", users.AuthMiddleware(), report.GetReportsCount)
 	r.GET("/api/reports/preview/:filename", users.AuthMiddleware(), report.PreviewReport)
 	r.GET("/api/reports/preview-image/:filename", users.AuthMiddleware(), report.PreviewReportImage)
+	r.GET("/api/reports/preview-pages/:filename", users.AuthMiddleware(), report.GetPreviewPages)
 
 	// График
 	r.GET("/api/requests", users.AuthMiddleware(), requests.GetRequests)

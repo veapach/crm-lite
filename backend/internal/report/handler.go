@@ -396,6 +396,28 @@ func CreateReport(c *gin.Context) {
 							_ = storage.UploadReportObject(context.Background(), "previews/"+pUnique, pf, pinfo.Size(), "image/png")
 							_ = os.Remove(p)
 							previewName = pUnique
+
+							// Загружаем все страницы превью (_page_1.png, _page_2.png, etc.)
+							previewsDir := filepath.Join("uploads", "previews")
+							pageNum := 1
+							for {
+								pageFileName := fmt.Sprintf("%s_page_%d.png", pbase, pageNum)
+								pagePath := filepath.Join(previewsDir, pageFileName)
+								pageFile, err := os.Open(pagePath)
+								if err != nil {
+									break // Больше нет страниц
+								}
+								pageInfo, _ := pageFile.Stat()
+
+								// Формируем уникальное имя для страницы в S3
+								pageUniqueName := fmt.Sprintf("%s_page_%d.png", strings.TrimSuffix(pUnique, pext), pageNum)
+
+								_, _ = pageFile.Seek(0, 0)
+								_ = storage.UploadReportObject(context.Background(), "previews/"+pageUniqueName, pageFile, pageInfo.Size(), "image/png")
+								pageFile.Close()
+								_ = os.Remove(pagePath)
+								pageNum++
+							}
 						}
 					}
 				} else {
@@ -1376,4 +1398,64 @@ func ServeReportFile(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден"})
+}
+
+// GetPreviewPages возвращает список страниц превью для отчёта
+func GetPreviewPages(c *gin.Context) {
+	filename := c.Param("filename")
+
+	// Убираем расширение .png если есть
+	baseName := strings.TrimSuffix(filename, ".png")
+
+	var pages []string
+
+	// Проверяем S3
+	if storage.IsS3Enabled() {
+		// Ищем страницы в S3
+		for pageNum := 1; pageNum <= 50; pageNum++ { // Максимум 50 страниц
+			pageFileName := fmt.Sprintf("%s_page_%d.png", baseName, pageNum)
+			obj, _, err := storage.GetReportObject(context.Background(), "previews/"+pageFileName)
+			if err != nil {
+				break // Больше нет страниц
+			}
+			obj.Close()
+			pages = append(pages, pageFileName)
+		}
+	}
+
+	// Если S3 не включен или страницы не найдены, проверяем локальное хранилище
+	if len(pages) == 0 {
+		previewsDir := filepath.Join("uploads", "previews")
+		for pageNum := 1; pageNum <= 50; pageNum++ {
+			pageFileName := fmt.Sprintf("%s_page_%d.png", baseName, pageNum)
+			pagePath := filepath.Join(previewsDir, pageFileName)
+			if _, err := os.Stat(pagePath); err != nil {
+				break // Больше нет страниц
+			}
+			pages = append(pages, pageFileName)
+		}
+	}
+
+	// Если страниц не найдено, возвращаем только основное превью (для старых отчётов)
+	if len(pages) == 0 {
+		// Проверяем есть ли хотя бы основное превью
+		mainPreview := baseName + ".png"
+		if storage.IsS3Enabled() {
+			obj, _, err := storage.GetReportObject(context.Background(), "previews/"+mainPreview)
+			if err == nil {
+				obj.Close()
+				pages = append(pages, mainPreview)
+			}
+		} else {
+			mainPath := filepath.Join("uploads", "previews", mainPreview)
+			if _, err := os.Stat(mainPath); err == nil {
+				pages = append(pages, mainPreview)
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"pages":     pages,
+		"pageCount": len(pages),
+	})
 }
