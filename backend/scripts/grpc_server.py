@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import document_generator_pb2
 import document_generator_pb2_grpc
-from document_generator_core import generate_document_from_data
+from document_generator_core import generate_document_from_data, regenerate_preview_from_pdf_content
 
 logging.basicConfig(
     level=logging.INFO,
@@ -96,6 +96,41 @@ class DocumentGeneratorServicer(document_generator_pb2_grpc.DocumentGeneratorSer
             healthy=True,
             message="Document Generator Service is running"
         )
+    
+    def RegeneratePreview(self, request, context):
+        """Регенерация превью из существующего PDF"""
+        logger.info(f"Получен запрос на регенерацию превью: {request.base_name}")
+        
+        try:
+            result = regenerate_preview_from_pdf_content(request.pdf_content)
+            
+            if result["success"]:
+                response = document_generator_pb2.RegeneratePreviewResponse(
+                    success=True,
+                    page_count=result["page_count"],
+                    page_contents=result["page_contents"],
+                    error_message=""
+                )
+                logger.info(f"Превью успешно сгенерировано: {result['page_count']} страниц")
+            else:
+                response = document_generator_pb2.RegeneratePreviewResponse(
+                    success=False,
+                    page_count=0,
+                    page_contents=[],
+                    error_message=result.get("error", "Неизвестная ошибка")
+                )
+                logger.error(f"Ошибка регенерации превью: {result.get('error')}")
+            
+            return response
+            
+        except Exception as e:
+            logger.exception(f"Исключение при регенерации превью: {e}")
+            return document_generator_pb2.RegeneratePreviewResponse(
+                success=False,
+                page_count=0,
+                page_contents=[],
+                error_message=str(e)
+            )
 
 
 def serve(port: int = 50051):

@@ -34,6 +34,7 @@ function Reports() {
   const previewCacheRef = useRef(new Map()); // Кэш превью картинок для избежания повторных загрузок
   const pagesCacheRef = useRef(new Map()); // Кэш списка страниц для избежания повторных запросов
   const [previewLoading, setPreviewLoading] = useState(false); // Индикатор загрузки превью
+  const [previewGenerating, setPreviewGenerating] = useState(false); // Индикатор генерации превью
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('ru-RU');
@@ -175,6 +176,7 @@ function Reports() {
     setSelectedReport(report);
     setShowPreview(true);
     setPreviewLoading(true);
+    setPreviewGenerating(false);
     setError(''); // Сбрасываем предыдущую ошибку
 
     const previewName = getPreviewName(report);
@@ -193,9 +195,31 @@ function Reports() {
       }
 
       if (pages.length === 0) {
-        setError('Превью не найдено');
+        // Превью не найдено - пробуем сгенерировать
+        setPreviewGenerating(true);
         setPreviewLoading(false);
-        return;
+
+        try {
+          const regenResponse = await axios.post(`/api/reports/regenerate-preview/${encodeURIComponent(previewName)}`, {}, {
+            withCredentials: true,
+          });
+
+          if (regenResponse.data.success && regenResponse.data.pages && regenResponse.data.pages.length > 0) {
+            pages = regenResponse.data.pages;
+            pagesCacheRef.current.set(previewName, pages);
+            setPreviewGenerating(false);
+            setPreviewLoading(true);
+          } else {
+            setError('Не удалось сгенерировать превью');
+            setPreviewGenerating(false);
+            return;
+          }
+        } catch (regenErr) {
+          console.error('Ошибка регенерации превью:', regenErr);
+          setError('Ошибка при генерации превью');
+          setPreviewGenerating(false);
+          return;
+        }
       }
 
       // Быстрый показ первой страницы
@@ -601,6 +625,19 @@ function Reports() {
               <p className="mt-2 text-muted">Загрузка предпросмотра...</p>
             </div>
           )}
+          {previewGenerating && (
+            <div className="text-center py-5">
+              <div className="spinner-border text-warning" role="status">
+                <span className="visually-hidden">Генерация...</span>
+              </div>
+              <p className="mt-2 text-warning">Превью не найдено, создаю... Пожалуйста, подождите.</p>
+            </div>
+          )}
+          {error && !previewLoading && !previewGenerating && (
+            <div className="text-center py-5">
+              <p className="text-danger">{error}</p>
+            </div>
+          )}
           <div
             ref={viewerRef}
             style={{
@@ -611,7 +648,7 @@ function Reports() {
               margin: '0',
               textAlign: 'left',
               width: '100%',
-              display: previewLoading ? 'none' : 'block'
+              display: (previewLoading || previewGenerating || error) ? 'none' : 'block'
             }}
           >
           </div>

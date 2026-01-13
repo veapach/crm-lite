@@ -49,6 +49,20 @@ message HealthCheckResponse {
   string message = 2;
 }
 
+// Запрос на регенерацию превью из PDF
+message RegeneratePreviewRequest {
+  bytes  pdf_content  = 1; // Содержимое PDF файла
+  string base_name    = 2; // Базовое имя файла (без расширения)
+}
+
+// Ответ регенерации превью
+message RegeneratePreviewResponse {
+  bool            success          = 1;
+  int32           page_count       = 2;
+  repeated bytes  page_contents    = 3; // Содержимое всех страниц PNG
+  string          error_message    = 4;
+}
+
 // Сервис генерации документов
 service DocumentGeneratorService {
     // Генерация документа (акта выполненных работ)
@@ -56,4 +70,7 @@ service DocumentGeneratorService {
 
     // Проверка здоровья сервиса
   rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+
+    // Регенерация превью из существующего PDF
+  rpc RegeneratePreview(RegeneratePreviewRequest) returns (RegeneratePreviewResponse);
 }

@@ -23,6 +23,8 @@ function InnerTickets() {
   // Состояние для предпросмотра PDF
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [previewGenerating, setPreviewGenerating] = useState(false);
+  const [previewError, setPreviewError] = useState('');
   const pdfViewerRef = useRef(null);
   const previewCacheRef = useRef(new Map()); // Кэш превью картинок
   const pagesCacheRef = useRef(new Map()); // Кэш списка страниц
@@ -129,6 +131,8 @@ function InnerTickets() {
   const handlePreviewReport = async (report) => {
     setShowPdfPreview(true);
     setPdfLoading(true);
+    setPreviewGenerating(false);
+    setPreviewError('');
 
     const previewName = getPreviewName(report.filename);
 
@@ -146,11 +150,31 @@ function InnerTickets() {
       }
 
       if (pages.length === 0) {
-        if (pdfViewerRef.current) {
-          pdfViewerRef.current.innerHTML = '<p style="color: red; text-align: center; padding: 20px;">Превью не найдено</p>';
-        }
+        // Превью не найдено - пробуем сгенерировать
+        setPreviewGenerating(true);
         setPdfLoading(false);
-        return;
+
+        try {
+          const regenResponse = await axios.post(`/api/reports/regenerate-preview/${encodeURIComponent(previewName)}`, {}, {
+            withCredentials: true,
+          });
+
+          if (regenResponse.data.success && regenResponse.data.pages && regenResponse.data.pages.length > 0) {
+            pages = regenResponse.data.pages;
+            pagesCacheRef.current.set(previewName, pages);
+            setPreviewGenerating(false);
+            setPdfLoading(true);
+          } else {
+            setPreviewError('Не удалось сгенерировать превью');
+            setPreviewGenerating(false);
+            return;
+          }
+        } catch (regenErr) {
+          console.error('Ошибка регенерации превью:', regenErr);
+          setPreviewError('Ошибка при генерации превью');
+          setPreviewGenerating(false);
+          return;
+        }
       }
 
       // Загружаем первую страницу сразу
@@ -217,9 +241,7 @@ function InnerTickets() {
       }
     } catch (err) {
       console.error('Ошибка загрузки превью:', err);
-      if (pdfViewerRef.current) {
-        pdfViewerRef.current.innerHTML = '<p style="color: red; text-align: center; padding: 20px;">Ошибка загрузки документа</p>';
-      }
+      setPreviewError('Ошибка загрузки документа');
       setPdfLoading(false);
     }
   };
@@ -593,7 +615,20 @@ function InnerTickets() {
               <p className="mt-2">Загрузка документа...</p>
             </div>
           )}
-          <div ref={pdfViewerRef}></div>
+          {previewGenerating && (
+            <div style={{ textAlign: 'center', padding: '40px' }}>
+              <div className="spinner-border text-warning" role="status">
+                <span className="visually-hidden">Генерация...</span>
+              </div>
+              <p className="mt-2 text-warning">Превью не найдено, создаю... Пожалуйста, подождите.</p>
+            </div>
+          )}
+          {previewError && !pdfLoading && !previewGenerating && (
+            <div style={{ textAlign: 'center', padding: '40px' }}>
+              <p style={{ color: 'red' }}>{previewError}</p>
+            </div>
+          )}
+          <div ref={pdfViewerRef} style={{ display: (pdfLoading || previewGenerating || previewError) ? 'none' : 'block' }}></div>
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={closePdfPreview}>

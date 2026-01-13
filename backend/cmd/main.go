@@ -199,6 +199,7 @@ func main() {
 	r.GET("/api/reports/preview/:filename", users.AuthMiddleware(), report.PreviewReport)
 	r.GET("/api/reports/preview-image/:filename", users.AuthMiddleware(), report.PreviewReportImage)
 	r.GET("/api/reports/preview-pages/:filename", users.AuthMiddleware(), report.GetPreviewPages)
+	r.POST("/api/reports/regenerate-preview/:filename", users.AuthMiddleware(), report.RegeneratePreview)
 
 	// График
 	r.GET("/api/requests", users.AuthMiddleware(), requests.GetRequests)
@@ -228,6 +229,7 @@ func main() {
 	r.GET("/api/client/my-tickets/:id", clients.ClientAuthMiddleware(), clients.GetClientTicketByID)
 	r.GET("/api/client/reports/preview/:filename", clients.ClientAuthMiddleware(), clients.ClientPreviewReport)
 	r.GET("/api/client/reports/preview-pages/:filename", clients.ClientAuthMiddleware(), clients.ClientGetPreviewPages)
+	r.POST("/api/client/reports/regenerate-preview/:filename", clients.ClientAuthMiddleware(), clients.ClientRegeneratePreview)
 
 	// Debug TG отправка (только админ)
 	r.POST("/api/debug/send-unassigned-alert", users.AuthMiddleware(), users.AdminMiddleware(), tickets.DebugSendUnassigned)

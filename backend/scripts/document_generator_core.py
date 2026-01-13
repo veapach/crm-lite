@@ -164,6 +164,51 @@ def generate_preview_png(pdf_path, preview_png_path):
         return None, 0
 
 
+def regenerate_preview_from_pdf_content(pdf_content: bytes) -> dict:
+    """Регенерация превью из PDF контента (для старых отчётов без превью)
+    
+    Возвращает словарь:
+    {
+        "success": bool,
+        "page_count": int,
+        "page_contents": list[bytes],  # Содержимое каждой страницы PNG
+        "error": str (только при ошибке)
+    }
+    """
+    try:
+        doc = fitz.open(stream=pdf_content, filetype="pdf")
+        page_count = len(doc)
+        
+        # Масштаб для превью (1.5 = хороший баланс качества и размера)
+        matrix = fitz.Matrix(1.5, 1.5)
+        
+        page_contents = []
+        
+        for i in range(page_count):
+            page = doc.load_page(i)
+            pix = page.get_pixmap(matrix=matrix, alpha=False)
+            
+            # Получаем байты PNG изображения
+            png_bytes = pix.tobytes("png")
+            page_contents.append(png_bytes)
+        
+        doc.close()
+        
+        return {
+            "success": True,
+            "page_count": page_count,
+            "page_contents": page_contents,
+        }
+    except Exception as e:
+        import traceback
+        return {
+            "success": False,
+            "page_count": 0,
+            "page_contents": [],
+            "error": f"{str(e)}\n{traceback.format_exc()}"
+        }
+
+
 def generate_document_from_data(user_info: dict) -> dict:
     """
     Генерация документа на основе словаря с данными.

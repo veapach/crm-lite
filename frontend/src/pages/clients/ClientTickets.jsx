@@ -42,6 +42,8 @@ export default function ClientTickets() {
   // Состояние для предпросмотра PDF
   const [previewPdf, setPreviewPdf] = useState(null);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [previewGenerating, setPreviewGenerating] = useState(false);
+  const [previewError, setPreviewError] = useState('');
   const viewerRef = useRef(null);
   const previewCacheRef = useRef(new Map()); // Кэш превью картинок
   const pagesCacheRef = useRef(new Map()); // Кэш списка страниц
@@ -164,6 +166,8 @@ export default function ClientTickets() {
     const previewName = getPreviewName(filename);
     setPreviewPdf(previewName);
     setPdfLoading(true);
+    setPreviewGenerating(false);
+    setPreviewError('');
 
     try {
       // Проверяем кэш списка страниц
@@ -188,9 +192,31 @@ export default function ClientTickets() {
       }
 
       if (pages.length === 0) {
-        container.innerHTML = '<p style="color: red; text-align: center; padding: 20px;">Превью не найдено</p>';
+        // Превью не найдено - пробуем сгенерировать
+        setPreviewGenerating(true);
         setPdfLoading(false);
-        return;
+
+        try {
+          const regenResponse = await axios.post(`/api/client/reports/regenerate-preview/${encodeURIComponent(previewName)}`, {}, {
+            withCredentials: true,
+          });
+
+          if (regenResponse.data.success && regenResponse.data.pages && regenResponse.data.pages.length > 0) {
+            pages = regenResponse.data.pages;
+            pagesCacheRef.current.set(previewName, pages);
+            setPreviewGenerating(false);
+            setPdfLoading(true);
+          } else {
+            setPreviewError('Не удалось сгенерировать превью');
+            setPreviewGenerating(false);
+            return;
+          }
+        } catch (regenErr) {
+          console.error('Ошибка регенерации превью:', regenErr);
+          setPreviewError('Ошибка при генерации превью');
+          setPreviewGenerating(false);
+          return;
+        }
       }
 
       // Загружаем первую страницу сразу
@@ -252,9 +278,7 @@ export default function ClientTickets() {
       }
     } catch (err) {
       console.error('Ошибка загрузки превью:', err);
-      if (viewerRef.current) {
-        viewerRef.current.innerHTML = '<p style="color: red; text-align: center; padding: 20px;">Ошибка загрузки документа</p>';
-      }
+      setPreviewError('Ошибка загрузки документа');
       setPdfLoading(false);
     }
   };
@@ -881,7 +905,18 @@ export default function ClientTickets() {
                   <p>Загрузка документа...</p>
                 </div>
               )}
-              <div ref={viewerRef} className={styles.pdfViewer}></div>
+              {previewGenerating && (
+                <div className={styles.pdfLoading}>
+                  <div className={styles.spinner}></div>
+                  <p style={{ color: '#f59e0b' }}>Превью не найдено, создаю... Пожалуйста, подождите.</p>
+                </div>
+              )}
+              {previewError && !pdfLoading && !previewGenerating && (
+                <div className={styles.pdfLoading}>
+                  <p style={{ color: '#ef4444' }}>{previewError}</p>
+                </div>
+              )}
+              <div ref={viewerRef} className={styles.pdfViewer} style={{ display: (pdfLoading || previewGenerating || previewError) ? 'none' : 'block' }}></div>
             </div>
           </div>
         </div>

@@ -1459,3 +1459,107 @@ func GetPreviewPages(c *gin.Context) {
 		"pageCount": len(pages),
 	})
 }
+
+// RegeneratePreview - регенерация превью для отчёта, у которого отсутствует превью
+func RegeneratePreview(c *gin.Context) {
+	filename := c.Param("filename")
+
+	// Убираем расширение .png если есть и получаем имя PDF
+	baseName := strings.TrimSuffix(filename, ".png")
+	pdfFilename := baseName + ".pdf"
+
+	// Получаем PDF файл из хранилища
+	var pdfContent []byte
+
+	if storage.IsS3Enabled() {
+		obj, _, err := storage.GetReportObject(context.Background(), "reports/"+pdfFilename)
+		if err == nil && obj != nil {
+			pdfContent, err = io.ReadAll(obj)
+			obj.Close()
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка чтения PDF файла"})
+				return
+			}
+		}
+	}
+
+	// Если не нашли в S3, пробуем локальное хранилище
+	if len(pdfContent) == 0 {
+		localPath := filepath.Join("uploads", "reports", pdfFilename)
+		data, err := os.ReadFile(localPath)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "PDF файл не найден"})
+			return
+		}
+		pdfContent = data
+	}
+
+	// Вызываем gRPC для регенерации превью
+	grpcClient, err := docgen.GetClientFromEnv()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Сервис генерации недоступен"})
+		return
+	}
+	defer grpcClient.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	req := &docgen.RegeneratePreviewRequest{
+		PdfContent: pdfContent,
+		BaseName:   baseName,
+	}
+
+	resp, err := grpcClient.RegeneratePreview(ctx, req)
+	if err != nil {
+		log.Printf("Ошибка gRPC регенерации превью: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка генерации превью"})
+		return
+	}
+
+	if !resp.Success {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": resp.ErrorMessage})
+		return
+	}
+
+	// Сохраняем сгенерированные страницы превью
+	var pageNames []string
+
+	for i, pageContent := range resp.PageContents {
+		pageName := fmt.Sprintf("%s_page_%d.png", baseName, i+1)
+		pageNames = append(pageNames, pageName)
+
+		if storage.IsS3Enabled() {
+			reader := bytes.NewReader(pageContent)
+			err := storage.UploadReportObject(context.Background(), "previews/"+pageName, reader, int64(len(pageContent)), "image/png")
+			if err != nil {
+				log.Printf("Ошибка загрузки превью в S3: %v", err)
+			}
+		} else {
+			previewsDir := filepath.Join("uploads", "previews")
+			os.MkdirAll(previewsDir, 0755)
+			pagePath := filepath.Join(previewsDir, pageName)
+			if err := os.WriteFile(pagePath, pageContent, 0644); err != nil {
+				log.Printf("Ошибка сохранения превью: %v", err)
+			}
+		}
+	}
+
+	// Также сохраняем первую страницу как основное превью (для миниатюр)
+	if len(resp.PageContents) > 0 {
+		mainPreviewName := baseName + ".png"
+		if storage.IsS3Enabled() {
+			reader := bytes.NewReader(resp.PageContents[0])
+			_ = storage.UploadReportObject(context.Background(), "previews/"+mainPreviewName, reader, int64(len(resp.PageContents[0])), "image/png")
+		} else {
+			mainPath := filepath.Join("uploads", "previews", mainPreviewName)
+			_ = os.WriteFile(mainPath, resp.PageContents[0], 0644)
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success":   true,
+		"pages":     pageNames,
+		"pageCount": int(resp.PageCount),
+	})
+}

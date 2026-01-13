@@ -55,6 +55,11 @@ func (c *Client) GenerateDocument(ctx context.Context, req *GenerateDocumentRequ
 	return c.client.GenerateDocument(ctx, req)
 }
 
+// RegeneratePreview вызывает gRPC метод для регенерации превью из PDF
+func (c *Client) RegeneratePreview(ctx context.Context, req *RegeneratePreviewRequest) (*RegeneratePreviewResponse, error) {
+	return c.client.RegeneratePreview(ctx, req)
+}
+
 // HealthCheck проверяет доступность сервиса
 func (c *Client) HealthCheck(ctx context.Context) (bool, error) {
 	resp, err := c.client.HealthCheck(ctx, &HealthCheckRequest{})
