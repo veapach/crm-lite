@@ -222,10 +222,21 @@ function Reports() {
         }
       }
 
-      // Быстрый показ первой страницы
-      const firstPageUrl = await loadPreviewPage(pages[0]);
+      // Проверяем, какие страницы уже в кэше
+      const cachedUrls = [];
+      for (const pageName of pages) {
+        if (previewCacheRef.current.has(pageName)) {
+          cachedUrls.push(previewCacheRef.current.get(pageName));
+        } else {
+          cachedUrls.push(null);
+        }
+      }
 
-      // Показываем первую страницу сразу
+      // Загружаем первую страницу сразу (если не в кэше)
+      const firstPageUrl = cachedUrls[0] || await loadPreviewPage(pages[0]);
+      cachedUrls[0] = firstPageUrl;
+
+      // Показываем страницы
       setTimeout(() => {
         const container = viewerRef.current;
         if (container) {
@@ -240,16 +251,16 @@ function Reports() {
             pageWrapper.style.paddingBottom = '16px';
             pageWrapper.style.minHeight = '200px'; // Placeholder height
 
-            if (index === 0) {
-              // Первая страница уже загружена
+            // Если URL уже в кэше, сразу показываем картинку
+            if (cachedUrls[index]) {
               const img = document.createElement('img');
-              img.src = firstPageUrl;
+              img.src = cachedUrls[index];
               img.style.maxWidth = '100%';
               img.style.height = 'auto';
               img.style.display = 'block';
               pageWrapper.appendChild(img);
             } else {
-              // Placeholder для остальных страниц
+              // Placeholder для страниц, которых нет в кэше
               const placeholder = document.createElement('div');
               placeholder.className = 'text-center text-muted py-4';
               placeholder.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div> Загрузка страницы ' + (index + 1) + '...';
@@ -262,9 +273,9 @@ function Reports() {
         setPreviewLoading(false);
       }, 0);
 
-      // Загружаем остальные страницы в фоне
-      if (pages.length > 1) {
-        for (let i = 1; i < pages.length; i++) {
+      // Загружаем только страницы, которых нет в кэше
+      for (let i = 1; i < pages.length; i++) {
+        if (!cachedUrls[i]) {
           const pageIndex = i;
           loadPreviewPage(pages[pageIndex]).then(url => {
             const pageWrapper = document.getElementById(`preview-page-${pageIndex}`);
