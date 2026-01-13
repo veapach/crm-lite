@@ -131,21 +131,10 @@ def generate_preview_png(pdf_path, preview_png_path):
     try:
         doc = fitz.open(pdf_path)
         page = doc.load_page(0)
-        # Уменьшаем масштаб с 2.0 до 1.5 для меньшего размера файла
-        matrix = fitz.Matrix(1.5, 1.5)
+        matrix = fitz.Matrix(2.0, 2.0)
         pix = page.get_pixmap(matrix=matrix, alpha=False)
-        tmp_path = preview_png_path + ".tmp"
-        pix.save(tmp_path)
+        pix.save(preview_png_path)
         doc.close()
-        
-        # Оптимизируем PNG с помощью PIL для уменьшения размера
-        try:
-            img = Image.open(tmp_path)
-            img.save(preview_png_path, "PNG", optimize=True)
-            os.remove(tmp_path)
-        except Exception:
-            os.replace(tmp_path, preview_png_path)
-        
         return preview_png_path
     except Exception as e:
         print(f"Ошибка генерации превью PNG: {e}")
