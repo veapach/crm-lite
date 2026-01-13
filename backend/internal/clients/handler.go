@@ -554,14 +554,20 @@ func ClientPreviewReport(c *gin.Context) {
 
 	// Получаем базовое имя без расширения (приходит .png, в БД хранится .pdf)
 	baseName := strings.TrimSuffix(filename, filepath.Ext(filename))
-	previewFilename := baseName + ".png"
-	pdfFilename := baseName + ".pdf"
+
+	// Убираем суффикс _page_N если есть (для многостраничных превью)
+	baseNameForSearch := baseName
+	if idx := strings.LastIndex(baseName, "_page_"); idx != -1 {
+		baseNameForSearch = baseName[:idx]
+	}
+
+	pdfFilename := baseNameForSearch + ".pdf"
 
 	// Находим отчёт по имени PDF файла (в БД хранится путь к PDF)
 	var report db.Report
 	if err := db.DB.Where("filename LIKE ?", "%"+pdfFilename).First(&report).Error; err != nil {
 		// Также пробуем искать по базовому имени на случай другого формата
-		if err := db.DB.Where("filename LIKE ?", "%"+baseName+"%").First(&report).Error; err != nil {
+		if err := db.DB.Where("filename LIKE ?", "%"+baseNameForSearch+"%").First(&report).Error; err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "отчёт не найден"})
 			return
 		}
@@ -590,8 +596,9 @@ func ClientPreviewReport(c *gin.Context) {
 	}
 
 	// Сначала проверяем S3 (основное хранилище)
+	// filename уже содержит имя PNG файла (может быть name.png или name_page_1.png)
 	if storage.IsS3Enabled() {
-		obj, info, err := storage.GetReportObject(context.Background(), "previews/"+previewFilename)
+		obj, info, err := storage.GetReportObject(context.Background(), "previews/"+filename)
 		if err == nil && obj != nil {
 			defer obj.Close()
 			if info.ContentType != "" {
@@ -606,7 +613,7 @@ func ClientPreviewReport(c *gin.Context) {
 	}
 
 	// Fallback на локальное хранилище
-	localPath := filepath.Join("uploads", "previews", previewFilename)
+	localPath := filepath.Join("uploads", "previews", filename)
 	if _, err := os.Stat(localPath); err == nil {
 		c.Header("Content-Type", "image/png")
 		c.File(localPath)
