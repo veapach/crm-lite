@@ -18,7 +18,9 @@ function NewReport() {
   // Prefill from query params if present
   const getInitialFormData = () => {
     const params = new URLSearchParams(window.location.search);
-    const date = params.get('date') || '';
+    // Если дата не передана в query params, используем сегодняшнюю дату
+    const today = new Date().toISOString().split('T')[0];
+    const date = params.get('date') || today;
     const address = params.get('address') || '';
     const classification = params.get('classification') || 'не выбрано';
     const customClass = params.get('customClass') || '';
@@ -55,7 +57,7 @@ function NewReport() {
         { task: 'Проверка настройки микропроцессоров', done: false },
         { task: 'Контроль силы тока в каждой из фаз и межфазных напряжений', done: false },
         { task: 'Контрольная проверка агрегата в рабочем режиме', done: false },
-        
+
       ],
     };
   };
@@ -124,8 +126,8 @@ function NewReport() {
       const response = await axios.get(`/api/equipment/memory?address=${encodeURIComponent(address)}&classification=${encodeURIComponent(classification)}`);
       setFormData(prev => ({
         ...prev,
-        equipmentItems: [{ 
-          name: response.data.machineName || '', 
+        equipmentItems: [{
+          name: response.data.machineName || '',
           number: response.data.machineNumber || '',
           quantity: response.data.count || 1
         }]
@@ -211,7 +213,7 @@ function NewReport() {
   const handleEquipmentSelect = (equipmentName, index) => {
     setFormData(prev => ({
       ...prev,
-      equipmentItems: prev.equipmentItems.map((item, i) => 
+      equipmentItems: prev.equipmentItems.map((item, i) =>
         i === index ? { ...item, name: equipmentName } : item
       )
     }));
@@ -239,7 +241,7 @@ function NewReport() {
   const handleEquipmentChange = (index, field, value) => {
     setFormData(prev => ({
       ...prev,
-      equipmentItems: prev.equipmentItems.map((item, i) => 
+      equipmentItems: prev.equipmentItems.map((item, i) =>
         i === index ? { ...item, [field]: value } : item
       )
     }));
@@ -514,12 +516,44 @@ function NewReport() {
         </div>
         <div className="mb-3">
           <label className="form-label fw-bold mt-3">Дата *</label>
+          <div className="d-flex gap-2 mb-2">
+            <button
+              type="button"
+              className={`btn btn-sm ${formData.date === new Date(Date.now() - 86400000).toISOString().split('T')[0] ? 'btn-primary' : 'btn-outline-primary'}`}
+              onClick={() => {
+                const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+                setFormData(prev => ({ ...prev, date: yesterday }));
+              }}
+            >
+              Вчера
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm ${formData.date === new Date().toISOString().split('T')[0] ? 'btn-primary' : 'btn-outline-primary'}`}
+              onClick={() => {
+                const today = new Date().toISOString().split('T')[0];
+                setFormData(prev => ({ ...prev, date: today }));
+              }}
+            >
+              Сегодня
+            </button>
+          </div>
           <input
             type="date"
             className="form-control"
             name="date"
             value={formData.date}
             onChange={handleChange}
+            onClick={(e) => {
+              // Для мобильных устройств вызываем showPicker если доступен
+              if (e.target.showPicker) {
+                try {
+                  e.target.showPicker();
+                } catch (err) {
+                  // Игнорируем ошибки если showPicker не поддерживается
+                }
+              }
+            }}
             style={getInputStyle('date')}
             required
           />
