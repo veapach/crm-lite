@@ -1316,15 +1316,13 @@ func PreviewReport(c *gin.Context) {
 func PreviewReportImage(c *gin.Context) {
 	filename := c.Param("filename")
 
-	// Устанавливаем заголовки кэширования - превью статичны и не меняются
-	// Кэш на 1 год для браузера, immutable означает что файл не изменится
-	c.Header("Cache-Control", "public, max-age=31536000, immutable")
-
 	// Сначала проверяем S3 (основное хранилище)
 	if storage.IsS3Enabled() {
 		obj, info, err := storage.GetReportObject(context.Background(), "previews/"+filename)
 		if err == nil && obj != nil {
 			defer obj.Close()
+			// Кэширование только для успешных ответов
+			c.Header("Cache-Control", "public, max-age=31536000, immutable")
 			if info.ContentType != "" {
 				c.Header("Content-Type", info.ContentType)
 			} else {
@@ -1339,11 +1337,14 @@ func PreviewReportImage(c *gin.Context) {
 	// Fallback на локальное хранилище (для старых файлов)
 	filePath := filepath.Join("uploads", "previews", filename)
 	if _, err := os.Stat(filePath); err == nil {
+		c.Header("Cache-Control", "public, max-age=31536000, immutable")
 		c.Header("Content-Type", "image/png")
 		c.File(filePath)
 		return
 	}
 
+	// Не кэшируем 404 ошибки!
+	c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
 	c.JSON(http.StatusNotFound, gin.H{"error": "Файл превью не найден"})
 }
 

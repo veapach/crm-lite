@@ -224,7 +224,8 @@ def generate_preview_png(pdf_path, preview_png_path):
     try:
         doc = fitz.open(pdf_path)
         page = doc.load_page(0)
-        matrix = fitz.Matrix(2.0, 2.0)
+        # Уменьшаем масштаб с 2.0 до 1.5 для меньшего размера файла
+        matrix = fitz.Matrix(1.5, 1.5)
         pix = page.get_pixmap(matrix=matrix, alpha=False)
         pix.save(preview_png_path)
         doc.close()
