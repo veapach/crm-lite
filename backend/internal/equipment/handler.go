@@ -80,52 +80,73 @@ func GetEquipmentMemory(c *gin.Context) {
 		dbClassification = "АВ"
 	}
 
-	var equipmentMemory db.EquipmentMemory
-	if err := db.DB.Where("address = ? AND classification = ?", address, dbClassification).First(&equipmentMemory).Error; err != nil {
+	var equipmentMemoryList []db.EquipmentMemory
+	if err := db.DB.Where("address = ? AND classification = ?", address, dbClassification).Find(&equipmentMemoryList).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении оборудования"})
+		return
+	}
+
+	if len(equipmentMemoryList) == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Оборудование не найдено"})
 		return
 	}
 
-	c.JSON(http.StatusOK, equipmentMemory)
+	c.JSON(http.StatusOK, equipmentMemoryList)
 }
 
 func SaveEquipmentMemory(c *gin.Context) {
-	var equipmentMemory db.EquipmentMemory
-	if err := c.ShouldBindJSON(&equipmentMemory); err != nil {
+	var input struct {
+		Address        string `json:"address"`
+		Classification string `json:"classification"`
+		Items          []struct {
+			Name     string `json:"name"`
+			Number   string `json:"number"`
+			Quantity int    `json:"quantity"`
+		} `json:"items"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат данных"})
 		return
 	}
 
-	if equipmentMemory.Address == "" || equipmentMemory.Classification == "" || equipmentMemory.MachineName == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Необходимо указать адрес, классификацию и название оборудования"})
+	if input.Address == "" || input.Classification == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Необходимо указать адрес и классификацию"})
 		return
 	}
 
 	// Преобразуем "Аварийный вызов" в "АВ" для сохранения в БД
-	dbClassification := equipmentMemory.Classification
-	if equipmentMemory.Classification == "Аварийный вызов" {
+	dbClassification := input.Classification
+	if input.Classification == "Аварийный вызов" {
 		dbClassification = "АВ"
 	}
 
-	var existing db.EquipmentMemory
-	if err := db.DB.Where("address = ? AND classification = ?", equipmentMemory.Address, dbClassification).First(&existing).Error; err == nil {
-		existing.MachineName = equipmentMemory.MachineName
-		existing.MachineNumber = equipmentMemory.MachineNumber
-		existing.Count++
-		if err := db.DB.Save(&existing).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при обновлении данных"})
+	// Удаляем все старые записи для этого адреса и классификации
+	db.DB.Where("address = ? AND classification = ?", input.Address, dbClassification).Delete(&db.EquipmentMemory{})
+
+	// Создаём новые записи
+	var savedItems []db.EquipmentMemory
+	for _, item := range input.Items {
+		if item.Name == "" {
+			continue
+		}
+		quantity := item.Quantity
+		if quantity < 1 {
+			quantity = 1
+		}
+		newMemory := db.EquipmentMemory{
+			Address:        input.Address,
+			Classification: dbClassification,
+			MachineName:    strings.TrimSpace(item.Name),
+			MachineNumber:  strings.TrimSpace(item.Number),
+			Quantity:       quantity,
+		}
+		if err := db.DB.Create(&newMemory).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении данных"})
 			return
 		}
-		c.JSON(http.StatusOK, existing)
-		return
+		savedItems = append(savedItems, newMemory)
 	}
 
-	equipmentMemory.Classification = dbClassification
-	equipmentMemory.Count = 1
-	if err := db.DB.Create(&equipmentMemory).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении данных"})
-		return
-	}
-
-	c.JSON(http.StatusOK, equipmentMemory)
+	c.JSON(http.StatusOK, savedItems)
 }

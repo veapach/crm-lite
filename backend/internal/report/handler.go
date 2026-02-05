@@ -27,11 +27,18 @@ import (
 	"backend/internal/storage"
 )
 
+type EquipmentItem struct {
+	Name     string `json:"name"`
+	Number   string `json:"number"`
+	Quantity int    `json:"quantity"`
+}
+
 type ReportData struct {
 	Date             string                   `json:"date"`
 	Address          string                   `json:"address"`
 	Machine_name     string                   `json:"machine_name"`
 	Machine_number   string                   `json:"machine_number"`
+	EquipmentItems   []EquipmentItem          `json:"equipmentItems"`
 	Inventory_number string                   `json:"inventory_number"`
 	Classification   string                   `json:"classification"`
 	CustomClass      string                   `json:"customClass"`
@@ -194,22 +201,30 @@ func CreateReport(c *gin.Context) {
 		}
 	}
 
-	if reportData.Address != "" && reportData.Classification != "" && reportData.Machine_name != "" {
-		var existingMemory db.EquipmentMemory
-		if err := db.DB.Where("address = ? AND classification = ?", reportData.Address, reportData.Classification).First(&existingMemory).Error; err == nil {
-			existingMemory.MachineName = reportData.Machine_name
-			existingMemory.MachineNumber = reportData.Machine_number
-			existingMemory.Count++
-			if err := db.DB.Save(&existingMemory).Error; err != nil {
-				log.Printf("Ошибка при обновлении памяти оборудования: %v", err)
+	if reportData.Address != "" && reportData.Classification != "" {
+		// Сохраняем каждое оборудование отдельно
+		// Сначала удаляем все старые записи для этого адреса и классификации
+		classification := reportData.Classification
+		if classification == "Аварийный вызов" {
+			classification = "АВ"
+		}
+		db.DB.Where("address = ? AND classification = ?", reportData.Address, classification).Delete(&db.EquipmentMemory{})
+
+		// Затем добавляем новые записи
+		for _, item := range reportData.EquipmentItems {
+			if item.Name == "" {
+				continue
 			}
-		} else {
+			quantity := item.Quantity
+			if quantity < 1 {
+				quantity = 1
+			}
 			newMemory := db.EquipmentMemory{
 				Address:        reportData.Address,
-				Classification: reportData.Classification,
-				MachineName:    reportData.Machine_name,
-				MachineNumber:  reportData.Machine_number,
-				Count:          1,
+				Classification: classification,
+				MachineName:    strings.TrimSpace(item.Name),
+				MachineNumber:  strings.TrimSpace(item.Number),
+				Quantity:       quantity,
 			}
 			if err := db.DB.Create(&newMemory).Error; err != nil {
 				log.Printf("Ошибка при создании памяти оборудования: %v", err)

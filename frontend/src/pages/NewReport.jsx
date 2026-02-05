@@ -124,13 +124,16 @@ function NewReport() {
   const fetchEquipmentMemory = async (address, classification) => {
     try {
       const response = await axios.get(`/api/equipment/memory?address=${encodeURIComponent(address)}&classification=${encodeURIComponent(classification)}`);
+      // API возвращает массив оборудования
+      const items = Array.isArray(response.data) ? response.data : [response.data];
+      const equipmentItems = items.map(item => ({
+        name: item.machineName || '',
+        number: item.machineNumber || '',
+        quantity: item.quantity || 1
+      }));
       setFormData(prev => ({
         ...prev,
-        equipmentItems: [{
-          name: response.data.machineName || '',
-          number: response.data.machineNumber || '',
-          quantity: response.data.count || 1
-        }]
+        equipmentItems: equipmentItems.length > 0 ? equipmentItems : [{ name: '', number: '', quantity: 1 }]
       }));
     } catch (error) {
       if (error.response?.status === 404) {
@@ -405,7 +408,7 @@ function NewReport() {
 
     // Если выбрана классификация "Другое", заменяем значение
     let dataToSend = { ...formData };
-    // Конвертируем equipmentItems в machine_name и machine_number для совместимости с бэкендом
+    // Формируем machine_name и machine_number для отображения в отчёте (совместимость с docgen)
     const equipmentNames = formData.equipmentItems
       .filter(item => item.name.trim())
       .map(item => item.quantity > 1 ? `${item.name} (${item.quantity} шт.)` : item.name)
@@ -416,7 +419,14 @@ function NewReport() {
       .join(', ');
     dataToSend.machine_name = equipmentNames;
     dataToSend.machine_number = equipmentNumbers;
-    delete dataToSend.equipmentItems;
+    // Передаём equipmentItems как массив для сохранения в памяти оборудования
+    dataToSend.equipmentItems = formData.equipmentItems
+      .filter(item => item.name.trim())
+      .map(item => ({
+        name: item.name.trim(),
+        number: item.number.trim(),
+        quantity: item.quantity || 1
+      }));
     // Добавляем выбранного исполнителя
     dataToSend.userId = parseInt(selectedUserId, 10);
     // Добавляем выбранную заявку для привязки (если есть)
@@ -630,7 +640,8 @@ function NewReport() {
           <label className="form-label fw-bold">Оборудование</label>
           {formData.equipmentItems.map((item, index) => (
             <div key={index} className="border rounded p-3 mb-2 position-relative">
-              <div className="d-flex gap-2 mb-2 align-items-start">
+              {/* Desktop layout */}
+              <div className="d-none d-md-flex gap-2 mb-2 align-items-start">
                 <div className="flex-grow-1 position-relative">
                   <label className="form-label small">Название</label>
                   <div className="input-group">
@@ -721,6 +732,101 @@ function NewReport() {
                     ×
                   </button>
                 )}
+              </div>
+              {/* Mobile layout */}
+              <div className="d-md-none">
+                <div className="d-flex align-items-start gap-2 mb-2">
+                  <div className="flex-grow-1 position-relative">
+                    <label className="form-label small">Название</label>
+                    <div className="input-group">
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="Название оборудования"
+                        value={item.name}
+                        onChange={e => handleEquipmentChange(index, 'name', e.target.value)}
+                        autoComplete="off"
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-outline-secondary"
+                        onClick={() => toggleEquipmentList(index)}
+                        title="Показать все оборудование"
+                      >
+                        <FaChevronDown />
+                      </button>
+                    </div>
+                    {showEquipmentSuggestions && activeEquipmentIndex === index && (
+                      <div className="position-absolute w-100 mt-1 border rounded shadow-sm dropdown-suggestions" style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}>
+                        {filteredEquipment.length > 0 ? (
+                          filteredEquipment.map((name, i) => (
+                            <div
+                              key={i}
+                              className="p-2 border-bottom cursor-pointer dropdown-suggestion-item"
+                              onClick={() => handleEquipmentSelect(name, index)}
+                              style={{ cursor: 'pointer' }}
+                            >
+                              {name}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-2 text-muted">Нет подходящего оборудования</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {formData.equipmentItems.length > 1 && (
+                    <button
+                      type="button"
+                      className="btn btn-danger btn-sm mt-4"
+                      onClick={() => handleRemoveEquipment(index)}
+                      title="Удалить"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+                <div className="mb-2">
+                  <label className="form-label small">Кол-во</label>
+                  <div className="d-flex align-items-center gap-1">
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary btn-sm"
+                      onClick={() => handleEquipmentChange(index, 'quantity', Math.max(1, (item.quantity || 1) - 1))}
+                      style={{ width: '40px', height: '38px' }}
+                    >
+                      −
+                    </button>
+                    <input
+                      type="tel"
+                      pattern="[0-9]*"
+                      inputMode="numeric"
+                      className="form-control text-center"
+                      style={{ width: '60px', MozAppearance: 'textfield' }}
+                      value={item.quantity}
+                      onChange={e => {
+                        const val = e.target.value;
+                        if (val === '' || /^\d+$/.test(val)) {
+                          handleEquipmentChange(index, 'quantity', val === '' ? '' : Number(val));
+                        }
+                      }}
+                      onBlur={e => {
+                        const val = Number(e.target.value);
+                        if (!val || val < 1) {
+                          handleEquipmentChange(index, 'quantity', 1);
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary btn-sm"
+                      onClick={() => handleEquipmentChange(index, 'quantity', (item.quantity || 1) + 1)}
+                      style={{ width: '40px', height: '38px' }}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
               </div>
               <div>
                 <label className="form-label small">Номер оборудования</label>

@@ -87,11 +87,11 @@ type Request struct {
 
 type EquipmentMemory struct {
 	ID             uint   `gorm:"primaryKey" json:"id"`
-	Address        string `gorm:"not null" json:"address"`
-	Classification string `gorm:"not null" json:"classification"`
+	Address        string `gorm:"not null;index:idx_equipment_memory" json:"address"`
+	Classification string `gorm:"not null;index:idx_equipment_memory" json:"classification"`
 	MachineName    string `gorm:"not null" json:"machineName"`
-	MachineNumber  string `gorm:"not null" json:"machineNumber"`
-	Count          int    `gorm:"not null;default:1" json:"count"`
+	MachineNumber  string `gorm:"default:''" json:"machineNumber"`
+	Quantity       int    `gorm:"not null;default:1" json:"quantity"`
 }
 
 // Client - модель клиента (заказчика услуг)
