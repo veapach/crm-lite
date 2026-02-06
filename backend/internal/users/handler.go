@@ -412,6 +412,7 @@ func UpdateUser(c *gin.Context) {
 		LastName    string `json:"lastName"`
 		Department  string `json:"department"`
 		HomeAddress string `json:"homeAddress"`
+		Password    string `json:"password"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -424,6 +425,15 @@ func UpdateUser(c *gin.Context) {
 		"last_name":    input.LastName,
 		"department":   input.Department,
 		"home_address": input.HomeAddress,
+	}
+
+	if input.Password != "" {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка при хешировании пароля"})
+			return
+		}
+		updates["password"] = string(hashedPassword)
 	}
 
 	if err := db.DB.Model(&db.User{}).Where("id = ?", targetUserID).Updates(updates).Error; err != nil {

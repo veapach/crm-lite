@@ -469,6 +469,7 @@ const Admin = () => {
                     <th>Фамилия</th>
                     <th>Отдел</th>
                     <th>Телефон</th>
+                    <th>Новый пароль</th>
                     <th>Действия</th>
                   </tr>
                 </thead>
@@ -511,6 +512,15 @@ const Admin = () => {
                       </td>
                       <td>{user.phone}</td>
                       <td>
+                        {editingUser === user.id && (
+                          <input 
+                            type="password" 
+                            placeholder="Новый пароль"
+                            id={`password-${user.id}`} 
+                          />
+                        )}
+                      </td>
+                      <td>
                         {editingUser === user.id ? (
                           <>
                             <button 
@@ -518,7 +528,8 @@ const Admin = () => {
                               onClick={() => updateUser(user.id, {
                                 firstName: document.getElementById(`firstName-${user.id}`).value,
                                 lastName: document.getElementById(`lastName-${user.id}`).value,
-                                department: document.getElementById(`department-${user.id}`).value
+                                department: document.getElementById(`department-${user.id}`).value,
+                                password: document.getElementById(`password-${user.id}`).value
                               })}
                             >
                               Сохранить
