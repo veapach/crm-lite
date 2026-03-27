@@ -826,15 +826,15 @@ func GetReportsCount(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"total":                   totalCount + toKitchenBakeryCount,
-		"month":                   monthCount + monthToKitchenBakeryCount,
+		"total":                   totalCount,
+		"month":                   monthCount,
 		"toKitchen":               toKitchenCount,
 		"toBakery":                toBakeryCount,
 		"toKitchenBakery":         toKitchenBakeryCount,
 		"to":                      toCount,
 		"av":                      avCount,
 		"pnr":                     pnrCount,
-		"filteredTotal":           filteredTotal + filteredToKitchenBakery,
+		"filteredTotal":           filteredTotal,
 		"filteredToKitchen":       filteredToKitchen,
 		"filteredToBakery":        filteredToBakery,
 		"filteredToKitchenBakery": filteredToKitchenBakery,
