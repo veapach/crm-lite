@@ -7,7 +7,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 const Statistics = () => {
-  const [stats, setStats] = useState({ month: 0, toKitchen: 0, toBakery: 0, toKitchenBakery: 0, to: 0, av: 0, pnr: 0, total: 0, filteredToKitchen: 0, filteredToBakery: 0, filteredToKitchenBakery: 0, filteredTo: 0, filteredAv: 0, filteredPnr: 0 });
+  const [stats, setStats] = useState({ month: 0, toKitchen: 0, toBakery: 0, toKitchenBakery: 0, to: 0, av: 0, pnr: 0, total: 0, filteredToKitchen: 0, filteredToBakery: 0, filteredToKitchenBakery: 0, filteredTo: 0, filteredAv: 0, filteredPnr: 0, filteredOther: 0 });
   const [filteredReports, setFilteredReports] = useState([]);
   const [activeClass, setActiveClass] = useState('');
   const [reportsLoading, setReportsLoading] = useState(false);
@@ -114,6 +114,7 @@ const Statistics = () => {
           filteredTo: response.data.filteredTo || 0,
           filteredAv: response.data.filteredAv || 0,
           filteredPnr: response.data.filteredPnr || 0,
+          filteredOther: response.data.filteredOther || 0,
         });
       } catch (err) {
         setError('Ошибка при загрузке статистики');
@@ -248,7 +249,7 @@ const Statistics = () => {
               style={{ fontWeight: 600, fontSize: '1em', borderWidth: 2, minWidth: 90, marginBottom: 8 }}
               onClick={() => handleClassClick('Другие')}
             >
-              Другие: {stats.month - stats.filteredAv - stats.filteredToKitchen - stats.filteredToBakery - (stats.filteredToKitchenBakery || 0) - stats.filteredTo - stats.filteredPnr}
+              Другие: {stats.filteredOther}
             </button>
           </div>
           <div className="statistics-total-count" style={{ fontSize: '1.1rem', color: '#888', marginBottom: 18 }}>

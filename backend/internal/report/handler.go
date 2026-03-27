@@ -720,7 +720,6 @@ func GetReportsCount(c *gin.Context) {
 
 	var totalCount, monthCount int64
 	var toKitchenCount, toBakeryCount, toKitchenBakeryCount, toCount, avCount, pnrCount int64
-	var monthToKitchenBakeryCount int64
 	var filteredTotal, filteredToKitchen, filteredToBakery, filteredToKitchenBakery, filteredTo, filteredAv, filteredPnr int64
 
 	if err := db.DB.Model(&db.Report{}).Where("user_id = ?", userID).Count(&totalCount).Error; err != nil {
@@ -732,14 +731,6 @@ func GetReportsCount(c *gin.Context) {
 		Where("user_id = ? AND date BETWEEN ? AND ?", userID, startOfMonth.Format("2006-01-02"), endOfMonth.Format("2006-01-02")).
 		Count(&monthCount).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении кол-ва отчетов за месяц"})
-		return
-	}
-
-	// Подсчитываем комбинированные отчеты за месяц отдельно
-	if err := db.DB.Model(&db.Report{}).
-		Where("user_id = ? AND classification = ? AND date BETWEEN ? AND ?", userID, "ТО Китчен/Пекарня", startOfMonth.Format("2006-01-02"), endOfMonth.Format("2006-01-02")).
-		Count(&monthToKitchenBakeryCount).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении кол-ва комбинированных отчетов за месяц"})
 		return
 	}
 
@@ -825,6 +816,11 @@ func GetReportsCount(c *gin.Context) {
 		}
 	}
 
+	filteredOther := filteredTotal - filteredToKitchen - filteredToBakery - filteredToKitchenBakery - filteredTo - filteredAv - filteredPnr
+	if filteredOther < 0 {
+		filteredOther = 0
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"total":                   totalCount,
 		"month":                   monthCount,
@@ -841,6 +837,7 @@ func GetReportsCount(c *gin.Context) {
 		"filteredTo":              filteredTo,
 		"filteredAv":              filteredAv,
 		"filteredPnr":             filteredPnr,
+		"filteredOther":           filteredOther,
 	})
 }
 
