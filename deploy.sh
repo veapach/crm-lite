@@ -74,6 +74,7 @@ sudo systemctl restart backend.service || { echo "Backend restart failed"; exit 
 
 echo "Building frontend..."
 cd ../frontend || exit
+npm install --legacy-peer-deps || { echo "npm install failed"; exit 1; }
 npm run build || { echo "Frontend build failed"; exit 1; }
 pm2 restart frontend || { echo "PM2 restart failed"; exit 1; }
 
