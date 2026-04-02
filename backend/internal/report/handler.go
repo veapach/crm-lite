@@ -841,6 +841,81 @@ func GetReportsCount(c *gin.Context) {
 	})
 }
 
+func GetReportsTrends(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
+		return
+	}
+
+	monthsParam := c.DefaultQuery("months", "6")
+	months, err := strconv.Atoi(monthsParam)
+	if err != nil || months < 1 || months > 24 {
+		months = 6
+	}
+
+	classifications := []string{"АВ", "ТО Китчен", "ТО Пекарня", "ТО Китчен/Пекарня", "ТО", "ПНР"}
+
+	type MonthData struct {
+		Month              string `json:"month"`
+		Total              int64  `json:"total"`
+		Av                 int64  `json:"av"`
+		ToKitchen          int64  `json:"toKitchen"`
+		ToBakery           int64  `json:"toBakery"`
+		ToKitchenBakery    int64  `json:"toKitchenBakery"`
+		To                 int64  `json:"to"`
+		Pnr                int64  `json:"pnr"`
+		Other              int64  `json:"other"`
+	}
+
+	now := time.Now()
+	result := make([]MonthData, 0, months)
+
+	for i := months - 1; i >= 0; i-- {
+		targetDate := now.AddDate(0, -i, 0)
+		startOfMonth := time.Date(targetDate.Year(), targetDate.Month(), 1, 0, 0, 0, 0, targetDate.Location())
+		endOfMonth := startOfMonth.AddDate(0, 1, 0).Add(-time.Second)
+		start := startOfMonth.Format("2006-01-02")
+		end := endOfMonth.Format("2006-01-02")
+		monthLabel := startOfMonth.Format("2006-01")
+
+		var totalCount int64
+		db.DB.Model(&db.Report{}).
+			Where("user_id = ? AND date BETWEEN ? AND ?", userID, start, end).
+			Count(&totalCount)
+
+		counts := make(map[string]int64)
+		var classifiedSum int64
+		for _, cls := range classifications {
+			var cnt int64
+			db.DB.Model(&db.Report{}).
+				Where("user_id = ? AND classification = ? AND date BETWEEN ? AND ?", userID, cls, start, end).
+				Count(&cnt)
+			counts[cls] = cnt
+			classifiedSum += cnt
+		}
+
+		otherCount := totalCount - classifiedSum
+		if otherCount < 0 {
+			otherCount = 0
+		}
+
+		result = append(result, MonthData{
+			Month:           monthLabel,
+			Total:           totalCount,
+			Av:              counts["АВ"],
+			ToKitchen:       counts["ТО Китчен"],
+			ToBakery:        counts["ТО Пекарня"],
+			ToKitchenBakery: counts["ТО Китчен/Пекарня"],
+			To:              counts["ТО"],
+			Pnr:             counts["ПНР"],
+			Other:           otherCount,
+		})
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
 func GetReportsHandler(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {

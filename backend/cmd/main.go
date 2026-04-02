@@ -196,6 +196,7 @@ func main() {
 	)
 	r.POST("/api/reports/upload-multiple", users.AuthMiddleware(), users.AdminMiddleware(), report.UploadMultipleReports)
 	r.GET("/api/reportscount", users.AuthMiddleware(), report.GetReportsCount)
+	r.GET("/api/reports/trends", users.AuthMiddleware(), report.GetReportsTrends)
 	r.GET("/api/reports/preview/:filename", users.AuthMiddleware(), report.PreviewReport)
 	r.GET("/api/reports/preview-image/:filename", users.AuthMiddleware(), report.PreviewReportImage)
 	r.GET("/api/reports/preview-pages/:filename", users.AuthMiddleware(), report.GetPreviewPages)
@@ -261,6 +262,7 @@ func main() {
 	r.DELETE("/api/travel-sheet/:id", users.AuthMiddleware(), travelsheet.DeleteTravelRecord)
 	r.GET("/api/travel-sheet/stats/daily", users.AuthMiddleware(), travelsheet.GetDailyStats)
 	r.GET("/api/travel-sheet/stats/monthly", users.AuthMiddleware(), travelsheet.GetMonthlyStats)
+	r.GET("/api/travel-sheet/trends", users.AuthMiddleware(), travelsheet.GetTravelTrends)
 
 	// Статические файлы
 	r.Static("/uploads/files", "./uploads/files")

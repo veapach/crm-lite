@@ -386,6 +386,66 @@
   border-radius: 4px;
 }
 
+/* ========== Графики путевого листа ========== */
+
+.travel-charts-section {
+  margin-bottom: 2rem;
+}
+
+.travel-charts-toggle {
+  width: 100%;
+  padding: 12px;
+  font-weight: 600;
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  margin-bottom: 1rem;
+}
+
+.travel-charts-toggle:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.travel-charts-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+.travel-chart-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  padding: 1.25rem;
+  overflow: hidden;
+}
+
+.travel-chart-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.travel-chart-wrapper {
+  width: 100%;
+  height: 250px;
+}
+
+@media (min-width: 768px) {
+  .travel-charts-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .travel-chart-wrapper {
+    height: 280px;
+  }
+}
+
 /* ========== Группировка записей по датам ========== */
 
 .travel-records-grouped {

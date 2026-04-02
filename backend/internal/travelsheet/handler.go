@@ -163,3 +163,47 @@ func GetMonthlyStats(c *gin.Context) {
 		"month": month,
 	})
 }
+
+func GetTravelTrends(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
+		return
+	}
+
+	monthsParam := c.DefaultQuery("months", "6")
+	months, err := strconv.Atoi(monthsParam)
+	if err != nil || months < 1 || months > 24 {
+		months = 6
+	}
+
+	type MonthData struct {
+		Month    string  `json:"month"`
+		Total    float64 `json:"total"`
+		Count    int64   `json:"count"`
+	}
+
+	now := time.Now()
+	result := make([]MonthData, 0, months)
+
+	for i := months - 1; i >= 0; i-- {
+		targetDate := now.AddDate(0, -i, 0)
+		monthPrefix := targetDate.Format("2006-01")
+
+		var total float64
+		var count int64
+
+		db.DB.Model(&db.TravelRecord{}).
+			Where("user_id = ? AND date LIKE ?", userID.(uint), monthPrefix+"%").
+			Select("COALESCE(SUM(distance), 0), COUNT(*)").
+			Row().Scan(&total, &count)
+
+		result = append(result, MonthData{
+			Month: monthPrefix,
+			Total: total,
+			Count: count,
+		})
+	}
+
+	c.JSON(http.StatusOK, result)
+}

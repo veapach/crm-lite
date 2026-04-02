@@ -1,6 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { FaChevronDown, FaCopy, FaCheck } from 'react-icons/fa';
+import {
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, Legend, ResponsiveContainer
+} from 'recharts';
 import '../styles/TravelSheet.css';
 import { useNavigate } from 'react-router-dom';
 
@@ -21,6 +25,8 @@ function TravelSheet() {
   const [sortDirection, setSortDirection] = useState('desc');
   const [homeAddress, setHomeAddress] = useState('');
   const [copiedDate, setCopiedDate] = useState(null);
+  const [travelTrends, setTravelTrends] = useState([]);
+  const [showCharts, setShowCharts] = useState(false);
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -36,6 +42,7 @@ function TravelSheet() {
     fetchTravelRecords();
     fetchStats();
     fetchUserHomeAddress();
+    fetchTravelTrends();
   }, [selectedDate, selectedMonth]);
 
   const fetchAddresses = async () => {
@@ -76,6 +83,15 @@ function TravelSheet() {
       setHomeAddress(response.data.user.homeAddress || '');
     } catch (error) {
       setHomeAddress('');
+    }
+  };
+
+  const fetchTravelTrends = async () => {
+    try {
+      const response = await axios.get('/api/travel-sheet/trends?months=6');
+      setTravelTrends(response.data || []);
+    } catch (err) {
+      console.error('Ошибка при загрузке трендов поездок:', err);
     }
   };
 
@@ -319,33 +335,6 @@ function TravelSheet() {
         </button>
       </div>
 
-      <div className="stats-container">
-        <div className="stat-item">
-          <label>Километраж за день:</label>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="form-control"
-          />
-          <div className="stat-value">
-            {dailyStats.total} км ({dailyStats.count} записей)
-          </div>
-        </div>
-        <div className="stat-item">
-          <label>Километраж за месяц:</label>
-          <input
-            type="month"
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="form-control"
-          />
-          <div className="stat-value">
-            {monthlyStats.total} км ({monthlyStats.count} записей)
-          </div>
-        </div>
-      </div>
-
       {showForm && (
         <div className="add-record-form">
           <h3>Добавить новую запись</h3>
@@ -454,6 +443,110 @@ function TravelSheet() {
 
       {error && <div className="alert alert-danger">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
+
+      <div className="stats-container">
+        <div className="stat-item">
+          <label>Километраж за день:</label>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="form-control"
+          />
+          <div className="stat-value">
+            {dailyStats.total} км ({dailyStats.count} записей)
+          </div>
+        </div>
+        <div className="stat-item">
+          <label>Километраж за месяц:</label>
+          <input
+            type="month"
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="form-control"
+          />
+          <div className="stat-value">
+            {monthlyStats.total} км ({monthlyStats.count} записей)
+          </div>
+        </div>
+      </div>
+
+      <div className="travel-charts-section">
+        <button
+          className="btn btn-outline-primary travel-charts-toggle"
+          onClick={() => setShowCharts(!showCharts)}
+        >
+          {showCharts ? 'Скрыть графики' : 'Показать графики'}
+        </button>
+
+        {showCharts && travelTrends.length > 0 && (
+          <div className="travel-charts-grid">
+            <div className="travel-chart-card">
+              <div className="travel-chart-title">Километраж по месяцам</div>
+              <div className="travel-chart-wrapper">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={travelTrends.map(t => {
+                    const [, m] = t.month.split('-');
+                    const names = ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
+                    return { ...t, label: `${names[parseInt(m,10)-1]} ${t.month.slice(2,4)}` };
+                  })} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
+                    <XAxis dataKey="label" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} />
+                    <YAxis tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} />
+                    <Tooltip
+                      contentStyle={{
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 8,
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                      }}
+                      labelStyle={{ color: 'var(--text-primary)', fontWeight: 700 }}
+                      itemStyle={{ color: 'var(--text-secondary)' }}
+                    />
+                    <Bar dataKey="total" name="Км" fill="#4ecdc4" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="travel-chart-card">
+              <div className="travel-chart-title">Количество поездок по месяцам</div>
+              <div className="travel-chart-wrapper">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={travelTrends.map(t => {
+                    const [, m] = t.month.split('-');
+                    const names = ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
+                    return { ...t, label: `${names[parseInt(m,10)-1]} ${t.month.slice(2,4)}` };
+                  })} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
+                    <XAxis dataKey="label" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} />
+                    <YAxis allowDecimals={false} tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} />
+                    <Tooltip
+                      contentStyle={{
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 8,
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                      }}
+                      labelStyle={{ color: 'var(--text-primary)', fontWeight: 700 }}
+                      itemStyle={{ color: 'var(--text-secondary)' }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="count"
+                      name="Поездок"
+                      stroke="#ff6b6b"
+                      strokeWidth={3}
+                      dot={{ fill: '#ff6b6b', r: 5 }}
+                      activeDot={{ r: 7 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="travel-records-grouped">
         {travelRecords.length === 0 ? (
