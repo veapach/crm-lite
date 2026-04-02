@@ -28,12 +28,11 @@ import (
 )
 
 func init() {
-	if err := godotenv.Load(); err != nil {
-		panic("No .env file found")
-	}
+	_ = godotenv.Load()
+
 	ginMode, exists := os.LookupEnv("GIN_MODE")
 	if !exists {
-		panic("GIN_MODE not found in .env file")
+		panic("GIN_MODE not set")
 	}
 	if ginMode == "release" {
 		gin.SetMode(gin.ReleaseMode)
@@ -101,7 +100,11 @@ func main() {
 	r.MaxMultipartMemory = 8 << 30 // 8 GiB
 
 	if serverMode == "RELEASE" {
-		conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+		rabbitmqURL := os.Getenv("RABBITMQ_URL")
+		if rabbitmqURL == "" {
+			rabbitmqURL = "amqp://guest:guest@localhost:5672/"
+		}
+		conn, err := amqp.Dial(rabbitmqURL)
 		if err != nil {
 			log.Fatalf("Ошибка подключения к RabbitMQ: %v", err)
 		}
@@ -110,7 +113,7 @@ func main() {
 			log.Fatalf("Ошибка создания канала RabbitMQ: %v", err)
 		}
 		tickets.TicketQueue = ch
-		go tickets.StartTicketWorker("amqp://guest:guest@localhost:5672/")
+		go tickets.StartTicketWorker(rabbitmqURL)
 	} else {
 		log.Println("DEBUG: RabbitMQ обработчик заявок отключен")
 	}
@@ -276,13 +279,17 @@ func main() {
 	switch serverMode {
 	case "RELEASE":
 		fmt.Println("Сервер запущен в режиме " + serverMode)
-		log.Fatal(
-			r.RunTLS(
-				":8080",
-				"/etc/letsencrypt/live/crmlite-vv.ru/fullchain.pem",
-				"/etc/letsencrypt/live/crmlite-vv.ru/privkey.pem",
-			),
-		)
+		if os.Getenv("DISABLE_TLS") == "true" {
+			log.Fatal(r.Run(":8080"))
+		} else {
+			log.Fatal(
+				r.RunTLS(
+					":8080",
+					"/etc/letsencrypt/live/crmlite-vv.ru/fullchain.pem",
+					"/etc/letsencrypt/live/crmlite-vv.ru/privkey.pem",
+				),
+			)
+		}
 	case "DEBUG":
 		fmt.Println("Сервер запущен в режиме " + serverMode)
 		log.Fatal(r.Run(":8080"))
